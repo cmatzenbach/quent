@@ -156,6 +156,9 @@ export function Timeline({
     () => [
       {
         type: 'value',
+        min: 0,
+        // Adds a 10% padding to the top of the bars
+        max: (value: { max: number }) => value.max * 1.1 || 1,
         splitNumber: 1,
         show: true,
         axisLine: {
