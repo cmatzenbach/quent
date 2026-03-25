@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { TimelineSeries, TimelineMark } from '@/components/timeline/types';
 import { TreeTableItem } from '@/components/resource-tree/types';
 import { formatQuantity } from '@/services/formatters';
