@@ -16,10 +16,16 @@ import type { CapacityDecl } from '~quent/types/CapacityDecl';
 import type { EChartsInstance } from 'echarts-for-react';
 import { connect, getInstanceByDom } from '@/lib/echarts';
 import { CHART_GROUP } from '@/components/timeline/Timeline';
-import { getColorForKey, WHITE, withOpacity } from '@/services/colors';
+import {
+  createCapacitiesColorFn,
+  createFsmTypeColorFn,
+  WHITE,
+  withOpacity,
+} from '@/services/colors';
 import type { BinnedSpanSec } from '~quent/types/BinnedSpanSec';
 import type { SingleTimelineResponse } from '~quent/types/SingleTimelineResponse';
 import type { FiniteStateMachine } from '~quent/types/FiniteStateMachine';
+import type { FsmTypeDecl } from '~quent/types/FsmTypeDecl';
 import type { TimelineRequest } from '~quent/types/TimelineRequest';
 import type { TaskFilter } from '~quent/types/TaskFilter';
 import type { TimelineConfig } from '~quent/types/TimelineConfig';
@@ -51,7 +57,8 @@ export function buildBinnedTimelineSeries(
   config: BinnedSpanSec,
   startTime: bigint,
   capacities?: CapacityDecl[],
-  quantitySpecs?: { [key in string]?: QuantitySpec }
+  quantitySpecs?: { [key in string]?: QuantitySpec },
+  fsmTypes?: { [key in string]?: FsmTypeDecl }
 ): {
   timestamps: number[];
   series: TimelineSeries;
@@ -83,10 +90,12 @@ export function buildBinnedTimelineSeries(
   if ('Binned' in data) {
     // ResourceTimelineBinned: capacities_values (flat: capacity → values)
     const { capacities_values } = data.Binned;
+    const capacityKeys = Object.keys(capacities_values).sort();
+    const colorCapacity = createCapacitiesColorFn(capacityKeys);
     for (const [capacity, values] of Object.entries(capacities_values)) {
       const formatter = getFormatter(capacity);
       series[capacity] = {
-        color: getColorForKey(capacity),
+        color: colorCapacity(capacity),
         formatter,
         values: values ?? [],
         binDuration: bin_duration,
@@ -94,13 +103,14 @@ export function buildBinnedTimelineSeries(
     }
   } else if ('BinnedByState' in data) {
     const { capacities_states_values } = data.BinnedByState;
+    const colorFsm = createFsmTypeColorFn(fsmTypes ?? {});
     for (const capacityType of Object.keys(capacities_states_values)) {
       const capacityStateValues = capacities_states_values[capacityType] ?? {};
       for (const [state, values] of Object.entries(capacityStateValues)) {
         const formatter = getFormatter(capacityType);
         if (values) {
           series[state] = {
-            color: getColorForKey(state),
+            color: colorFsm(state),
             binDuration: bin_duration,
             formatter,
             values,
@@ -145,6 +155,7 @@ export function buildTimelineMarks(
   longFsms: FiniteStateMachine[],
   startTime: bigint,
   resourceIdsForFilter?: Set<string> | null,
+  fsmTypes?: { [key in string]?: FsmTypeDecl },
   /** When provided, marks whose FSM is in this set are highlighted; others are dimmed. */
   overlayFsmIds?: Set<string>,
   overlayLabel?: string
@@ -152,6 +163,7 @@ export function buildTimelineMarks(
   if (longFsms.length === 0) return undefined;
 
   const startTimeMs = nanosToMs(startTime);
+  const colorFsm = createFsmTypeColorFn(fsmTypes ?? {});
 
   const marks = longFsms.flatMap(fsm => {
     const label = fsm.instance_name || fsm.id;
@@ -168,10 +180,11 @@ export function buildTimelineMarks(
         const next = fsm.transitions[i + 1];
         const xStart = startTimeMs + transition.timestamp * 1000;
         const xEnd = startTimeMs + next.timestamp * 1000;
+        const color = colorFsm(transition.name);
         return {
           label,
           stateName: transition.name,
-          color: getColorForKey(transition.name),
+          color,
           xStart,
           xEnd,
           ...(inOverlay !== undefined && {
