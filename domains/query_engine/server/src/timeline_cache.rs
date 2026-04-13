@@ -147,7 +147,7 @@ impl TimelineCache {
         let mut miss_count = 0u64;
 
         for chunk_idx in first_chunk..=last_chunk {
-            for (key, _entry) in &request.entries {
+            for key in request.entries.keys() {
                 let cache_key = ChunkCacheKey {
                     engine_id,
                     params_hash: entry_hashes[key],
