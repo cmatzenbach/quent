@@ -156,7 +156,7 @@ impl TimelineCache {
         <A as UiAnalyzer>::TimelineParams: Hash + Eq + Clone,
     {
         let Some(geometry) = compute_chunk_geometry(analyzer, &request)? else {
-            return Ok(analyzer.bulk_resource_timeline(request)?);
+            return Ok(tokio::task::block_in_place(|| analyzer.bulk_resource_timeline(request))?);
         };
 
         let entry_hashes = compute_entry_hashes(&request.entries, &request.app_params);
@@ -263,7 +263,8 @@ impl TimelineCache {
             "bulk timeline cold cache: full fetch"
         );
 
-        let response = analyzer.bulk_resource_timeline(request)?;
+        let response =
+            tokio::task::block_in_place(|| analyzer.bulk_resource_timeline(request))?;
 
         for (key, entry_resp) in &response.entries {
             if let BulkTimelinesResponseEntry::Ok { config, data, .. } = entry_resp {
@@ -346,9 +347,11 @@ impl TimelineCache {
                     })
                     .collect();
 
-            let response = analyzer.bulk_resource_timeline(BulkTimelineRequest {
-                entries: chunk_entries,
-                app_params: app_params.clone(),
+            let response = tokio::task::block_in_place(|| {
+                analyzer.bulk_resource_timeline(BulkTimelineRequest {
+                    entries: chunk_entries,
+                    app_params: app_params.clone(),
+                })
             })?;
 
             for (key, entry_resp) in response.entries {
@@ -467,7 +470,8 @@ impl TimelineCache {
                 app_params: request.app_params.clone(),
             };
 
-            let response = analyzer.single_resource_timeline(chunk_request)?;
+            let response =
+                tokio::task::block_in_place(|| analyzer.single_resource_timeline(chunk_request))?;
             self.chunks.insert(cache_key, response.clone()).await;
             chunk_responses.push(response);
         }
