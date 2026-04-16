@@ -80,7 +80,12 @@ export const QueryPlanNode = memo(({ data }: { data: QueryPlanNodeData }) => {
       className={nodeVariants({ selected: isSelected, dimmed: isDimmed })}
       onMouseEnter={() => {
         setIsHovered(true);
-        setHoveredNodeData({ nodeId: data.nodeId, label: data.label, operationType: data.operationType, statistics });
+        setHoveredNodeData({
+          nodeId: data.nodeId,
+          label: data.label,
+          operationType: data.operationType,
+          statistics,
+        });
       }}
       onMouseLeave={() => {
         setIsHovered(false);

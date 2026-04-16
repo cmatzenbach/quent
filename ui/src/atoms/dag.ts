@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { atom } from 'jotai';
-import type { NodeColoring, EdgeWidthConfig, EdgeColoring, StatValue } from '@/services/query-plan/types';
+import type {
+  NodeColoring,
+  EdgeWidthConfig,
+  EdgeColoring,
+  StatValue,
+} from '@/services/query-plan/types';
 import type { ContinuousPaletteName } from '@/services/colors';
 
 export interface InspectedNodeData {
