@@ -48,6 +48,10 @@ export function nanosToMs(ns: bigint): number {
   return Number(ns / 1_000_000n) + Number(ns % 1_000_000n) / 1_000_000;
 }
 
+/**
+ * Currently static but may be used in the future to prevent sub
+ * nanosecond bin sizes
+ */
 export function getAdaptiveNumBins(): number {
   return MAX_TIMELINE_BINS;
 }
