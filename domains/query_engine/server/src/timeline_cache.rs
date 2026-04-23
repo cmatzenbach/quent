@@ -19,7 +19,7 @@ use quent_ui::timeline::{
         ResourceTimelineBinned, ResourceTimelineBinnedByState, SingleTimelineResponse,
     },
 };
-use tracing::debug;
+use tracing::{debug, trace};
 use uuid::Uuid;
 
 use crate::error::ServerResult;
@@ -468,12 +468,12 @@ impl TimelineCache {
             };
 
             if let Some(cached) = self.chunks.get(&cache_key).await {
-                debug!("timeline chunk cache hit: {cache_key:?}");
+                trace!("timeline chunk cache hit: {cache_key:?}");
                 chunk_responses.push(cached);
                 continue;
             }
 
-            debug!("timeline chunk cache miss: {cache_key:?}");
+            trace!("timeline chunk cache miss: {cache_key:?}");
 
             // Convert chunk span back to relative seconds for the request.
             let chunk_request = SingleTimelineRequest {
