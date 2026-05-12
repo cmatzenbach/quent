@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import { useState } from 'react';
 import { Panel } from '@xyflow/react';
-import { Pin } from 'lucide-react';
+import { Pin, Maximize2 } from 'lucide-react';
 import { useSelectedNodeIds, useHoveredNodeData, useSelectedNodeData } from '@quent/hooks';
 import { DataText } from '../ui/data-text';
 import { thinScrollbarClass } from '../ui/thin-scroll';
@@ -16,11 +17,15 @@ export const DAGNodeInfoPanel = () => {
   const selectedNodeIds = useSelectedNodeIds();
   const hoveredNodeData = useHoveredNodeData();
   const selectedNodeData = useSelectedNodeData();
+  const [isMinimized, setIsMinimized] = useState(true);
 
-  const isPinned = selectedNodeIds.size > 0;
-  const displayData = isPinned ? selectedNodeData : hoveredNodeData;
+  // const isPinned = selectedNodeIds.size > 0;
+  const isPinned = true;
+  // const displayData = !isMinimized ? selectedNodeData : hoveredNodeData;
+  const displayData = selectedNodeData ?? hoveredNodeData;
 
-  if (!displayData) return null;
+  // if (!displayData) return null;
+  console.log(displayData);
   return (
     <Panel
       position="bottom-left"
@@ -28,22 +33,31 @@ export const DAGNodeInfoPanel = () => {
       style={isPinned ? undefined : { pointerEvents: 'none' }}
     >
       <div className="w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md">
+        <div className="flex">
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="rounded p-1 hover:bg-muted transition-colors"
+            aria-label="Toggle panel"
+          >
+            <Maximize2 className="h-3 w-3 text-muted-foreground" />
+          </button>
+        </div>
         <div className="flex items-center justify-between gap-2">
-          <DataText className="font-semibold text-sm truncate">{displayData.label}</DataText>
+          <DataText className="font-semibold text-sm truncate">{displayData?.label}</DataText>
           <div className="flex items-center gap-1 flex-shrink-0">
             {isPinned && <Pin className="h-3 w-3 text-muted-foreground" />}
             <DataText className="text-xs text-muted-foreground capitalize px-1.5 py-0.5 bg-muted rounded">
-              {displayData.operationType}
+              {displayData?.operationType}
             </DataText>
           </div>
         </div>
         <DataText as="div" className="text-xs text-muted-foreground truncate mt-0.5">
-          {displayData.nodeId}
+          {displayData?.nodeId}
         </DataText>
-        {displayData.statistics.length > 0 && (
+        {displayData?.statistics.length > 0 && !isMinimized && (
           <div className={`mt-1 border-t pt-1.5 max-h-56 overflow-y-auto ${thinScrollbarClass}`}>
             <div className="flex flex-col gap-1 pr-3">
-              {displayData.statistics.map(({ key, value }) => (
+              {displayData?.statistics.map(({ key, value }) => (
                 <div key={key} className="text-xs mt-1">
                   {Array.isArray(value) ? (
                     <div className="flex items-center justify-between gap-0.5">
