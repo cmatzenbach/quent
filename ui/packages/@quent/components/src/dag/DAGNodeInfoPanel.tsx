@@ -59,7 +59,7 @@ export const DAGNodeInfoPanel = () => {
             <DataText as="div" className="text-xs text-muted-foreground truncate mt-0.5">
               {selectedNodeData?.nodeId}
             </DataText>
-            {selectedNodeData?.statistics.length > 0 && (
+            {(selectedNodeData?.statistics?.length ?? 0) > 0 && (
               <div
                 className={`mt-1 border-t pt-1.5 max-h-56 overflow-y-auto ${thinScrollbarClass}`}
               >
