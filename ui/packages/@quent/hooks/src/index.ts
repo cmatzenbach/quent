@@ -75,8 +75,6 @@ export {
   useEdgeColoring,
   useEdgeColorPalette,
   useSelectedNodeLabelField,
-  useHoveredNodeData,
-  useSetHoveredNodeData,
   useSelectedNodeData,
   useSetSelectedNodeData,
   useHighlightedNodeIds,
