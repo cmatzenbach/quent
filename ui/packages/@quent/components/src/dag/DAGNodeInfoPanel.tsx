@@ -23,7 +23,6 @@ export const DAGNodeInfoPanel = () => {
     <Panel
       position="bottom-left"
       className="nodrag nopan mb-2 ml-2"
-      style={pointerEvents: 'none'}
     >
       <div className="w-72 rounded-md border bg-popover px-4 py-2 text-popover-foreground shadow-md">
         <div className="flex items-center justify-between">
@@ -48,7 +47,6 @@ export const DAGNodeInfoPanel = () => {
                 {selectedNodeData?.label}
               </DataText>
               <div className="flex items-center gap-1 flex-shrink-0">
-                {isPinned && <Pin className="h-3 w-3 text-muted-foreground" />}
                 <DataText className="text-xs text-muted-foreground capitalize px-1.5 py-0.5 bg-muted rounded">
                   {selectedNodeData?.operationType}
                 </DataText>
