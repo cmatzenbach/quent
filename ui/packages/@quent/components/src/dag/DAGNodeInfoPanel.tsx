@@ -4,13 +4,12 @@
 import { useEffect, useState } from 'react';
 import { Panel } from '@xyflow/react';
 import { Pin, ChevronUp, ChevronDown } from 'lucide-react';
-import { useSelectedNodeIds, useSelectedNodeData } from '@quent/hooks';
+import { useSelectedNodeData } from '@quent/hooks';
 import { DataText } from '../ui/data-text';
 import { thinScrollbarClass } from '../ui/thin-scroll';
 import { inferFieldFormatter } from '../services/query-plan/dagFieldProcessing';
 
 export const DAGNodeInfoPanel = () => {
-  const selectedNodeIds = useSelectedNodeIds();
   const selectedNodeData = useSelectedNodeData();
   const [isMinimized, setIsMinimized] = useState(true);
 
