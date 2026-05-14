@@ -13,8 +13,6 @@ export const DAGNodeInfoPanel = () => {
   const selectedNodeData = useSelectedNodeData();
   const [isMinimized, setIsMinimized] = useState(true);
 
-  const isPinned = true;
-
   useEffect(() => {
     if (!selectedNodeData) {
       setIsMinimized(true);
@@ -25,7 +23,7 @@ export const DAGNodeInfoPanel = () => {
     <Panel
       position="bottom-left"
       className="nodrag nopan mb-2 ml-2"
-      style={isPinned ? undefined : { pointerEvents: 'none' }}
+      style={pointerEvents: 'none'}
     >
       <div className="w-72 rounded-md border bg-popover px-4 py-2 text-popover-foreground shadow-md">
         <div className="flex items-center justify-between">
