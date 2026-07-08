@@ -300,7 +300,7 @@ pub fn expand(input: TokenStream) -> syn::Result<TokenStream> {
         impl #context_type {
             #[doc = #doc_try_new]
             pub fn try_new(
-                exporter: Option<quent_model::exporter::ExporterOptions>,
+                exporter: Option<quent_model::io::ExporterOptions>,
             ) -> Result<Self, Box<dyn std::error::Error>> {
                 Self::try_with_id(quent_model::uuid::Uuid::now_v7(), exporter)
             }
@@ -311,17 +311,17 @@ pub fn expand(input: TokenStream) -> syn::Result<TokenStream> {
             /// runtime restriction as [`Self::try_new`].
             pub fn try_with_id(
                 id: quent_model::uuid::Uuid,
-                exporter: Option<quent_model::exporter::ExporterOptions>,
+                exporter: Option<quent_model::io::ExporterOptions>,
             ) -> Result<Self, Box<dyn std::error::Error>> {
                 match exporter {
                     None => Ok(Self::noop(id)),
                     Some(options) => {
-                        let resolved = options.resolve(id);
                         quent_model::write_sidecar(
-                            &resolved,
+                            &options,
+                            id,
                             <#name as quent_model::build_info::ModelSource>::model_info(),
                         );
-                        Self::build(id, resolved)
+                        Self::build(id, options)
                     }
                 }
             }
@@ -365,12 +365,12 @@ pub fn expand(input: TokenStream) -> syn::Result<TokenStream> {
                 #[doc = #doc_import]
                 pub fn import_events(
                     dir: &std::path::Path,
-                ) -> quent_model::exporter::ImporterResult<
+                ) -> quent_model::io::ImporterResult<
                     Box<dyn Iterator<Item = quent_model::Event<#event_type>>>,
                 > {
                     // Detect the on-disk serialization format from the streams present;
                     // an empty/unrecognized context yields no events.
-                    let Some(format) = quent_model::exporter::FileSystemFormat::detect(dir) else {
+                    let Some(format) = quent_model::io::filesystem::Format::detect(dir) else {
                         return Ok(Box::new(std::iter::empty()));
                     };
                     let mut streams: Vec<
@@ -381,9 +381,9 @@ pub fn expand(input: TokenStream) -> syn::Result<TokenStream> {
                             let path =
                                 dir.join(<#event_types as quent_model::EntityEvent>::NAME);
                             if path.is_dir() {
-                                let importer = quent_model::exporter::create_importer::<#event_types>(
-                                    &quent_model::exporter::ImporterOptions::FileSystem(
-                                        quent_model::exporter::FileSystemImporterOptions {
+                                let importer = <quent_model::io::ImporterOptions as quent_model::io::ImporterProvider<#event_types>>::create_importer(
+                                    &quent_model::io::ImporterOptions::FileSystem(
+                                        quent_model::io::filesystem::importer::Options {
                                             format,
                                             path,
                                         },
@@ -476,23 +476,18 @@ pub fn expand(input: TokenStream) -> syn::Result<TokenStream> {
 
                 impl #context_type {
                     // The single sync/async bridge: on an active context, build
-                    // every entity's exporter from the resolved options and its
-                    // observer concurrently on the runtime, block until all
-                    // complete, and assemble.
+                    // every entity's observer (each constructing its exporter from
+                    // the options, bound to the context id) concurrently on the
+                    // runtime, block until all complete, and assemble.
                     fn build(
                         id: quent_model::uuid::Uuid,
-                        resolved: quent_model::exporter::ResolvedExporterOptions,
+                        options: quent_model::io::ExporterOptions,
                     ) -> Result<Self, Box<dyn std::error::Error>> {
                         let inner = quent_model::Context::try_new(id)?;
                         let ( #(#observer_fields,)* ) = inner.block_on(async {
                             let ( #(#observer_fields,)* ) = quent_model::tokio::try_join!(
                                 #(
-                                    async {
-                                        let exporter = <quent_model::exporter::ResolvedExporterOptions as quent_model::exporter::ExporterProvider<#event_types>>::create_exporter(
-                                            &resolved,
-                                        ).await?;
-                                        inner.observer::<#event_types>(exporter).await
-                                    },
+                                    inner.observer::<#event_types>(options.clone()),
                                 )*
                             )?;
                             Ok::<_, Box<dyn std::error::Error>>(( #(#observer_fields,)* ))

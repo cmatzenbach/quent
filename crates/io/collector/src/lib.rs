@@ -5,19 +5,37 @@
 
 use quent_collector_client::Client;
 use quent_events::{EntityEvent, Event};
-use quent_exporter_types::{Exporter, ExporterError, ExporterResult};
+use quent_io_types::{Exporter, ExporterError, ExporterProvider, ExporterResult};
 use serde::Serialize;
 use uuid::Uuid;
 
 /// User-facing options for the collector exporter.
 ///
-/// Streams events over gRPC to a remote collector service. Use this for
-/// distributed deployments where events are centralized for analysis. The
-/// source context id the collector reproduces under is supplied separately by
-/// the context when it builds the exporter (see [`CollectorExporter::try_new`]).
+/// Streams events over gRPC to a remote collector service.
 #[derive(Debug, Default, Clone)]
-pub struct CollectorExporterOptions {
-    pub address: http::Uri,
+pub struct Options {
+    address: http::Uri,
+}
+
+impl Options {
+    pub fn new(address: http::Uri) -> Self {
+        Self { address }
+    }
+}
+
+#[async_trait::async_trait]
+impl<T> ExporterProvider<T> for Options
+where
+    T: Send + EntityEvent + 'static,
+    T: serde::Serialize,
+{
+    async fn create_exporter(&self, context_id: Uuid) -> ExporterResult<Box<dyn Exporter<T>>> {
+        Ok(Box::new(
+            CollectorExporter::<T>::try_new(self.address.clone(), context_id)
+                .await
+                .map_err(ExporterError::Other)?,
+        ) as Box<dyn Exporter<T>>)
+    }
 }
 
 /// Streams one entity's events to a collector. The stream is tagged with the
@@ -56,7 +74,7 @@ where
         client.send(event).await.map_err(ExporterError::other)?;
         Ok(())
     }
-    async fn shutdown(&mut self) -> ExporterResult<()> {
+    async fn shutdown(mut self: Box<Self>) -> ExporterResult<()> {
         let Some(mut client) = self.client.take() else {
             return Ok(());
         };

@@ -10,40 +10,32 @@ mod common;
 use std::path::Path;
 
 use common::TestEvent;
-use quent_exporter::{
-    ExporterOptions, ExporterProvider, FileSystemExporterOptions, FileSystemFormat,
-    ResolvedExporterOptions,
-};
 use quent_instrumentation::{Context, Observer};
+use quent_io::ExporterOptions;
+use quent_io::filesystem::{self, Format};
 use uuid::Uuid;
 
 fn fs_opts(root: &Path) -> ExporterOptions {
-    ExporterOptions::FileSystem(FileSystemExporterOptions {
-        format: FileSystemFormat::Ndjson,
-        root: root.to_path_buf(),
-    })
+    ExporterOptions::FileSystem(filesystem::exporter::Options::new(
+        Format::Ndjson,
+        root.to_path_buf(),
+    ))
 }
 
 /// Build an active context for `root`, mirroring what a generated
 /// `{App}Context::try_new` does (minus sidecar write).
-fn active(root: &Path) -> (Context, ResolvedExporterOptions, Uuid) {
+fn active(root: &Path) -> (Context, ExporterOptions, Uuid) {
     let id = Uuid::now_v7();
     let ctx = Context::try_new(id).unwrap();
-    let exporter_opts = fs_opts(root).resolve(id);
+    let exporter_opts = fs_opts(root);
     (ctx, exporter_opts, id)
 }
 
-/// Build an observer through the one bridge: construct the exporter, then host
-/// it on the context's runtime.
-fn build(ctx: &Context, exporter_opts: &ResolvedExporterOptions) -> Observer<TestEvent> {
-    ctx.block_on(async {
-        let exporter = <ResolvedExporterOptions as ExporterProvider<TestEvent>>::create_exporter(
-            exporter_opts,
-        )
-        .await?;
-        ctx.observer::<TestEvent>(exporter).await
-    })
-    .unwrap()
+/// Build an observer through the one bridge: the context builds the exporter
+/// from the options (bound to its id) and hosts it on its runtime.
+fn build(ctx: &Context, exporter_opts: &ExporterOptions) -> Observer<TestEvent> {
+    ctx.block_on(async { ctx.observer::<TestEvent>(exporter_opts.clone()).await })
+        .unwrap()
 }
 
 /// Assert the observer flushed one non-empty ndjson batch under `<root>/<id>/`.

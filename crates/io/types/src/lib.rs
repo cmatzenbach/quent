@@ -3,8 +3,32 @@
 
 //! Basic traits for exporter / importer implementations
 
-use quent_events::{EntityEvent, Event};
+use quent_events::Event;
 use thiserror::Error;
+use uuid::Uuid;
+
+/// A sink for one entity's event stream.
+///
+/// This is `Send` because generated application contexts first attempt to
+/// create all exporters (asynchronously). If any errors occur, these are
+/// immediately surfaced through the blocking context creation API. If no errors
+/// occur, the exporters are then moved into their respective forwarder tasks.
+#[async_trait::async_trait]
+pub trait Exporter<T>: Send {
+    /// Export one event.
+    async fn push(&mut self, event: Event<T>) -> ExporterResult<()>;
+
+    /// Make a best-effort to flush any buffered events, then release any internal resources.
+    async fn shutdown(self: Box<Self>) -> ExporterResult<()>;
+}
+
+/// Provides an exporter instance for `T` bound to `context_id` (the id of the
+/// context whose events it exports). Backends that do not scope by context, such
+/// as a callback, ignore it.
+#[async_trait::async_trait]
+pub trait ExporterProvider<T> {
+    async fn create_exporter(&self, context_id: Uuid) -> ExporterResult<Box<dyn Exporter<T>>>;
+}
 
 #[derive(Debug, Error)]
 pub enum ExporterError {
@@ -29,14 +53,25 @@ impl From<std::io::Error> for ExporterError {
     }
 }
 
+/// Result of exporters.
+pub type ExporterResult<T> = std::result::Result<T, ExporterError>;
+
 #[derive(Error, Debug)]
 pub enum ImporterError {
     #[error("i/o error: {0}")]
     IoError(#[from] std::io::Error),
 }
 
-pub type ExporterResult<T> = std::result::Result<T, ExporterError>;
+/// Result type for importers.
 pub type ImporterResult<T> = std::result::Result<T, ImporterError>;
+
+/// A source of one entity's events.
+pub trait Importer<T>: Iterator<Item = Event<T>> {}
+
+/// Provides an importer instance for `T`.
+pub trait ImporterProvider<T> {
+    fn create_importer(&self) -> ImporterResult<Box<dyn Importer<T>>>;
+}
 
 /// Resolve the file an importer should read. If `path` is a directory, returns
 /// the single file in it whose extension is `ext`; otherwise returns `path`
@@ -62,32 +97,6 @@ pub fn resolve_import_path(
         std::io::ErrorKind::NotFound,
         format!("no .{ext} file found in directory {}", path.display()),
     )))
-}
-
-/// A sink for one entity's event stream.
-#[async_trait::async_trait]
-pub trait Exporter<T>: Send
-where
-    T: Send + EntityEvent,
-{
-    /// Export one event.
-    async fn push(&mut self, event: Event<T>) -> ExporterResult<()>;
-
-    /// Make a best-effort to flush any buffered events, then release any internal resources.
-    ///
-    /// Calling [`Self::push`] will result in an error after calling this.
-    async fn shutdown(&mut self) -> ExporterResult<()>;
-}
-
-pub trait Importer<T>: Iterator<Item = Event<T>> {}
-
-/// Trait for types that can provide an exporter backing entity stream `T`.
-#[async_trait::async_trait]
-pub trait ExporterProvider<T>
-where
-    T: Send + EntityEvent + 'static,
-{
-    async fn create_exporter(&self) -> ExporterResult<Box<dyn Exporter<T>>>;
 }
 
 #[cfg(test)]

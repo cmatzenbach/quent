@@ -9,7 +9,7 @@ use std::{
 };
 
 use quent_events::{EntityEvent, Event};
-use quent_exporter_types::{Exporter, ExporterError, ExporterResult, Importer, ImporterResult};
+use quent_io_types::{Exporter, ExporterError, ExporterResult, Importer, ImporterResult};
 use serde::{Deserialize, Serialize};
 use tokio::{
     fs::{File, OpenOptions},
@@ -72,7 +72,7 @@ where
         Ok(())
     }
 
-    async fn shutdown(&mut self) -> ExporterResult<()> {
+    async fn shutdown(mut self: Box<Self>) -> ExporterResult<()> {
         let Some(mut writer) = self.writer.take() else {
             return Ok(());
         };
@@ -95,7 +95,7 @@ pub struct NdjsonImporter<T> {
 
 impl<T> NdjsonImporter<T> {
     pub fn try_new(options: &NdjsonImporterOptions) -> ImporterResult<Self> {
-        let path = quent_exporter_types::resolve_import_path(&options.path, "ndjson")?;
+        let path = quent_io_types::resolve_import_path(&options.path, "ndjson")?;
         let file = std::fs::File::open(&path)?;
         Ok(Self {
             reader: BufReader::new(file),
@@ -131,45 +131,5 @@ where
                 None
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Serialize)]
-    struct TestEvent;
-    impl EntityEvent for TestEvent {
-        const NAME: &'static str = "TestEvent";
-    }
-
-    #[tokio::test]
-    async fn push_after_shutdown_errors() {
-        let dir = tempfile::tempdir().unwrap();
-        let mut exporter = NdjsonExporter::try_new::<TestEvent>(NdjsonExporterOptions {
-            dir: dir.path().to_path_buf(),
-        })
-        .await
-        .unwrap();
-
-        exporter
-            .push(Event::new_now(Uuid::now_v7(), TestEvent))
-            .await
-            .unwrap();
-        Exporter::<TestEvent>::shutdown(&mut exporter)
-            .await
-            .unwrap();
-
-        assert!(matches!(
-            exporter
-                .push(Event::new_now(Uuid::now_v7(), TestEvent))
-                .await,
-            Err(ExporterError::Shutdown)
-        ));
-        // A second shutdown is a no-op.
-        Exporter::<TestEvent>::shutdown(&mut exporter)
-            .await
-            .unwrap();
     }
 }

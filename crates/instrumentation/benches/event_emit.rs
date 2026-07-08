@@ -21,15 +21,12 @@ use std::path::Path;
 
 use criterion::{BenchmarkGroup, Criterion, Throughput, black_box, measurement::WallTime};
 use pprof::criterion::{Output, PProfProfiler};
-use quent_build_info::ModelInfo;
 use quent_collector::{CollectorSink, server::CollectorService};
 use quent_collector_proto::collector_server::CollectorServer;
 use quent_events::{EntityEvent, Event};
-use quent_exporter::{
-    CollectorExporterOptions, ExporterOptions, ExporterProvider, FileSystemExporterOptions,
-    FileSystemFormat, ResolvedExporterOptions,
-};
-use quent_instrumentation::{Context, Observer, write_sidecar};
+use quent_instrumentation::{Context, Observer};
+use quent_io::filesystem::{self, Format};
+use quent_io::{CollectorExporterOptions, ExporterOptions};
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 use tokio_stream::wrappers::TcpListenerStream;
@@ -55,14 +52,7 @@ fn build_observer(
         return Ok((Context::noop(id), Observer::noop()));
     };
     let ctx = Context::try_new(id)?;
-    let resolved = options.resolve(id);
-    write_sidecar(&resolved, ModelInfo::unknown());
-    let observer = ctx.block_on(async {
-        let exporter =
-            <ResolvedExporterOptions as ExporterProvider<BenchEvent>>::create_exporter(&resolved)
-                .await?;
-        ctx.observer::<BenchEvent>(exporter).await
-    })?;
+    let observer = ctx.block_on(async { ctx.observer::<BenchEvent>(options).await })?;
     Ok((ctx, observer))
 }
 
@@ -107,10 +97,10 @@ fn start_collector_server(backing_dir: &Path) -> BenchResult<http::Uri> {
     let address: http::Uri = format!("http://{}", std_listener.local_addr()?).parse()?;
     std_listener.set_nonblocking(true)?;
 
-    let backing = ExporterOptions::FileSystem(FileSystemExporterOptions {
-        format: FileSystemFormat::Ndjson,
-        root: backing_dir.to_path_buf(),
-    });
+    let backing = ExporterOptions::FileSystem(filesystem::exporter::Options::new(
+        Format::Ndjson,
+        backing_dir.to_path_buf(),
+    ));
 
     rt.spawn(async move {
         let listener = match tokio::net::TcpListener::from_std(std_listener) {
@@ -174,33 +164,30 @@ fn try_bench_emit(c: &mut Criterion) -> BenchResult {
     bench_emit_variant(
         &mut group,
         "ndjson",
-        Some(ExporterOptions::FileSystem(FileSystemExporterOptions {
-            format: FileSystemFormat::Ndjson,
-            root: ndjson_dir.path().to_path_buf(),
-        })),
+        Some(ExporterOptions::FileSystem(
+            filesystem::exporter::Options::new(Format::Ndjson, ndjson_dir.path().to_path_buf()),
+        )),
     )?;
     bench_emit_variant(
         &mut group,
         "msgpack",
-        Some(ExporterOptions::FileSystem(FileSystemExporterOptions {
-            format: FileSystemFormat::Msgpack,
-            root: msgpack_dir.path().to_path_buf(),
-        })),
+        Some(ExporterOptions::FileSystem(
+            filesystem::exporter::Options::new(Format::Msgpack, msgpack_dir.path().to_path_buf()),
+        )),
     )?;
     bench_emit_variant(
         &mut group,
         "postcard",
-        Some(ExporterOptions::FileSystem(FileSystemExporterOptions {
-            format: FileSystemFormat::Postcard,
-            root: postcard_dir.path().to_path_buf(),
-        })),
+        Some(ExporterOptions::FileSystem(
+            filesystem::exporter::Options::new(Format::Postcard, postcard_dir.path().to_path_buf()),
+        )),
     )?;
     bench_emit_variant(
         &mut group,
         "collector",
-        Some(ExporterOptions::Collector(CollectorExporterOptions {
-            address: collector_address,
-        })),
+        Some(ExporterOptions::Collector(CollectorExporterOptions::new(
+            collector_address,
+        ))),
     )?;
 
     group.finish();

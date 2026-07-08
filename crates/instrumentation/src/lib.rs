@@ -20,10 +20,7 @@ mod tests {
     use super::*;
     use quent_build_info::ModelSource;
     use quent_events::{EntityEvent, Event};
-    use quent_exporter::{
-        ExporterOptions, ExporterProvider, FileSystemExporterOptions, FileSystemFormat,
-        ResolvedExporterOptions,
-    };
+    use quent_io::{ExporterOptions, FileSystemExporterOptions, FileSystemFormat};
     use uuid::Uuid;
 
     struct TestModel;
@@ -49,25 +46,17 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let id = Uuid::now_v7();
         let ctx = Context::try_new(id).unwrap();
-        let resolved = ExporterOptions::FileSystem(FileSystemExporterOptions {
-            format: FileSystemFormat::Ndjson,
-            root: dir.path().to_path_buf(),
-        })
-        .resolve(id);
-        write_sidecar(&resolved, TestModel::model_info());
+        let options = ExporterOptions::FileSystem(FileSystemExporterOptions::new(
+            FileSystemFormat::Ndjson,
+            dir.path().to_path_buf(),
+        ));
+        write_sidecar(&options, id, TestModel::model_info());
 
         let context_dir = dir.path().join(id.to_string());
 
         {
             let observer = ctx
-                .block_on(async {
-                    let exporter =
-                        <ResolvedExporterOptions as ExporterProvider<TestEvent>>::create_exporter(
-                            &resolved,
-                        )
-                        .await?;
-                    ctx.observer::<TestEvent>(exporter).await
-                })
+                .block_on(async { ctx.observer::<TestEvent>(options).await })
                 .unwrap();
             observer.send(Event::new_now(Uuid::now_v7(), TestEvent));
             // Drop the observer to drain and flush before asserting.
