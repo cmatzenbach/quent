@@ -6,15 +6,16 @@ publish.workspace = true
 
 [features]
 default = ["ndjson", "msgpack", "postcard", "collector"]
-ndjson = ["dep:quent-exporter-ndjson"]
-msgpack = ["dep:quent-exporter-msgpack"]
-postcard = ["dep:quent-exporter-postcard"]
-collector = ["dep:quent-exporter-collector", "dep:http"]
+ndjson = ["dep:quent-exporter-ndjson", "dep:serde"]
+msgpack = ["dep:quent-exporter-msgpack", "dep:serde"]
+postcard = ["dep:quent-exporter-postcard", "dep:serde"]
+collector = ["dep:quent-exporter-collector", "dep:http", "dep:serde"]
 clap = ["dep:clap", "dep:http"]
 # Forwards each event to a caller-supplied callback (e.g. in-memory test collection).
 callback = ["dep:quent-exporter-callback"]
 
 [dependencies]
+async-trait.workspace = true
 clap = { version = "4.5.57", features = ["derive", "env"], optional = true }
 http = { workspace = true, optional = true }
 quent-events = { path = "../events" }
@@ -24,5 +25,5 @@ quent-exporter-collector = { path = "collector", optional = true }
 quent-exporter-msgpack = { path = "msgpack", optional = true }
 quent-exporter-ndjson = { path = "ndjson", optional = true }
 quent-exporter-postcard = { path = "postcard", optional = true }
-serde.workspace = true
+serde = { workspace = true, optional = true }
 uuid.workspace = true

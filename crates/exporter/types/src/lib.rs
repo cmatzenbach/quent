@@ -81,6 +81,15 @@ where
 
 pub trait Importer<T>: Iterator<Item = Event<T>> {}
 
+/// Trait for types that can provide an exporter backing entity stream `T`.
+#[async_trait::async_trait]
+pub trait ExporterProvider<T>
+where
+    T: Send + EntityEvent + 'static,
+{
+    async fn create_exporter(&self) -> ExporterResult<Box<dyn Exporter<T>>>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

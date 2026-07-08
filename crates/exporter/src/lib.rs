@@ -11,13 +11,16 @@ use quent_events::EntityEvent;
 use quent_exporter_types::ExporterError;
 #[cfg(filesystem)]
 use quent_exporter_types::Importer;
-use quent_exporter_types::{Exporter, ExporterResult};
+pub use quent_exporter_types::{Exporter, ExporterProvider, ExporterResult};
 #[cfg(filesystem)]
 use serde::Deserialize;
+#[cfg(any(filesystem, feature = "collector"))]
 use serde::Serialize;
 
 #[cfg(feature = "callback")]
-pub use quent_exporter_callback::{CallbackExporter, EventCallback, RecordedEvent};
+pub use quent_exporter_callback::{
+    CallbackExporter, CallbackExporterProvider, EventCallback, RecordedEvent,
+};
 
 // Part of the public API: `create_importer` returns `ImporterResult`, so callers
 // must be able to name it (and its error).
@@ -216,52 +219,74 @@ where
     }
 }
 
-/// Construct an exporter from [`ResolvedExporterOptions`].
-pub async fn create_exporter<T>(
-    kind: ResolvedExporterOptions,
-) -> ExporterResult<Box<dyn Exporter<T>>>
+// Exporter providers when any serde-bound exporter is enabled.
+#[cfg(any(filesystem, feature = "collector"))]
+#[async_trait::async_trait]
+impl<T> ExporterProvider<T> for ResolvedExporterOptions
 where
     T: Serialize + Send + EntityEvent + 'static,
 {
-    match kind {
-        #[cfg(filesystem)]
-        ResolvedExporterOptions::FileSystem(FileSystemExporterOptions { format, root }) => {
-            match format {
-                #[cfg(feature = "ndjson")]
-                FileSystemFormat::Ndjson => Ok(Box::new(
-                    quent_exporter_ndjson::NdjsonExporter::try_new::<T>(
-                        quent_exporter_ndjson::NdjsonExporterOptions { dir: root },
-                    )
-                    .await?,
-                ) as Box<dyn Exporter<T>>),
-                #[cfg(feature = "msgpack")]
-                FileSystemFormat::Msgpack => Ok(Box::new(
-                    quent_exporter_msgpack::MsgpackExporter::try_new::<T>(
-                        quent_exporter_msgpack::MsgpackExporterOptions { dir: root },
-                    )
-                    .await?,
-                ) as Box<dyn Exporter<T>>),
-                #[cfg(feature = "postcard")]
-                FileSystemFormat::Postcard => Ok(Box::new(
-                    quent_exporter_postcard::PostcardExporter::try_new::<T>(
-                        quent_exporter_postcard::PostcardExporterOptions { dir: root },
-                    )
-                    .await?,
-                ) as Box<dyn Exporter<T>>),
+    async fn create_exporter(&self) -> ExporterResult<Box<dyn Exporter<T>>> {
+        match self {
+            #[cfg(filesystem)]
+            ResolvedExporterOptions::FileSystem(FileSystemExporterOptions { format, root }) => {
+                match format {
+                    #[cfg(feature = "ndjson")]
+                    FileSystemFormat::Ndjson => Ok(Box::new(
+                        quent_exporter_ndjson::NdjsonExporter::try_new::<T>(
+                            quent_exporter_ndjson::NdjsonExporterOptions { dir: root.clone() },
+                        )
+                        .await?,
+                    ) as Box<dyn Exporter<T>>),
+                    #[cfg(feature = "msgpack")]
+                    FileSystemFormat::Msgpack => Ok(Box::new(
+                        quent_exporter_msgpack::MsgpackExporter::try_new::<T>(
+                            quent_exporter_msgpack::MsgpackExporterOptions { dir: root.clone() },
+                        )
+                        .await?,
+                    ) as Box<dyn Exporter<T>>),
+                    #[cfg(feature = "postcard")]
+                    FileSystemFormat::Postcard => Ok(Box::new(
+                        quent_exporter_postcard::PostcardExporter::try_new::<T>(
+                            quent_exporter_postcard::PostcardExporterOptions { dir: root.clone() },
+                        )
+                        .await?,
+                    ) as Box<dyn Exporter<T>>),
+                }
             }
-        }
-        #[cfg(feature = "collector")]
-        ResolvedExporterOptions::Collector {
-            address,
-            source_context_id,
-        } => Ok(Box::new(
-            quent_exporter_collector::CollectorExporter::<T>::try_new(address, source_context_id)
+            #[cfg(feature = "collector")]
+            ResolvedExporterOptions::Collector {
+                address,
+                source_context_id,
+            } => Ok(Box::new(
+                quent_exporter_collector::CollectorExporter::<T>::try_new(
+                    address.clone(),
+                    *source_context_id,
+                )
                 .await
                 .map_err(ExporterError::Other)?,
-        ) as Box<dyn Exporter<T>>),
-        #[cfg(feature = "callback")]
-        ResolvedExporterOptions::Callback(callback) => {
-            Ok(Box::new(CallbackExporter::new(callback)) as Box<dyn Exporter<T>>)
+            ) as Box<dyn Exporter<T>>),
+            #[cfg(feature = "callback")]
+            ResolvedExporterOptions::Callback(callback) => {
+                Ok(Box::new(CallbackExporter::new(callback.clone())) as Box<dyn Exporter<T>>)
+            }
+        }
+    }
+}
+
+// Exporter providers when no serde-bound exporters are enabled.
+#[cfg(not(any(filesystem, feature = "collector")))]
+#[async_trait::async_trait]
+impl<T> ExporterProvider<T> for ResolvedExporterOptions
+where
+    T: Send + EntityEvent + 'static,
+{
+    async fn create_exporter(&self) -> ExporterResult<Box<dyn Exporter<T>>> {
+        match self {
+            #[cfg(feature = "callback")]
+            ResolvedExporterOptions::Callback(callback) => {
+                Ok(Box::new(CallbackExporter::new(callback.clone())) as Box<dyn Exporter<T>>)
+            }
         }
     }
 }

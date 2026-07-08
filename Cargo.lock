@@ -2174,6 +2174,7 @@ dependencies = [
 name = "quent-exporter"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "clap",
  "http",
  "quent-events",
@@ -2284,13 +2285,11 @@ dependencies = [
  "criterion",
  "http",
  "pprof",
- "quent-attributes",
  "quent-build-info",
  "quent-collector",
  "quent-collector-proto",
  "quent-events",
  "quent-exporter",
- "quent-exporter-types",
  "serde",
  "tempfile",
  "tokio",
