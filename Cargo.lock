@@ -2217,6 +2217,7 @@ dependencies = [
  "criterion",
  "http",
  "pprof",
+ "quent-attributes",
  "quent-build-info",
  "quent-collector",
  "quent-collector-proto",
@@ -2224,6 +2225,7 @@ dependencies = [
  "quent-io",
  "serde",
  "tempfile",
+ "thiserror 2.0.18",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -2244,19 +2246,6 @@ dependencies = [
  "quote",
  "syn",
  "thiserror 2.0.18",
-]
-
-[[package]]
-name = "quent-instrumentation-build-example"
-version = "0.1.0"
-dependencies = [
- "quent-attributes",
- "quent-constraints",
- "quent-instrumentation-build",
- "quent-schema",
- "serde",
- "serde_json",
- "uuid",
 ]
 
 [[package]]
