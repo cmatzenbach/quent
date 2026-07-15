@@ -157,8 +157,7 @@ describe('computeEdgeColoring', () => {
   });
 
   it('returns continuous coloring for bigint values (coerced to number)', () => {
-    // Large U64/I64 port stats arrive as bigint; they are numeric and must
-    // still produce a continuous scale rather than degrading to categorical.
+    // Bigint stats stay continuous (coerced to number), not categorical.
     const edges = [
       makeEdge('e1', [{ key: 'rows', value: 10n }]),
       makeEdge('e2', [{ key: 'rows', value: 40n }]),
@@ -170,7 +169,6 @@ describe('computeEdgeColoring', () => {
     expect(result.max).toBe(40);
     expect(result.values.get('e1')).toBe(10);
     expect(result.values.get('e2')).toBe(40);
-    // Coerced to number, not left as bigint.
     expect(typeof result.values.get('e1')).toBe('number');
   });
 

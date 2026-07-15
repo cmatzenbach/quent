@@ -6,7 +6,7 @@ import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useSelectedNodeData } from '@quent/hooks';
 import { DataText } from '../ui/data-text';
 import { thinScrollbarClass } from '../ui/thin-scroll';
-import { inferFieldFormatter } from '@quent/utils';
+import { inferFieldFormatter, isNumericValue } from '@quent/utils';
 
 export const DAGNodeInfoPanel = () => {
   const selectedNodeData = useSelectedNodeData();
@@ -73,9 +73,7 @@ export const DAGNodeInfoPanel = () => {
                   <div className="flex items-center justify-between">
                     <DataText className="capitalize">{key.replace(/_/g, ' ')}:</DataText>
                     <DataText className="text-muted-foreground ml-1">
-                      {typeof value === 'number' || typeof value === 'bigint'
-                        ? inferFieldFormatter(key)(value)
-                        : String(value)}
+                      {isNumericValue(value) ? inferFieldFormatter(key)(value) : String(value)}
                     </DataText>
                   </div>
                 )}

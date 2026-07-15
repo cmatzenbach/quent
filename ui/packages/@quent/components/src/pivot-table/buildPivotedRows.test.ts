@@ -157,10 +157,6 @@ describe('buildPivotedRows row clustering', () => {
   });
 
   it('aggregates bigint stat values (large U64/I64) without throwing', () => {
-    // Regression guard: bigints are numeric, so they must be included in
-    // aggregation. Because the sum/min/max math runs on number[], each value is
-    // coerced with Number() — mixing a bigint with the `0` seed would otherwise
-    // throw "Cannot mix BigInt and other types".
     const rows: StatGroupExpandedRow[] = [
       expanded({ brand: { id: 'Ford' }, fuel: { id: 'Hybrid' } }, 'car-1', 'output_rows', 1000n),
       expanded({ brand: { id: 'Ford' }, fuel: { id: 'Hybrid' } }, 'car-2', 'output_rows', 3000n),

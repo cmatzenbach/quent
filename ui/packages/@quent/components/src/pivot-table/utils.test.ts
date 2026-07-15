@@ -163,7 +163,6 @@ describe('formatStatValue', () => {
   });
 
   it('formats a bigint value (large U64/I64 stat) via the field formatter', () => {
-    // Byte fields scale; a raw String() would show unformatted digits.
     expect(formatStatValue(1073741824n, 'spill_bytes')).toBe('1.00 GiB');
     expect(formatStatValue(1500n, 'output_rows')).toBe('1.50 k');
   });

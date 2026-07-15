@@ -26,7 +26,7 @@ import {
   useSetHighlightedNodeIds,
 } from '@quent/hooks';
 import { parseCustomStatistics } from '../lib/queryBundle.utils';
-import { inferFieldFormatter } from '@quent/utils';
+import { inferFieldFormatter, isNumericValue } from '@quent/utils';
 import { DataText } from '../ui/data-text';
 
 export interface QueryPlanNodeData extends Record<string, unknown> {
@@ -117,7 +117,7 @@ export const QueryPlanNode = memo(({ data }: { data: QueryPlanNodeData }) => {
   const formattedColorFieldValue =
     colorFieldValue === null
       ? null
-      : typeof colorFieldValue === 'number' || typeof colorFieldValue === 'bigint'
+      : isNumericValue(colorFieldValue)
         ? inferFieldFormatter(colorField!)(colorFieldValue)
         : String(colorFieldValue);
 

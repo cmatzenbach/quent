@@ -1,9 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { inferFieldFormatter } from '@quent/utils';
+import { inferFieldFormatter, isNumericValue } from '@quent/utils';
 import type { StatValue, ContinuousPaletteName } from '@quent/utils';
 import { continuousColor } from '@quent/utils';
+
+// Re-exported for consumers that still import it from here; defined in `@quent/utils`
+export { isNumericValue };
+
 import type {
   StatGroupExpandedRow,
   GroupKeyEntry,
@@ -43,14 +47,10 @@ export function itemHasId(items: Iterable<string>, target: ReadonlySet<string>):
 
 export function formatStatValue(value: StatValue, statName: string): string {
   if (value === null || value === undefined) return '-';
-  if (typeof value === 'number' || typeof value === 'bigint') return formatNumericStat(value, statName);
+  if (isNumericValue(value)) return formatNumericStat(value, statName);
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (Array.isArray(value)) return value.join(', ');
   return String(value);
-}
-
-export function isNumericValue(v: StatValue): v is number {
-  return typeof v === 'number' || typeof v === bigint;
 }
 
 // --- color gradient ---
@@ -173,7 +173,7 @@ export function getSortValue(
   if (!isAgg) {
     const v = row.values.get(stat);
     if (v === undefined) return null;
-    return isNumericValue(v) ? v : null;
+    return isNumericValue(v) ? Number(v) : null;
   }
   const agg = row.aggs.get(stat);
   if (!agg || !agg.isNumeric) return null;
@@ -256,7 +256,8 @@ export function buildPivotedRows(
       }
       bucket.count++;
       if (isNumericValue(row.value)) {
-        bucket.nums.push(row.value);
+        // coerce potential bigints
+        bucket.nums.push(Number(row.value));
       }
     }
   }
