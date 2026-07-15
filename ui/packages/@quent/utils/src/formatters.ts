@@ -113,15 +113,17 @@ const IEC: readonly [number, string][] = [
 ];
 
 export function formatWithPrefix(
-  value: number,
+  value: number | bigint,
   symbol: string,
   prefixSystem: PrefixSystem,
   decimals: number = 1
 ): string {
-  if (value === 0) return symbol ? `0 ${symbol}` : '0';
+  const num = typeof value === 'bigint' ? Number(value) : value;
 
-  const abs = value < 0 ? -value : value;
-  const sign = value < 0 ? '-' : '';
+  if (num === 0) return symbol ? `0 ${symbol}` : '0';
+
+  const abs = num < 0 ? -num : num;
+  const sign = num < 0 ? '-' : '';
 
   if (prefixSystem === 'None') {
     return symbol ? `${sign}${abs.toFixed(decimals)} ${symbol}` : `${sign}${abs.toFixed(decimals)}`;
@@ -270,20 +272,25 @@ function formatSiCount(value: number, decimals = 2): string {
  * Infer a numeric display formatter from a statistic/field name (DAG labels, pivot cells, legends).
  * Order: duration (ns) → bytes → row/batch counts → throughput → ratios → default table number.
  */
-export function inferFieldFormatter(fieldName: string): (value: number) => string {
-  if (fieldName.endsWith('_ns')) return v => formatDuration(v / 1e6);
-  if (isBytesStat(fieldName)) return v => formatBytes(v, 2);
-  if (isCountStat(fieldName)) return v => formatSiCount(v, 2);
-  if (fieldName.endsWith('_mbs')) return v => `${v.toFixed(1)} MB/s`;
-  if (
+export function inferFieldFormatter(fieldName: string): (value: number | bigint) => string {
+  let format: (value: number) => string;
+  if (fieldName.endsWith('_ns')) format = v => formatDuration(v / 1e6);
+  else if (isBytesStat(fieldName)) format = v => formatBytes(v, 2);
+  else if (isCountStat(fieldName)) format = v => formatSiCount(v, 2);
+  else if (fieldName.endsWith('_mbs')) format = v => `${v.toFixed(1)} MB/s`;
+  else if (
     fieldName.endsWith('_ratio') ||
     fieldName.endsWith('_fraction') ||
     fieldName.endsWith('_fpr') ||
     fieldName.endsWith('_selectivity') ||
     fieldName.endsWith('_rate')
   )
-    return v => `${(v * 100).toFixed(1)}%`;
-  return v => formatNumberWithMaxFractionDigits(v, 4);
+    format = v => `${(v * 100).toFixed(1)}%`;
+  else format = v => formatNumberWithMaxFractionDigits(v, 4);
+
+  // Large U64/I64 stats arrive as bigint (see `parseJsonWithBigInt`); coerce to
+  // number so the numeric formatters can scale and round them for display
+  return value => format(typeof value === 'bigint' ? Number(value) : value);
 }
 
 /**

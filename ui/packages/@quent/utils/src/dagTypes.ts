@@ -59,7 +59,7 @@ export const DAG_LAYOUT_DIRECTION = {
 
 export type DagLayoutDirection = (typeof DAG_LAYOUT_DIRECTION)[keyof typeof DAG_LAYOUT_DIRECTION];
 
-export type StatValue = string | number | boolean | null | string[];
+export type StatValue = string | number | bigint | boolean | null | string[];
 
 export interface DAGNode {
   id: string;
