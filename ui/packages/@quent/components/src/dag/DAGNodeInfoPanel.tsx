@@ -73,7 +73,9 @@ export const DAGNodeInfoPanel = () => {
                   <div className="flex items-center justify-between">
                     <DataText className="capitalize">{key.replace(/_/g, ' ')}:</DataText>
                     <DataText className="text-muted-foreground ml-1">
-                      {typeof value === 'number' ? inferFieldFormatter(key)(value) : String(value)}
+                      {typeof value === 'number' || typeof value === 'bigint'
+                        ? inferFieldFormatter(key)(value)
+                        : String(value)}
                     </DataText>
                   </div>
                 )}
