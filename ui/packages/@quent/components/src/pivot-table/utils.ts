@@ -23,7 +23,7 @@ export interface GroupIndexDef {
   getLabel: (row: StatGroupExpandedRow) => string;
 }
 
-export function formatNumericStat(n: number | null, statName: string): string {
+export function formatNumericStat(n: number | bigint | null, statName: string): string {
   if (n === null) return '-';
   return inferFieldFormatter(statName)(n);
 }
@@ -43,14 +43,14 @@ export function itemHasId(items: Iterable<string>, target: ReadonlySet<string>):
 
 export function formatStatValue(value: StatValue, statName: string): string {
   if (value === null || value === undefined) return '-';
-  if (typeof value === 'number') return formatNumericStat(value, statName);
+  if (typeof value === 'number' || typeof value === 'bigint') return formatNumericStat(value, statName);
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (Array.isArray(value)) return value.join(', ');
   return String(value);
 }
 
 export function isNumericValue(v: StatValue): v is number {
-  return typeof v === 'number';
+  return typeof v === 'number' || typeof v === bigint;
 }
 
 // --- color gradient ---
