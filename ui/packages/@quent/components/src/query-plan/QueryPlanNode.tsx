@@ -117,7 +117,7 @@ export const QueryPlanNode = memo(({ data }: { data: QueryPlanNodeData }) => {
   const formattedColorFieldValue =
     colorFieldValue === null
       ? null
-      : typeof colorFieldValue === 'number'
+      : typeof colorFieldValue === 'number' || typeof colorFieldValue === 'bigint'
         ? inferFieldFormatter(colorField!)(colorFieldValue)
         : String(colorFieldValue);
 
