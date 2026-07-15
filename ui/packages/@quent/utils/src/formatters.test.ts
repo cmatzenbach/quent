@@ -17,6 +17,7 @@ import {
   unwrapTaggedValue,
   formatAttributeValue,
   isBytesRateStat,
+  isNumericValue,
 } from './formatters';
 import type { QuantitySpec } from './types/index';
 
@@ -521,6 +522,21 @@ describe('unwrapTaggedValue', () => {
 
   it('stringifies objects that are not tagged values', () => {
     expect(unwrapTaggedValue({ foo: 1, bar: 2 })).toBe('{"foo":1,"bar":2}');
+  });
+});
+
+describe('isNumericValue', () => {
+  it('accepts numbers and bigints', () => {
+    expect(isNumericValue(42)).toBe(true);
+    expect(isNumericValue(0)).toBe(true);
+    expect(isNumericValue(42n)).toBe(true);
+  });
+
+  it('rejects non-numeric StatValue members', () => {
+    expect(isNumericValue('42')).toBe(false);
+    expect(isNumericValue(true)).toBe(false);
+    expect(isNumericValue(null)).toBe(false);
+    expect(isNumericValue(['1', '2'])).toBe(false);
   });
 });
 
