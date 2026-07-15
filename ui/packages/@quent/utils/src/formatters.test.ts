@@ -253,6 +253,32 @@ describe('formatWithPrefix (Iec)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// formatWithPrefix — bigint values
+// ---------------------------------------------------------------------------
+
+describe('formatWithPrefix (bigint)', () => {
+  it('formats zero bigint', () => {
+    expect(formatWithPrefix(0n, 'B', 'Iec')).toBe('0 B');
+    expect(formatWithPrefix(0n, '', 'None')).toBe('0');
+  });
+
+  it('scales positive bigints like numbers', () => {
+    expect(formatWithPrefix(1500n, 'Hz', 'Si')).toBe('1.5 kHz');
+    expect(formatWithPrefix(1024n, 'B', 'Iec')).toBe('1.0 KiB');
+    expect(formatWithPrefix(1073741824n, 'B', 'Iec')).toBe('1.0 GiB');
+  });
+
+  it('handles negative bigints', () => {
+    expect(formatWithPrefix(-1500n, 'Hz', 'Si')).toBe('-1.5 kHz');
+    expect(formatWithPrefix(-1024n, 'B', 'Iec')).toBe('-1.0 KiB');
+  });
+
+  it('formats bigints with the None prefix system', () => {
+    expect(formatWithPrefix(42n, 'Hz', 'None')).toBe('42.0 Hz');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // formatBytes
 // ---------------------------------------------------------------------------
 
@@ -420,6 +446,12 @@ describe('inferFieldFormatter', () => {
   it('formats unrecognised fields as numbers with max 4 fraction digits', () => {
     expect(inferFieldFormatter('custom_stat')(42)).toBe('42');
     expect(inferFieldFormatter('custom_stat')(3.14159)).toBe('3.1416');
+  });
+
+  it('accepts bigint values (large U64/I64 stats)', () => {
+    expect(inferFieldFormatter('spill_bytes')(1073741824n)).toBe('1.00 GiB');
+    expect(inferFieldFormatter('output_rows')(1500n)).toBe('1.50 k');
+    expect(inferFieldFormatter('custom_stat')(42n)).toBe('42');
   });
 });
 
