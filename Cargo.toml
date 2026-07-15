@@ -61,6 +61,7 @@ members = [
     "crates/fsm",
     "crates/resource",
     "crates/instrumentation-build",
+    "crates/yaml",
 ]
 
 # The instrumentation-build example is deliberately its own workspace (see its
