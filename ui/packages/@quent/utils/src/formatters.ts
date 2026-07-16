@@ -157,8 +157,9 @@ export function formatWithPrefix(
  * Integers are formatted with commas (e.g. 1,234,567).
  * Floats are rounded to 3 significant figures (e.g. 0.00123, 1.23, 12,300).
  */
-export function formatNumber(value: number): string {
-  if (Number.isInteger(value)) {
+export function formatNumber(value: number | bigint): string {
+  // bigint formats losslessly via Intl and is always an integer.
+  if (typeof value === 'bigint' || Number.isInteger(value)) {
     return new Intl.NumberFormat().format(value);
   }
   return new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 }).format(value);
@@ -179,7 +180,7 @@ export function formatNumberWithMaxFractionDigits(
   return new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
 }
 
-export function formatBytes(value: number, decimals = 1): string {
+export function formatBytes(value: number | bigint, decimals = 1): string {
   return formatWithPrefix(value, 'B', 'Iec', decimals);
 }
 
@@ -247,7 +248,7 @@ export function isBytesRateStat(name: string): boolean {
 export function formatAttributeValue(key: string, value: unknown): string {
   const v = unwrapTaggedValue(value);
   if (v == null) return '—';
-  if (typeof v === 'number') {
+  if (isNumericValue(v)) {
     if (isBytesRateStat(key)) return formatWithPrefix(v, 'B/s', 'Si', 2);
     if (isBytesStat(key)) return formatBytes(v, 2);
     return formatNumber(v);

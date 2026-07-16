@@ -258,6 +258,10 @@ describe('formatWithPrefix (Iec)', () => {
 // ---------------------------------------------------------------------------
 
 describe('formatWithPrefix (bigint)', () => {
+  it('does not throw on a BigInt (reported repro)', () => {
+    expect(() => formatWithPrefix(1024n, 'B', 'Iec')).not.toThrow();
+  });
+
   it('formats zero bigint', () => {
     expect(formatWithPrefix(0n, 'B', 'Iec')).toBe('0 B');
     expect(formatWithPrefix(0n, '', 'None')).toBe('0');
@@ -313,6 +317,11 @@ describe('formatNumber', () => {
     expect(formatNumber(1.23456)).toBe('1.23');
     expect(formatNumber(0.001234)).toBe('0.00123');
     expect(formatNumber(12345.6)).toBe('12,300');
+  });
+
+  it('formats bigints losslessly above Number.MAX_SAFE_INTEGER', () => {
+    // 9007199254740993 is not representable as a JS number (rounds to ...992).
+    expect(formatNumber(9007199254740993n)).toBe('9,007,199,254,740,993');
   });
 });
 
@@ -553,6 +562,11 @@ describe('formatAttributeValue', () => {
 
   it('renders missing values as a dash', () => {
     expect(formatAttributeValue('anything', null)).toBe('—');
+  });
+
+  it('handles bigint entity-attribute values (large U64/I64)', () => {
+    expect(formatAttributeValue('input_bytes', 1073741824n)).toBe('1.00 GiB');
+    expect(formatAttributeValue('current_operator_id', { U64: 42n })).toBe('42');
   });
 });
 
