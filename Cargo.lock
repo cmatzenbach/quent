@@ -2310,6 +2310,7 @@ dependencies = [
  "prettyplease",
  "proc-macro2",
  "quent-constraints",
+ "quent-ref-target",
  "quent-schema",
  "quote",
  "syn",
@@ -2783,6 +2784,8 @@ version = "0.1.0"
 dependencies = [
  "indexmap",
  "quent-constraints",
+ "quent-ref-target",
+ "quent-ref-tree",
  "quent-schema",
  "serde",
  "serde-saphyr",
