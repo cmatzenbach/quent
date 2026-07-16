@@ -193,6 +193,10 @@ export function isBytesStat(name: string): boolean {
   );
 }
 
+export function isNumericValue(v: StatValue): v is number | bigint {
+  return typeof v === 'number' || typeof v === 'bigint';
+}
+
 function unwrapToString(val: unknown): string {
   const result = unwrapTaggedValue(val);
   return Array.isArray(result) ? result.join('\n') : String(result ?? '');
@@ -288,8 +292,6 @@ export function inferFieldFormatter(fieldName: string): (value: number | bigint)
     format = v => `${(v * 100).toFixed(1)}%`;
   else format = v => formatNumberWithMaxFractionDigits(v, 4);
 
-  // Large U64/I64 stats arrive as bigint (see `parseJsonWithBigInt`); coerce to
-  // number so the numeric formatters can scale and round them for display
   return value => format(typeof value === 'bigint' ? Number(value) : value);
 }
 
