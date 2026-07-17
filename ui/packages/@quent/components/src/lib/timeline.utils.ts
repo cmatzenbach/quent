@@ -79,6 +79,7 @@ export function buildBinnedTimelineSeries(
 ): {
   timestamps: number[];
   series: TimelineSeries;
+  yAxisLabel: string | undefined;
 } {
   const { bin_duration, num_bins, span } = config;
 
@@ -146,7 +147,20 @@ export function buildBinnedTimelineSeries(
       values: [],
     };
   }
-  return { timestamps, series };
+
+  const rawCapacityKey = (() => {
+    if ('Binned' in data) {
+      return Object.keys(data.Binned.capacities_values)[0];
+    } else if ('BinnedByState' in data) {
+      return Object.keys(data.BinnedByState.capacities_states_values)[0];
+    } else {
+      return undefined;
+    }
+  })();
+  // "unit" is a backend default for dimensionless data — not a useful display label
+  const yAxisLabel: string | undefined = rawCapacityKey === 'unit' ? undefined : rawCapacityKey;
+
+  return { timestamps, series, yAxisLabel };
 }
 
 /** Extract the config from a SingleTimelineResponse */
@@ -710,9 +724,10 @@ export function computeVisibleMaxValue(
   const entries = Object.values(series).filter(e => !e.isDimmed && !e.isOverlay);
   if (!entries.length || !entries[0]?.values.length) return null;
   let max = 0;
+  const binDurationMs = (entries[0]?.binDuration ?? 0) * 1_000;
   for (let i = 0; i < entries[0].values.length; i++) {
     const t = timestamps[i];
-    if (t === undefined || t < zoomStartMs || t > zoomEndMs) continue;
+    if (t === undefined || t + binDurationMs <= zoomStartMs || t >= zoomEndMs) continue;
     const sum = entries.reduce((acc, e) => acc + (e.values[i] ?? 0), 0);
     if (sum > max) max = sum;
   }
