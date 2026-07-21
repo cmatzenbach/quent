@@ -38,6 +38,37 @@ pub(crate) struct Model {
     pub(crate) records: IndexMap<String, Record>,
     #[serde(default)]
     pub(crate) entities: IndexMap<String, Entity>,
+    #[serde(default)]
+    pub(crate) fsms: IndexMap<String, FsmSpec>,
+}
+
+/// An FSM entity: annotations plus its states.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct FsmSpec {
+    #[serde(default)]
+    pub(crate) doc: Option<String>,
+    #[serde(default)]
+    pub(crate) constraints: AnnotationMap,
+    #[serde(default)]
+    pub(crate) metadata: AnnotationMap,
+    pub(crate) states: IndexMap<String, StateSpec>,
+}
+
+/// One state of an FSM.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct StateSpec {
+    #[serde(default)]
+    pub(crate) initial: bool,
+    #[serde(default)]
+    pub(crate) attributes: IndexMap<String, Field>,
+    // States the FSM can transition to.
+    //
+    // "exit" is a reserved special name to mark a state as final before
+    // dissapearing from existence through the exit transition.
+    #[serde(default)]
+    pub(crate) to: Vec<String>,
 }
 
 /// A record: named fields plus annotations.
@@ -128,8 +159,11 @@ pub(crate) struct FieldBody {
 /// A field's type.
 ///
 /// A bare name is a built-in type (including `ref`, a plain entity reference)
-/// or the name of a record. The list and option forms wrap another type. Nested
-/// types are written as nested YAML, not packed into one string.
+/// or the name of a record. The list and option forms wrap another type. A
+/// `ref` or `scope-ref` form names the entity a reference points at and may
+/// carry a `data` type; a `scope-ref` additionally marks the reference as
+/// tree-forming. Nested types are written as nested YAML, not packed into one
+/// string.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub(crate) enum TypeExpr {
@@ -137,6 +171,8 @@ pub(crate) enum TypeExpr {
     Record(String),
     List(ListType),
     Option(OptionType),
+    Ref(RefForm),
+    Scope(ScopeForm),
 }
 
 /// The bare names that stand for a built-in type. Each is written lowercase in
@@ -173,6 +209,28 @@ pub(crate) struct ListType {
 #[serde(deny_unknown_fields)]
 pub(crate) struct OptionType {
     pub(crate) option: Box<TypeExpr>,
+}
+
+/// A targeted entity reference: `ref` names the entity it points at, with an
+/// optional `data` type the reference carries.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RefForm {
+    pub(crate) r#ref: String,
+    #[serde(default)]
+    pub(crate) data: Option<Box<TypeExpr>>,
+}
+
+/// A tree-forming targeted reference: `scope-ref` names the entity it points
+/// at and marks the reference as part of the scoping tree, with an optional
+/// `data` type the reference carries.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ScopeForm {
+    #[serde(rename = "scope-ref")]
+    pub(crate) scope_ref: String,
+    #[serde(default)]
+    pub(crate) data: Option<Box<TypeExpr>>,
 }
 
 impl From<Cardinality> for quent_schema::Cardinality {

@@ -10,6 +10,9 @@
 use std::path::Path;
 
 use quent_constraints::validate;
+use quent_fsm::FsmConstraint;
+use quent_ref_target::RefTargetConstraint;
+use quent_ref_tree::RefTreeConstraint;
 use quent_schema::Schema;
 use serde_saphyr::{MessageFormatter, UserMessageFormatter};
 
@@ -64,7 +67,7 @@ pub fn parse_from_str(src: impl AsRef<str>, source: Option<&str>) -> Result<Pars
         return Err(Error::Invalid(sink));
     }
 
-    let report = validate::<()>(&schema);
+    let report = validate::<(RefTargetConstraint, RefTreeConstraint, FsmConstraint)>(&schema);
     if let Err(e) = report.base_constraints {
         for record in e.recursive_records {
             sink.error(
@@ -79,6 +82,16 @@ pub fn parse_from_str(src: impl AsRef<str>, source: Option<&str>) -> Result<Pars
         for reference in e.invalid_references {
             sink.error("", format!("unresolved reference: {reference}"), None);
         }
+    }
+    let (ref_target, ref_tree, fsm) = report.results;
+    if let Err(e) = ref_target {
+        sink.error("", e.to_string(), None);
+    }
+    if let Err(e) = ref_tree {
+        sink.error("", e.to_string(), None);
+    }
+    if let Err(e) = fsm {
+        sink.error("", e.to_string(), None);
     }
     if sink.has_errors() {
         return Err(Error::Invalid(sink));
