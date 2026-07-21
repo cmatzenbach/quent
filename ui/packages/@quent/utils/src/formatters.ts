@@ -118,6 +118,15 @@ export function formatWithPrefix(
   prefixSystem: PrefixSystem,
   decimals: number = 1
 ): string {
+  // For the unprefixed case with a bigint, avoid Number() coercion to preserve full precision
+  if (prefixSystem === 'None' && typeof value === 'bigint') {
+    if (value === 0n) return symbol ? `0 ${symbol}` : '0';
+    const absB = value < 0n ? -value : value;
+    const signB = value < 0n ? '-' : '';
+    const str = decimals === 0 ? absB.toString() : `${absB}.${'0'.repeat(decimals)}`;
+    return symbol ? `${signB}${str} ${symbol}` : `${signB}${str}`;
+  }
+
   const num = typeof value === 'bigint' ? Number(value) : value;
 
   if (num === 0) return symbol ? `0 ${symbol}` : '0';
@@ -141,11 +150,15 @@ export function formatWithPrefix(
   }
 
   const table = prefixSystem === 'Iec' ? IEC : SI_UP;
+  const roundingFactor = 10 ** decimals;
   for (let i = 0; i < table.length; i++) {
     if (abs >= table[i][0]) {
       const scaled = abs / table[i][0];
-      const prefix = table[i][1];
-      return `${sign}${scaled.toFixed(decimals)} ${prefix}${symbol}`;
+      // If floating-point rounding bumps the mantissa into the next prefix, step up
+      if (i > 0 && Math.round(scaled * roundingFactor) >= (table[i - 1][0] / table[i][0]) * roundingFactor) {
+        return `${sign}${(abs / table[i - 1][0]).toFixed(decimals)} ${table[i - 1][1]}${symbol}`;
+      }
+      return `${sign}${scaled.toFixed(decimals)} ${table[i][1]}${symbol}`;
     }
   }
   const last = table[table.length - 1];

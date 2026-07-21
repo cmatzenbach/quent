@@ -161,6 +161,10 @@ describe('formatWithPrefix (None)', () => {
   it('respects decimals', () => {
     expect(formatWithPrefix(3.14159, 'Hz', 'None', 3)).toBe('3.142 Hz');
   });
+
+  it('preserves unprefixed bigint precision above Number.MAX_SAFE_INTEGER', () => {
+    expect(formatWithPrefix(9007199254740993n, 'Hz', 'None', 0)).toBe('9007199254740993 Hz');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -196,6 +200,10 @@ describe('formatWithPrefix (Si, values >= 1)', () => {
 
   it('handles negative values', () => {
     expect(formatWithPrefix(-1500, 'Hz', 'Si')).toBe('-1.5 kHz');
+  });
+
+  it('normalizes a rounded mantissa into the next prefix', () => {
+    expect(formatWithPrefix(999999999999999n, 'Hz', 'Si', 1)).toBe('1.0 PHz');
   });
 });
 
