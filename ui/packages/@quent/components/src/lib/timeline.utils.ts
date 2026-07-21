@@ -16,7 +16,6 @@ import type {
   ResourceTimeline,
   EntityRef,
   QuantitySpec,
-  CapacityDecl,
   BinnedSpanSec,
   SingleTimelineResponse,
   FiniteStateMachine,
@@ -24,6 +23,7 @@ import type {
   TimelineRequest,
   OperatorFilter,
   TimelineConfig,
+  ResourceTypeDecl,
 } from '@quent/utils';
 import { QueryEntities, ResourceTree } from '@quent/utils';
 import { entityRefToEntitiesKey } from './queryBundle.utils';
@@ -73,7 +73,7 @@ export function buildBinnedTimelineSeries(
   config: BinnedSpanSec,
   startTime: bigint,
   theme: PaletteTheme,
-  capacities?: CapacityDecl[],
+  resourceTypeDecl?: ResourceTypeDecl,
   quantitySpecs?: { [key in string]?: QuantitySpec },
   fsmTypes?: { [key in string]?: FsmTypeDecl }
 ): {
@@ -91,6 +91,8 @@ export function buildBinnedTimelineSeries(
   for (let i = 0; i < numBinsNumber; i++) {
     timestamps[i] = firstBinMs + i * binDurationMs;
   }
+
+  const capacities = resourceTypeDecl?.capacities;
 
   const getFormatter = (capacityName: string): ((value: number) => string) => {
     const capDecl = capacities?.find(c => c.name === capacityName);
@@ -148,17 +150,12 @@ export function buildBinnedTimelineSeries(
     };
   }
 
-  const rawCapacityKey = (() => {
-    if ('Binned' in data) {
-      return Object.keys(data.Binned.capacities_values)[0];
-    } else if ('BinnedByState' in data) {
-      return Object.keys(data.BinnedByState.capacities_states_values)[0];
-    } else {
-      return undefined;
-    }
+  const firstCap = resourceTypeDecl?.capacities[0];
+  const yAxisLabel: string | undefined = (() => {
+    if (!firstCap || firstCap.name === 'unit') return undefined;
+    const spec = quantitySpecs?.[firstCap.quantity];
+    return spec ? `${firstCap.name} (${spec.symbol})` : firstCap.name;
   })();
-  // "unit" is a backend default for dimensionless data — not a useful display label
-  const yAxisLabel: string | undefined = rawCapacityKey === 'unit' ? undefined : rawCapacityKey;
 
   return { timestamps, series, yAxisLabel };
 }

@@ -36,9 +36,9 @@ import type {
   SingleTimelineRequest,
   QueryFilter,
   OperatorFilter,
-  CapacityDecl,
   QuantitySpec,
   FsmTypeDecl,
+  ResourceTypeDecl,
 } from '@quent/utils';
 const Timeline = lazy(() => import('./Timeline').then(mod => ({ default: mod.Timeline })));
 
@@ -55,7 +55,7 @@ type ResourceTimelineProps = {
   showTooltip?: boolean;
   /** Pre-fetched timeline data from bulk endpoint; skips individual fetch when present */
   preloadedData?: SingleTimelineResponse;
-  capacities?: CapacityDecl[];
+  resourceTypeDecl?: ResourceTypeDecl;
   quantitySpecs?: { [key in string]?: QuantitySpec };
   fsmTypes?: { [key in string]?: FsmTypeDecl };
   /** Whether dark mode is active. Passed explicitly to decouple from ThemeContext. */
@@ -82,7 +82,7 @@ export function ResourceTimeline({
   fsmTypeName,
   resourceTypeName,
   showTooltip = true,
-  capacities,
+  resourceTypeDecl,
   quantitySpecs,
   fsmTypes,
   isDark,
@@ -194,7 +194,7 @@ export function ResourceTimeline({
       data.config,
       startTime,
       paletteTheme,
-      capacities,
+      resourceTypeDecl,
       quantitySpecs,
       fsmTypes
     );
@@ -221,7 +221,7 @@ export function ResourceTimeline({
             overlayPreloadedData.config,
             startTime,
             paletteTheme,
-            capacities,
+            resourceTypeDecl,
             quantitySpecs,
             fsmTypes
           );
@@ -261,7 +261,7 @@ export function ResourceTimeline({
     operatorId,
     overlayPreloadedData,
     startTime,
-    capacities,
+    resourceTypeDecl,
     quantitySpecs,
     fsmTypes,
     resourceType,
