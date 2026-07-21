@@ -15,6 +15,7 @@ type ResourceColumnProps = {
   onFsmChange?: (itemId: string, fsmType: string | null) => void;
   className?: string;
   verbose?: boolean;
+  metricLabel?: string;
 };
 
 /** Tree table column cell showing either a ResourceGroupRow or ResourceRow. */
@@ -26,6 +27,7 @@ export function ResourceColumn({
   selectedFsmType,
   onFsmChange,
   className,
+  metricLabel,
 }: ResourceColumnProps): React.ReactNode {
   return (
     <div className={cn('text-foreground flex truncate items-center', className)}>
@@ -41,9 +43,10 @@ export function ResourceColumn({
             availableFsmTypes={availableFsmTypes}
             selectedFsmType={selectedFsmType}
             onFsmChange={onFsmChange}
+            metricLabel={metricLabel}
           />
         ) : (
-          <ResourceRow resource={item.entity as Resource} />
+          <ResourceRow resource={item.entity as Resource} metricLabel={metricLabel} />
         )}
       </div>
     </div>

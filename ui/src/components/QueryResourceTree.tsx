@@ -23,6 +23,7 @@ import {
   collectVisibleEntries,
   buildBulkParamsForItem,
   findItemById,
+  deriveCapacityLabel,
 } from '@quent/components';
 import { useExpandedIds } from '@/hooks/useExpandedIds';
 import {
@@ -222,6 +223,19 @@ function QueryResourceTreeContent({ queryBundle, engineId }: QueryResourceTreePr
               const availableFsmTypes = selectedType
                 ? entities.resource_types[selectedType]?.used_by
                 : undefined;
+              const entityTypeName =
+                item.entity && 'type_name' in item.entity
+                  ? (item.entity.type_name as string)
+                  : undefined;
+              const isGroup = (item.children?.length ?? 0) > 0;
+              const resourceTypeName = isGroup ? selectedType : entityTypeName;
+              const resourceTypeDecl = resourceTypeName
+                ? entities.resource_types[resourceTypeName]
+                : undefined;
+              const capacityLabel = deriveCapacityLabel(resourceTypeDecl, queryBundle.quantity_specs);
+              const fsmLabel =
+                availableFsmTypes?.length === 1 ? `${availableFsmTypes[0]} (count)` : undefined;
+              const metricLabel = capacityLabel ?? fsmLabel;
               return (
                 <ResourceColumn
                   item={item}
@@ -237,6 +251,7 @@ function QueryResourceTreeContent({ queryBundle, engineId }: QueryResourceTreePr
                   onFsmChange={(itemId, fsmType) => {
                     setSelectedFsmTypes(prev => new Map(prev).set(itemId, fsmType));
                   }}
+                  metricLabel={metricLabel}
                 />
               );
             }

@@ -17,6 +17,7 @@ interface ResourceGroupRowProps {
   selectedFsmType?: string | null;
   onFsmChange?: (itemId: string, fsmType: string | null) => void;
   verbose?: boolean;
+  metricLabel?: string;
 }
 
 /** Group row showing resource group name and optional resource-type/FSM inline selectors. */
@@ -29,6 +30,7 @@ export const ResourceGroupRow = ({
   availableFsmTypes,
   selectedFsmType,
   onFsmChange,
+  metricLabel,
 }: ResourceGroupRowProps): React.ReactNode => {
   const hasMultipleChildTypes = (availableResourceTypes?.length ?? 0) > 1;
   const fsmCount = availableFsmTypes?.length ?? 0;
@@ -39,7 +41,7 @@ export const ResourceGroupRow = ({
   const showType = hasMultipleChildTypes && selectedType && onTypeChange && availableResourceTypes;
   const showFsmStatic = hasOneFsm;
   const showFsmSelector = hasMultipleFsms && onFsmChange && fsmOptions.length > 0;
-  const hasMetadata = showType || showFsmStatic || showFsmSelector;
+  const hasMetadata = showType || showFsmStatic || showFsmSelector || metricLabel;
 
   return (
     <div className="pb-1">
@@ -68,6 +70,11 @@ export const ResourceGroupRow = ({
               options={fsmOptions}
               onChange={(_, value) => onFsmChange!(id, value === FSM_ALL ? null : value)}
             />
+          )}
+          {metricLabel && (
+            <span className="text-[11px] leading-none text-muted-foreground">
+              Metric: <DataText className="text-foreground">{metricLabel}</DataText>
+            </span>
           )}
         </div>
       )}

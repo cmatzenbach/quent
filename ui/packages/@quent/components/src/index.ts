@@ -102,6 +102,7 @@ export {
   registerAxisPointerSync,
   unregisterAxisPointerSync,
   buildBinnedTimelineSeries,
+  deriveCapacityLabel,
   buildBulkParamsForItem,
   buildTimelineMarks,
   collectVisibleEntries,

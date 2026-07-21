@@ -47,7 +47,6 @@ export function Timeline({
   showTooltip = true,
   marks,
   isDark,
-  yAxisLabel,
   onHoverChange,
 }: {
   startTime: bigint;
@@ -60,8 +59,6 @@ export function Timeline({
   marks?: TimelineMark[];
   /** Whether dark mode is active. Passed explicitly to decouple from ThemeContext. */
   isDark: boolean;
-  /** Label describing the Y axis metric (e.g. capacity name). */
-  yAxisLabel?: string;
   /** Pointer-state callback. */
   onHoverChange?: (position: TimelineHoverPosition | null) => void;
 }) {
@@ -459,9 +456,9 @@ export function Timeline({
 
   return (
     <div className="relative w-full h-full">
-      {(yAxisLabel != null || maxValue != null) && (
+      {maxValue != null && (
         <span
-          className="absolute z-[8] pointer-events-none text-[10px] leading-none rounded-sm px-1 py-0.5 flex flex-col items-start gap-px"
+          className="absolute z-[8] pointer-events-none text-[10px] leading-none rounded-sm px-1 py-0.5"
           style={{
             top: TIMELINE_SPACING.top + 1,
             left: TIMELINE_SPACING.left + 1,
@@ -470,8 +467,7 @@ export function Timeline({
             background: labelBackgroundColor,
           }}
         >
-          {yAxisLabel != null && <span>{yAxisLabel}</span>}
-          {maxValue != null && <span>{formatAxisValue(maxValue)}</span>}
+          {formatAxisValue(maxValue)}
         </span>
       )}
       <EChartsReactCore

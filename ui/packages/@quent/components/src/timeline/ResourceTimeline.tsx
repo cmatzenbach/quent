@@ -180,11 +180,10 @@ export function ResourceTimeline({
     placeholderData: keepPreviousData,
   });
 
-  const { timestamps, series, marks, yAxisLabel } = useMemo<{
+  const { timestamps, series, marks } = useMemo<{
     timestamps: number[];
     series: TimelineSeries;
     marks?: TimelineMark[];
-    yAxisLabel?: string;
   }>(() => {
     const data = preloadedData ?? fetchedData;
     if (!data) return { timestamps: [], series: EMPTY_TIMELINE_SERIES };
@@ -229,7 +228,6 @@ export function ResourceTimeline({
           return {
             timestamps: base.timestamps,
             series: mergeOverlaySeries(base.series, opResult.series, operatorLabel),
-            yAxisLabel: base.yAxisLabel,
             marks: buildTimelineMarks(
               longFsms,
               startTime,
@@ -249,7 +247,6 @@ export function ResourceTimeline({
       return {
         timestamps: base.timestamps,
         series: dimSeries(base.series),
-        yAxisLabel: base.yAxisLabel,
         marks: timelineMarks,
       };
     }
@@ -310,7 +307,6 @@ export function ResourceTimeline({
   }
 
   const effectiveMarks = hideTasks ? undefined : marks;
-  const effectiveYAxisLabel = yAxisLabel ?? fsmTypeName;
 
   return (
     <div className="h-full w-full">
@@ -323,7 +319,6 @@ export function ResourceTimeline({
           showTooltip={showTooltip}
           marks={effectiveMarks}
           isDark={isDark}
-          yAxisLabel={effectiveYAxisLabel}
           onHoverChange={handleHoverChange}
         />
         {showTooltip && (
