@@ -86,7 +86,7 @@ export const DAGNodeInfoPanel = ({ isDark = false }: { isDark?: boolean }) => {
                     <div className="ml-2 flex flex-col gap-0.5">
                       {value.map((item, i) => (
                         <DataText key={i} className="text-muted-foreground whitespace-pre-line">
-                          {item}
+                          {String(item)}
                         </DataText>
                       ))}
                     </div>

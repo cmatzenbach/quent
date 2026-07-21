@@ -271,10 +271,10 @@ export function unwrapTaggedValue(val: unknown): StatValue {
   switch (true) {
     case val === null || val === undefined:
       return null;
-    case typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean':
-      return val as StatValue;
+    case typeof val === 'string' || typeof val === 'number':
+      return val;
     case typeof val === 'bigint':
-      return Number(val);
+      return val;
     case Array.isArray(val):
       return (val as unknown[]).map(unwrapToString);
     case typeof val === 'object': {
