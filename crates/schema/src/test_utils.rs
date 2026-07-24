@@ -10,10 +10,20 @@
 //! The functions in this module can panic and should only be used in tests.
 
 use crate::builder::{EntityBuilder, EventBuilder, RecordBuilder, SchemaBuilder};
-use crate::{Annotations, Cardinality, DataType, Entity, Event, Field, Identifier, Record, Schema};
+use crate::{
+    Annotations, Cardinality, DataType, Entity, Event, Field, Identifier, Path, Record, Schema,
+};
 
 pub fn ident(s: &str) -> Identifier {
     Identifier::try_new(s).unwrap()
+}
+/// Parses a schema path, panicking if it is invalid.
+pub fn path(s: &str) -> Path {
+    s.parse().unwrap()
+}
+/// Constructs a record-reference data type, panicking if the path is invalid.
+pub fn record_type(s: &str) -> DataType {
+    DataType::Record(path(s))
 }
 pub fn field(name: &str, ty: DataType) -> Field {
     Field::new(ident(name), ty, Annotations::default())
@@ -32,16 +42,16 @@ pub fn event_with(
         .unwrap()
 }
 pub fn entity(name: &str, events: impl IntoIterator<Item = Event>) -> Entity {
-    EntityBuilder::new(ident(name))
+    EntityBuilder::new(path(name))
         .with_events(events)
         .build()
         .unwrap()
 }
 pub fn eventless_entity(name: &str) -> Entity {
-    Entity::from_parts(ident(name), Default::default(), Annotations::default())
+    Entity::from_parts(path(name), Default::default(), Annotations::default())
 }
 pub fn record(name: &str, fields: impl IntoIterator<Item = Field>) -> Record {
-    RecordBuilder::new(ident(name))
+    RecordBuilder::new(path(name))
         .with_fields(fields)
         .build()
         .unwrap()
@@ -56,4 +66,21 @@ pub fn schema(
         .with_records(records)
         .build()
         .unwrap()
+}
+
+/// Constructs a schema without applying [`SchemaBuilder`] validation.
+pub fn unchecked_schema(
+    name: &str,
+    entities: impl IntoIterator<Item = Entity>,
+    records: impl IntoIterator<Item = Record>,
+) -> Schema {
+    let entities = entities
+        .into_iter()
+        .map(|entity| (entity.path().clone(), entity))
+        .collect();
+    let records = records
+        .into_iter()
+        .map(|record| (record.path().clone(), record))
+        .collect();
+    Schema::from_parts(ident(name), entities, records, Annotations::default())
 }
