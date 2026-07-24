@@ -2969,6 +2969,7 @@ dependencies = [
  "quent-query-engine-analyzer",
  "quent-query-engine-model",
  "quent-query-engine-ui",
+ "quent-simulator-ui-bindings",
  "quent-time",
  "quent-ui",
  "rust-embed",
@@ -3124,14 +3125,10 @@ dependencies = [
  "clap",
  "quent-io",
  "quent-query-engine-server",
- "quent-query-engine-ui",
  "quent-simulator-analyzer",
  "quent-simulator-instrumentation",
- "quent-simulator-ui",
- "quent-ui",
  "tokio",
  "tracing",
- "ts-rs",
  "uuid",
 ]
 
@@ -3143,6 +3140,16 @@ dependencies = [
  "serde",
  "ts-rs",
  "uuid",
+]
+
+[[package]]
+name = "quent-simulator-ui-bindings"
+version = "0.1.0"
+dependencies = [
+ "quent-query-engine-ui",
+ "quent-simulator-ui",
+ "quent-ui",
+ "ts-rs",
 ]
 
 [[package]]
