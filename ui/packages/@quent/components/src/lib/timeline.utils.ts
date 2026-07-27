@@ -68,20 +68,6 @@ export function getLongEntitiesThreshold(windowSeconds: number): number {
   return LONG_ENTITIES_BIN_MULTIPLIER * (windowSeconds / numBins);
 }
 
-/**
- * Derive a display label for the y-axis from a resource type's capacity metadata.
- * Returns undefined for dimensionless ("unit") capacities or when no decl is provided.
- */
-export function deriveCapacityLabel(
-  resourceTypeDecl: ResourceTypeDecl | undefined,
-  quantitySpecs: { [key in string]?: QuantitySpec } | undefined
-): string | undefined {
-  const cap = resourceTypeDecl?.capacities[0];
-  if (!cap || cap.name === 'unit') return undefined;
-  const spec = quantitySpecs?.[cap.quantity];
-  return spec ? `${cap.name} (${spec.symbol})` : cap.name;
-}
-
 export function buildBinnedTimelineSeries(
   data: ResourceTimeline,
   config: BinnedSpanSec,
@@ -93,6 +79,7 @@ export function buildBinnedTimelineSeries(
 ): {
   timestamps: number[];
   series: TimelineSeries;
+  yAxisLabel: string | undefined;
 } {
   const { bin_duration, num_bins, span } = config;
 
@@ -163,7 +150,14 @@ export function buildBinnedTimelineSeries(
     };
   }
 
-  return { timestamps, series };
+  const firstCap = resourceTypeDecl?.capacities[0];
+  const yAxisLabel: string | undefined = (() => {
+    if (!firstCap || firstCap.name === 'unit') return undefined;
+    const spec = quantitySpecs?.[firstCap.quantity];
+    return spec ? `${firstCap.name} (${spec.symbol})` : firstCap.name;
+  })();
+
+  return { timestamps, series, yAxisLabel };
 }
 
 /** Extract the config from a SingleTimelineResponse */
