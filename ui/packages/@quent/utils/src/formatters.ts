@@ -155,7 +155,10 @@ export function formatWithPrefix(
     if (abs >= table[i][0]) {
       const scaled = abs / table[i][0];
       // If floating-point rounding bumps the mantissa into the next prefix, step up
-      if (i > 0 && Math.round(scaled * roundingFactor) >= (table[i - 1][0] / table[i][0]) * roundingFactor) {
+      if (
+        i > 0 &&
+        Math.round(scaled * roundingFactor) >= (table[i - 1][0] / table[i][0]) * roundingFactor
+      ) {
         return `${sign}${(abs / table[i - 1][0]).toFixed(decimals)} ${table[i - 1][1]}${symbol}`;
       }
       return `${sign}${scaled.toFixed(decimals)} ${table[i][1]}${symbol}`;
@@ -350,22 +353,24 @@ function formatSiCount(value: number, decimals = 2): string {
  * Order: duration (ns) → bytes → row/batch counts → throughput → ratios → default table number.
  */
 export function inferFieldFormatter(fieldName: string): (value: number | bigint) => string {
-  let format: (value: number) => string;
-  if (fieldName.endsWith('_ns')) format = v => formatDuration(v / 1e6);
-  else if (isBytesStat(fieldName)) format = v => formatBytes(v, 2);
-  else if (isCountStat(fieldName)) format = v => formatSiCount(v, 2);
-  else if (fieldName.endsWith('_mbs')) format = v => `${v.toFixed(1)} MB/s`;
-  else if (
-    fieldName.endsWith('_ratio') ||
-    fieldName.endsWith('_fraction') ||
-    fieldName.endsWith('_fpr') ||
-    fieldName.endsWith('_selectivity') ||
-    fieldName.endsWith('_rate')
-  )
-    format = v => `${(v * 100).toFixed(1)}%`;
-  else format = v => formatNumberWithMaxFractionDigits(v, 4);
-
-  return value => format(typeof value === 'bigint' ? Number(value) : value);
+  return (value: number | bigint): string => {
+    const num = typeof value === 'bigint' ? Number(value) : value;
+    if (fieldName.endsWith('_ns')) return formatDuration(num / 1e6);
+    if (isBytesStat(fieldName)) return formatBytes(value, 2);
+    if (isCountStat(fieldName)) return formatSiCount(num, 2);
+    if (fieldName.endsWith('_mbs')) return `${num.toFixed(1)} MB/s`;
+    if (
+      fieldName.endsWith('_ratio') ||
+      fieldName.endsWith('_fraction') ||
+      fieldName.endsWith('_fpr') ||
+      fieldName.endsWith('_selectivity') ||
+      fieldName.endsWith('_rate')
+    )
+      return `${(num * 100).toFixed(1)}%`;
+    return typeof value === 'bigint'
+      ? formatNumber(value)
+      : formatNumberWithMaxFractionDigits(num, 4);
+  };
 }
 
 /**
