@@ -197,7 +197,7 @@ type Accumulator = {
   keys: GroupKeyEntry[];
   rowKey: string;
   values: Map<string, StatValue>;
-  aggBuckets: Map<string, { nums: number[]; count: number }>;
+  aggBuckets: Map<string, { nums: number[]; bigints: bigint[]; count: number }>;
   itemIds: Set<string>;
   itemScopeIds: Map<string, string>;
   itemType: string;
@@ -251,13 +251,14 @@ export function buildPivotedRows(
     } else {
       let bucket = group.aggBuckets.get(row.statisticName);
       if (!bucket) {
-        bucket = { nums: [], count: 0 };
+        bucket = { nums: [], bigints: [], count: 0 };
         group.aggBuckets.set(row.statisticName, bucket);
       }
       bucket.count++;
-      if (isNumericValue(row.value)) {
-        // coerce potential bigints
-        bucket.nums.push(Number(row.value));
+      if (typeof row.value === 'bigint') {
+        bucket.bigints.push(row.value);
+      } else if (typeof row.value === 'number') {
+        bucket.nums.push(row.value);
       }
     }
   }
@@ -267,17 +268,37 @@ export function buildPivotedRows(
     const aggs = new Map<string, PivotedRowAgg>();
     if (isAggregating) {
       for (const [stat, bucket] of group.aggBuckets) {
-        const hasNum = bucket.nums.length > 0;
-        const sum = hasNum ? bucket.nums.reduce((a, b) => a + b, 0) : null;
-        const mean = hasNum ? sum! / bucket.nums.length : null;
-        const min = hasNum ? Math.min(...bucket.nums) : null;
-        const max = hasNum ? Math.max(...bucket.nums) : null;
+        const onlyBigints = bucket.bigints.length > 0 && bucket.nums.length === 0;
+        const allNums = onlyBigints
+          ? bucket.bigints.map(Number)
+          : [...bucket.nums, ...bucket.bigints.map(Number)];
+        const hasNum = allNums.length > 0;
+
+        let sum: number | null = null;
+        let min: number | null = null;
+        let max: number | null = null;
+        let mean: number | null = null;
         let stdev: number | null = null;
-        if (mean !== null && bucket.nums.length > 1) {
-          const variance =
-            bucket.nums.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (bucket.nums.length - 1);
-          stdev = Math.sqrt(variance);
+
+        if (hasNum) {
+          if (onlyBigints) {
+            // Use bigint arithmetic for sum/min/max to avoid precision loss
+            sum = Number(bucket.bigints.reduce((a, b) => a + b, 0n));
+            min = Number(bucket.bigints.reduce((a, b) => (a < b ? a : b)));
+            max = Number(bucket.bigints.reduce((a, b) => (a > b ? a : b)));
+          } else {
+            sum = allNums.reduce((a, b) => a + b, 0);
+            min = Math.min(...allNums);
+            max = Math.max(...allNums);
+          }
+          mean = sum / allNums.length;
+          if (allNums.length > 1) {
+            const variance =
+              allNums.reduce((acc, v) => acc + (v - mean!) ** 2, 0) / (allNums.length - 1);
+            stdev = Math.sqrt(variance);
+          }
         }
+
         aggs.set(stat, { sum, mean, min, max, stdev, count: bucket.count, isNumeric: hasNum });
       }
     }
