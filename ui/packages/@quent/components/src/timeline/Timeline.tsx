@@ -460,19 +460,32 @@ export function Timeline({
   return (
     <div className="relative w-full h-full">
       {(yAxisLabel != null || maxValue != null) && (
-        <span
-          className="absolute z-[8] pointer-events-none text-[10px] leading-none rounded-sm px-1 py-0.5 flex flex-col items-start gap-px"
+        <div
+          className="absolute z-[8] pointer-events-none flex flex-col items-start gap-px text-[10px] leading-none"
           style={{
             top: TIMELINE_SPACING.top + 1,
             left: TIMELINE_SPACING.left + 1,
             fontFamily: TIMELINE_MONO_FONT,
             color: textColor,
-            background: labelBackgroundColor,
           }}
         >
-          {yAxisLabel != null && <span>{yAxisLabel}</span>}
-          {maxValue != null && <span>{formatAxisValue(maxValue)}</span>}
-        </span>
+          {maxValue != null && (
+            <span
+              className="w-fit rounded-sm px-1 py-0.5"
+              style={{ background: labelBackgroundColor }}
+            >
+              {formatAxisValue(maxValue)}
+            </span>
+          )}
+          {yAxisLabel != null && (
+            <span
+              className="w-fit rounded-sm px-1 py-0.5"
+              style={{ background: labelBackgroundColor }}
+            >
+              {yAxisLabel}
+            </span>
+          )}
+        </div>
       )}
       <EChartsReactCore
         echarts={echarts}
