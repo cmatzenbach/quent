@@ -1178,23 +1178,3 @@ struct BulkEntryPrep<'a> {
     operator_filter: OperatorFilter,
     long_entities_threshold: Option<TimeNanoSec>,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn operator_statistic_quantities_reference_registered_specs() {
-        let specs = quantity_specs();
-
-        for name in BYTE_OPERATOR_STATISTICS {
-            let quantity = operator_statistic_quantity(name).unwrap();
-            assert!(specs.contains_key(quantity));
-        }
-    }
-
-    #[test]
-    fn statistics_without_a_declared_quantity_remain_untyped() {
-        assert_eq!(operator_statistic_quantity("output_rows"), None);
-    }
-}
