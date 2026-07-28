@@ -150,14 +150,30 @@ export function buildBinnedTimelineSeries(
     };
   }
 
-  const firstCap = resourceTypeDecl?.capacities[0];
-  const yAxisLabel: string | undefined = (() => {
-    if (!firstCap || firstCap.name === 'unit') return undefined;
-    const spec = quantitySpecs?.[firstCap.quantity];
-    return spec ? `${firstCap.name} (${spec.symbol})` : firstCap.name;
-  })();
+  return { timestamps, series, yAxisLabel: deriveCapacityLabel(resourceTypeDecl, quantitySpecs) };
+}
 
-  return { timestamps, series, yAxisLabel };
+/**
+ * Derive a display label for the y-axis from a resource type's capacity metadata.
+ * Considers all non-unit capacities declared on the type. Returns undefined when
+ * no meaningful capacity exists (missing decl or unit-only).
+ */
+export function deriveCapacityLabel(
+  resourceTypeDecl: ResourceTypeDecl | undefined,
+  quantitySpecs: { [key in string]?: QuantitySpec } | undefined
+): string | undefined {
+  const meaningful = resourceTypeDecl?.capacities.filter(c => c.name !== 'unit') ?? [];
+  if (meaningful.length === 0) return undefined;
+  if (meaningful.length === 1) {
+    const cap = meaningful[0]!;
+    const spec = quantitySpecs?.[cap.quantity];
+    return spec ? `${cap.name} (${spec.symbol})` : cap.name;
+  }
+  // Multiple capacities: use a shared unit symbol when all agree, otherwise names only.
+  const symbols = new Set(meaningful.map(c => quantitySpecs?.[c.quantity]?.symbol));
+  const names = meaningful.map(c => c.name).join(' + ');
+  const commonSymbol = symbols.size === 1 ? [...symbols][0] : undefined;
+  return commonSymbol ? `${names} (${commonSymbol})` : names;
 }
 
 /** Extract the config from a SingleTimelineResponse */
