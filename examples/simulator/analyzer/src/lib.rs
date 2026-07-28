@@ -66,10 +66,42 @@ pub mod view;
 const MEASURE_TASKS: &str = "tasks";
 /// Data-flow measure summing memory bytes held in each (state, location) cell.
 const MEASURE_BYTES: &str = "bytes";
+const QUANTITY_BYTES: &str = "bytes";
+const BYTE_OPERATOR_STATISTICS: &[&str] = &[
+    "average_partition_size_bytes",
+    "avg_key_length_bytes",
+    "bloom_filter_size_bytes",
+    "build_side_bytes",
+    "bytes_read",
+    "bytes_written",
+    "hash_table_size_bytes",
+    "input_bytes",
+    "network_bytes_sent",
+    "output_bytes",
+    "peak_memory_bytes",
+    "per_file_bytes_read",
+    "probe_side_bytes",
+    "spill_bytes",
+];
 /// Data-flow dimension key for states that hold no memory resource.
 const DIMENSION_NONE: &str = "none";
 /// Type name of stdlib memory resources as recorded by the model.
 const MEMORY_TYPE_NAME: &str = "memory";
+
+fn operator_statistic_quantity(name: &str) -> Option<&'static str> {
+    BYTE_OPERATOR_STATISTICS
+        .contains(&name)
+        .then_some(QUANTITY_BYTES)
+}
+
+fn quantity_specs() -> StdHashMap<String, QuantitySpec> {
+    [
+        ("capacity_bytes".into(), QuantitySpec::bytes()),
+        (QUANTITY_BYTES.into(), QuantitySpec::bytes()),
+        ("unit".into(), QuantitySpec::unit()),
+    ]
+    .into()
+}
 
 pub struct SimulatorUiAnalyzer {
     pub model: SimulatorModel,
@@ -190,7 +222,18 @@ impl UiAnalyzer for SimulatorUiAnalyzer {
         let query = query.to_ui()?;
         let workers = view.workers().map(|w| (w.id(), w.to_ui(epoch))).collect();
         let plans = view.plans().map(|p| (p.id(), p.to_ui())).collect();
-        let operators = view.operators().map(|o| (o.id(), o.to_ui(epoch))).collect();
+        let operators = view
+            .operators()
+            .map(|operator| {
+                let mut ui_operator = operator.to_ui(epoch);
+                if let Some(statistics) = &mut ui_operator.statistics {
+                    for (name, statistic) in &mut statistics.custom_statistics {
+                        statistic.quantity = operator_statistic_quantity(name).map(str::to_owned);
+                    }
+                }
+                (operator.id(), ui_operator)
+            })
+            .collect();
         let ports = view.ports().map(|p| (p.id(), p.to_ui(epoch))).collect();
         let unique_operator_names = view
             .operators()
@@ -263,11 +306,7 @@ impl UiAnalyzer for SimulatorUiAnalyzer {
             plan_tree,
             resource_tree,
             unique_operator_names,
-            quantity_specs: [
-                ("capacity_bytes".into(), QuantitySpec::bytes()),
-                ("unit".into(), QuantitySpec::unit()),
-            ]
-            .into(),
+            quantity_specs: quantity_specs(),
             start_time_unix_ns,
             duration_s,
         })
@@ -1138,4 +1177,24 @@ struct BulkEntryPrep<'a> {
     entity_filter: EntityFilter,
     operator_filter: OperatorFilter,
     long_entities_threshold: Option<TimeNanoSec>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn operator_statistic_quantities_reference_registered_specs() {
+        let specs = quantity_specs();
+
+        for name in BYTE_OPERATOR_STATISTICS {
+            let quantity = operator_statistic_quantity(name).unwrap();
+            assert!(specs.contains_key(quantity));
+        }
+    }
+
+    #[test]
+    fn statistics_without_a_declared_quantity_remain_untyped() {
+        assert_eq!(operator_statistic_quantity("output_rows"), None);
+    }
 }

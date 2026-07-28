@@ -165,9 +165,18 @@ pub struct Plan {
 }
 
 #[derive(TS, Debug, Serialize)]
+pub struct OperatorStatistic {
+    /// The value of this statistic.
+    pub value: Option<DynamicValue>,
+    /// The key of the [`QuantitySpec`] in [`QueryBundle::quantity_specs`] used
+    /// to display this statistic.
+    pub quantity: Option<String>,
+}
+
+#[derive(TS, Debug, Serialize)]
 pub struct OperatorStatistics {
-    /// Custom statistics
-    pub custom_statistics: HashMap<String, Option<DynamicValue>>,
+    /// Custom statistics.
+    pub custom_statistics: HashMap<String, OperatorStatistic>,
 }
 
 #[derive(TS, Debug, Serialize)]
@@ -298,7 +307,7 @@ pub struct QueryBundle<E> {
     /// A list of unique operator type names.
     pub unique_operator_names: Vec<String>,
 
-    /// Quantity specifications for capacity display, keyed by capacity name.
+    /// Quantity specifications for displaying values, keyed by quantity name.
     pub quantity_specs: HashMap<String, QuantitySpec>,
 
     /// The number of nanoseconds passed since the Unix epoch at which the
