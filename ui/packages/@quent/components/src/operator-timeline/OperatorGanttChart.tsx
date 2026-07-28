@@ -13,6 +13,8 @@ import {
   unregisterAxisPointerSync,
 } from '../lib/timeline.utils';
 import { useChartConnect } from '../lib/useChartConnect';
+import { useMinZoomSpanPct } from '../lib/useMinZoomSpanPct';
+import { useTimelineWheelNavigation } from '../lib/useTimelineWheelNavigation';
 import { echarts } from '../lib/echarts';
 import { CHART_GROUP } from '../timeline/Timeline';
 import { useTimelineEchartsTheme } from '../timeline/timelineEchartsTheme';
@@ -73,6 +75,10 @@ export function OperatorGanttChart({
     () => startTimeMs + durationSeconds * 1_000,
     [startTimeMs, durationSeconds]
   );
+  const minZoomSpanPct = useMinZoomSpanPct(durationSeconds);
+  const attachWheelNavigation = useTimelineWheelNavigation(minZoomSpanPct);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const chartCleanupRef = useRef<(() => void) | null>(null);
 
   const { yAxisCategories, rowCount } = useMemo(() => {
     if (operators.length === 0) return { yAxisCategories: [] as number[], rowCount: 0 };
@@ -263,6 +269,7 @@ export function OperatorGanttChart({
           realtime: true,
           filterMode: 'none',
           xAxisIndex: [0],
+          minSpan: minZoomSpanPct,
         },
         {
           type: 'inside',
@@ -281,10 +288,19 @@ export function OperatorGanttChart({
           throttle: 30,
           filterMode: 'none',
           xAxisIndex: [0],
+          minSpan: minZoomSpanPct,
         },
       ],
     }),
-    [gridOptions, startTimeMs, xAxisMax, yAxisCategories, customSeriesData, renderItem]
+    [
+      gridOptions,
+      startTimeMs,
+      xAxisMax,
+      yAxisCategories,
+      customSeriesData,
+      renderItem,
+      minZoomSpanPct,
+    ]
   );
 
   const handleClick = useMemo(
@@ -325,9 +341,17 @@ export function OperatorGanttChart({
   // Join timeline-sync-group for frame-rate-level x-axis zoom sync via ECharts connect().
   // The y-axis dataZoom (index 3, when present) has a unique component ID and does not
   // propagate to resource timelines that have no matching component.
-  const onChartReady = useCallback((instance: EChartsInstance) => {
+  const onChartReady = (instance: EChartsInstance) => {
+    chartCleanupRef.current?.();
     registerAxisPointerSync(instance, 0, { receiveShowTip: false });
-  }, []);
+    const detachWheelNavigation = attachWheelNavigation(instance, wrapperRef.current ?? undefined);
+    const cleanup = () => {
+      unregisterAxisPointerSync(instance);
+      detachWheelNavigation();
+      if (chartCleanupRef.current === cleanup) chartCleanupRef.current = null;
+    };
+    chartCleanupRef.current = cleanup;
+  };
 
   const { handleChartReady, instanceRef } = useChartConnect({
     durationSeconds,
@@ -335,30 +359,19 @@ export function OperatorGanttChart({
     onReady: onChartReady,
   });
 
+  // Empty data replaces the chart without unmounting this component.
   useEffect(() => {
-    return () => {
-      if (instanceRef.current) {
-        unregisterAxisPointerSync(instanceRef.current);
-        instanceRef.current = null;
-      }
-    };
-  }, []);
+    if (operators.length > 0) return;
+    chartCleanupRef.current?.();
+    instanceRef.current = null;
+  }, [operators.length, instanceRef]);
 
-  // Handle scrolling from the container, echarts captures wheel events and prevents the container
-  // from receiving.
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const handleWheel = (e: WheelEvent) => {
-      if (e.shiftKey) return;
-      e.stopPropagation();
-    };
-    wrapper.addEventListener('wheel', handleWheel, { capture: true, passive: true });
     return () => {
-      wrapper.removeEventListener('wheel', handleWheel, { capture: true });
+      chartCleanupRef.current?.();
+      instanceRef.current = null;
     };
-  }, []);
+  }, [instanceRef]);
 
   if (operators.length === 0) {
     return (
