@@ -137,10 +137,10 @@ export interface GroupKeyEntry {
 }
 
 export interface PivotedRowAgg {
-  sum: number | null;
+  sum: number | bigint | null;
   mean: number | null;
-  min: number | null;
-  max: number | null;
+  min: number | bigint | null;
+  max: number | bigint | null;
   stdev: number | null;
   count: number;
   isNumeric: boolean;
