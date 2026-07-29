@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use quent_dynamic_attributes::DynamicValue;
 use quent_events::Event;
 pub use quent_query_engine_analyzer::QueryEngineModel;
 use quent_query_engine_analyzer::{
@@ -67,6 +68,7 @@ const MEASURE_TASKS: &str = "tasks";
 /// Data-flow measure summing memory bytes held in each (state, location) cell.
 const MEASURE_BYTES: &str = "bytes";
 const QUANTITY_BYTES: &str = "bytes";
+const QUANTITY_SECONDS: &str = "seconds";
 const BYTE_OPERATOR_STATISTICS: &[&str] = &[
     "average_partition_size_bytes",
     "avg_key_length_bytes",
@@ -83,21 +85,51 @@ const BYTE_OPERATOR_STATISTICS: &[&str] = &[
     "probe_side_bytes",
     "spill_bytes",
 ];
+const SECOND_OPERATOR_STATISTICS: &[&str] = &[
+    "build_time_ns",
+    "cpu_time_ns",
+    "decompress_time_ns",
+    "flush_time_ns",
+    "hash_time_ns",
+    "io_wait_ns",
+    "merge_time_ns",
+    "network_time_ns",
+    "partition_time_ns",
+    "predicate_filter_time_ns",
+    "probe_time_ns",
+    "serialization_time_ns",
+    "wall_time_ns",
+];
 /// Data-flow dimension key for states that hold no memory resource.
 const DIMENSION_NONE: &str = "none";
 /// Type name of stdlib memory resources as recorded by the model.
 const MEMORY_TYPE_NAME: &str = "memory";
 
 fn operator_statistic_quantity(name: &str) -> Option<&'static str> {
-    BYTE_OPERATOR_STATISTICS
-        .contains(&name)
-        .then_some(QUANTITY_BYTES)
+    if BYTE_OPERATOR_STATISTICS.contains(&name) {
+        Some(QUANTITY_BYTES)
+    } else if SECOND_OPERATOR_STATISTICS.contains(&name) {
+        Some(QUANTITY_SECONDS)
+    } else {
+        None
+    }
+}
+
+fn scale_operator_statistic(name: &str, value: &mut Option<DynamicValue>) {
+    if !SECOND_OPERATOR_STATISTICS.contains(&name) {
+        return;
+    }
+    if let Some(DynamicValue::U64(nanoseconds)) = value {
+        let seconds = *nanoseconds as f64 / 1_000_000_000.0;
+        *value = Some(DynamicValue::F64(seconds));
+    }
 }
 
 fn quantity_specs() -> StdHashMap<String, QuantitySpec> {
     [
         ("capacity_bytes".into(), QuantitySpec::bytes()),
         (QUANTITY_BYTES.into(), QuantitySpec::bytes()),
+        (QUANTITY_SECONDS.into(), QuantitySpec::seconds()),
         ("unit".into(), QuantitySpec::unit()),
     ]
     .into()
@@ -228,6 +260,7 @@ impl UiAnalyzer for SimulatorUiAnalyzer {
                 let mut ui_operator = operator.to_ui(epoch);
                 if let Some(statistics) = &mut ui_operator.statistics {
                     for (name, statistic) in &mut statistics.custom_statistics {
+                        scale_operator_statistic(name, &mut statistic.value);
                         statistic.quantity = operator_statistic_quantity(name).map(str::to_owned);
                     }
                 }
