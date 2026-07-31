@@ -48,8 +48,12 @@ import type { DAGData } from '../services/query-plan/types';
 import { QueryPlanNode, type QueryPlanNodeData } from '../query-plan/QueryPlanNode';
 import { DAGLegend } from './DAGLegend';
 import { parseCustomStatistics } from '../lib/queryBundle.utils';
-import { continuousColor, getOperationTypeColor, buildOperatorColorMap } from '@quent/utils';
-import { inferFieldFormatter } from '@quent/utils';
+import {
+  continuousColor,
+  getOperationTypeColor,
+  buildOperatorColorMap,
+  inferFieldFormatter,
+} from '@quent/utils';
 
 // Edge geometry constants
 const EDGE_STROKE_WIDTH_DEFAULT = 1.5;
@@ -338,6 +342,7 @@ const FlowLayout = ({
           isDark,
           baseColor: operatorColorMap.get(node.type.toLowerCase()),
           flowBarVisible,
+          quantitySpecs: data.quantitySpecs,
         },
         style: {
           width: NODE_LAYOUT_WIDTH,

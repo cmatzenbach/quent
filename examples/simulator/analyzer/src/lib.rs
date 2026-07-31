@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use quent_dynamic_attributes::DynamicValue;
 use quent_events::Event;
 pub use quent_query_engine_analyzer::QueryEngineModel;
 use quent_query_engine_analyzer::{
@@ -67,10 +68,76 @@ pub mod view;
 const MEASURE_TASKS: &str = "tasks";
 /// Data-flow measure summing memory bytes held in each (state, location) cell.
 const MEASURE_BYTES: &str = "bytes";
+const QUANTITY_BYTES: &str = "bytes";
+const QUANTITY_SECONDS: &str = "seconds";
+const BYTE_OPERATOR_STATISTICS: &[&str] = &[
+    "average_partition_size_bytes",
+    "avg_key_length_bytes",
+    "bloom_filter_size_bytes",
+    "build_side_bytes",
+    "bytes_read",
+    "bytes_written",
+    "hash_table_size_bytes",
+    "input_bytes",
+    "network_bytes_sent",
+    "output_bytes",
+    "peak_memory_bytes",
+    "per_file_bytes_read",
+    "probe_side_bytes",
+    "spill_bytes",
+];
+const SECOND_OPERATOR_STATISTICS: &[&str] = &[
+    "build_time_ns",
+    "cpu_time_ns",
+    "decompress_time_ns",
+    "flush_time_ns",
+    "hash_time_ns",
+    "io_wait_ns",
+    "merge_time_ns",
+    "network_time_ns",
+    "partition_time_ns",
+    "predicate_filter_time_ns",
+    "probe_time_ns",
+    "serialization_time_ns",
+    "wall_time_ns",
+];
 /// Data-flow dimension key for states that hold no memory resource.
 const DIMENSION_NONE: &str = "none";
 /// Type name of stdlib memory resources as recorded by the model.
 const MEMORY_TYPE_NAME: &str = "memory";
+
+fn operator_statistic_quantity(name: &str) -> Option<&'static str> {
+    BYTE_OPERATOR_STATISTICS
+        .contains(&name)
+        .then_some(QUANTITY_BYTES)
+}
+
+fn scale_operator_statistic(name: &str, value: &Option<DynamicValue>) -> Option<DynamicValue> {
+    if !SECOND_OPERATOR_STATISTICS.contains(&name) {
+        return None;
+    }
+    match value {
+        Some(DynamicValue::U64(nanoseconds)) => {
+            let seconds = *nanoseconds as f64 / 1_000_000_000.0;
+            Some(DynamicValue::F64(seconds))
+        }
+        _ => None,
+    }
+}
+
+fn scaled_operator_statistic_name(name: String) -> String {
+    name.strip_suffix("_ns").unwrap_or(&name).to_owned()
+}
+
+fn quantity_specs() -> StdHashMap<String, QuantitySpec> {
+    [
+        ("capacity_bytes".into(), QuantitySpec::bytes()),
+        (QUANTITY_BYTES.into(), QuantitySpec::bytes()),
+        (QUANTITY_SECONDS.into(), QuantitySpec::seconds()),
+        ("unit".into(), QuantitySpec::unit()),
+    ]
+    .into()
+}
 
 pub struct SimulatorUiAnalyzer {
     pub model: SimulatorModel,
@@ -205,7 +272,33 @@ impl UiAnalyzer for SimulatorUiAnalyzer {
         let query = query.to_ui()?;
         let workers = view.workers().map(|w| (w.id(), w.to_ui(epoch))).collect();
         let plans = view.plans().map(|p| (p.id(), p.to_ui())).collect();
-        let operators = view.operators().map(|o| (o.id(), o.to_ui(epoch))).collect();
+        let operators = view
+            .operators()
+            .map(|operator| {
+                let mut ui_operator = operator.to_ui(epoch);
+                if let Some(statistics) = &mut ui_operator.statistics {
+                    statistics.custom_statistics =
+                        std::mem::take(&mut statistics.custom_statistics)
+                            .into_iter()
+                            .map(|(name, mut statistic)| {
+                                let name = if let Some(value) =
+                                    scale_operator_statistic(&name, &statistic.value)
+                                {
+                                    statistic.value = Some(value);
+                                    statistic.quantity = Some(QUANTITY_SECONDS.to_owned());
+                                    scaled_operator_statistic_name(name)
+                                } else {
+                                    statistic.quantity =
+                                        operator_statistic_quantity(&name).map(str::to_owned);
+                                    name
+                                };
+                                (name, statistic)
+                            })
+                            .collect();
+                }
+                (operator.id(), ui_operator)
+            })
+            .collect();
         let ports = view.ports().map(|p| (p.id(), p.to_ui(epoch))).collect();
         let unique_operator_names = view
             .operators()
@@ -278,11 +371,7 @@ impl UiAnalyzer for SimulatorUiAnalyzer {
             plan_tree,
             resource_tree,
             unique_operator_names,
-            quantity_specs: [
-                ("capacity_bytes".into(), QuantitySpec::bytes()),
-                ("unit".into(), QuantitySpec::unit()),
-            ]
-            .into(),
+            quantity_specs: quantity_specs(),
             start_time_unix_ns,
             duration_s,
         })

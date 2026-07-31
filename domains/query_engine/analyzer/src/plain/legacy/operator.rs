@@ -71,7 +71,15 @@ impl OperatorEntity for Operator {
             custom_statistics: s
                 .custom_attributes
                 .iter()
-                .map(|DynamicAttribute { key, value }| (key.clone(), value.clone()))
+                .map(|DynamicAttribute { key, value }| {
+                    (
+                        key.clone(),
+                        ui::OperatorStatistic {
+                            value: value.clone(),
+                            quantity: None,
+                        },
+                    )
+                })
                 .collect(),
         });
 

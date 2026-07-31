@@ -181,6 +181,7 @@ function DataCell({ row, stat }: DataCellProps<PivotedRow>) {
     onMouseEnter: () => interaction.setHoveredStat(derived.buildHoveredStatInfo(stat)),
     onMouseLeave: () => interaction.setHoveredStat(null),
   };
+  const fmt = display.formatNumericValue;
   if (!display.isAggregating) {
     const val = row.values.get(stat) ?? null;
     return (
@@ -189,7 +190,7 @@ function DataCell({ row, stat }: DataCellProps<PivotedRow>) {
         style={{ backgroundColor: bg, boxShadow: cellHighlight }}
         {...statCellProps}
       >
-        {formatStatValue(val, stat)}
+        {typeof val === 'number' && fmt ? fmt(val, stat) : formatStatValue(val, stat)}
       </td>
     );
   }
@@ -212,7 +213,9 @@ function DataCell({ row, stat }: DataCellProps<PivotedRow>) {
       style={{ backgroundColor: bg, boxShadow: cellHighlight }}
       {...statCellProps}
     >
-      {formatNumericStat(displayVal, stat)}
+      {fmt && typeof displayVal === 'number'
+        ? fmt(displayVal, stat)
+        : formatNumericStat(displayVal, stat)}
     </td>
   );
 }
@@ -247,6 +250,8 @@ interface PivotedStatTableProps<TRow> {
   /** Optional controlled sort state, forwarded to the underlying GroupedDataTable. */
   sorting?: SortingState;
   onSortingChange?: OnChangeFn<SortingState>;
+  /** Optional formatter for numeric stat values; falls back to inferFieldFormatter when absent. */
+  formatNumericValue?: (value: number, statName: string) => string;
 }
 
 export function PivotedStatTable<TRow>({
@@ -267,6 +272,7 @@ export function PivotedStatTable<TRow>({
   onReorderStat,
   sorting,
   onSortingChange,
+  formatNumericValue,
 }: PivotedStatTableProps<TRow>) {
   const [nodePalette] = useNodeColorPalette();
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -518,8 +524,9 @@ export function PivotedStatTable<TRow>({
       aggMode,
       colorPalette: nodePalette,
       darkMode: isDark,
+      formatNumericValue,
     }),
-    [isAggregating, aggMode, nodePalette, isDark]
+    [isAggregating, aggMode, nodePalette, isDark, formatNumericValue]
   );
   const dndContextValue = useMemo(
     () => ({

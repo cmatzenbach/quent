@@ -47,7 +47,6 @@ export function QueryPlan({ queryId, engineId }: { queryId: string; engineId: st
   const planId = useSelectedPlanId();
   const setPlanId = useSetSelectedPlanId();
   const setHoveredWorkerId = useSetHoveredWorkerId();
-
   const {
     data: queryBundle,
     isLoading: queryBundleLoading,
@@ -242,7 +241,7 @@ export function QueryPlan({ queryId, engineId }: { queryId: string; engineId: st
               </Suspense>
             </div>
             <DagPlayhead />
-            <DAGNodeInfoPanel isDark={isDark} />
+            <DAGNodeInfoPanel isDark={isDark} quantitySpecs={queryBundle.quantity_specs} />
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>

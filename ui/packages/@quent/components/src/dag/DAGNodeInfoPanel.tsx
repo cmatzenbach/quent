@@ -11,10 +11,16 @@ import {
 } from '@quent/hooks';
 import { DataText } from '../ui/data-text';
 import { thinScrollbarClass } from '../ui/thin-scroll';
-import { inferFieldFormatter, isNumericValue } from '@quent/utils';
+import { formatStatWithQuantity, type QuantitySpec } from '@quent/utils';
 import { DataFlowMatrix } from './DataFlowMatrix';
 
-export const DAGNodeInfoPanel = ({ isDark = false }: { isDark?: boolean }) => {
+export const DAGNodeInfoPanel = ({
+  isDark = false,
+  quantitySpecs,
+}: {
+  isDark?: boolean;
+  quantitySpecs?: { [key: string]: QuantitySpec | undefined };
+}) => {
   const selectedNodeData = useSelectedNodeData();
   const dataFlowEnabled = useDataFlowEnabled();
   const dataFlowMeta = useDataFlowMeta();
@@ -78,7 +84,7 @@ export const DAGNodeInfoPanel = ({ isDark = false }: { isDark?: boolean }) => {
                 {selectedNodeData.nodeId}
               </DataText>
             </div>
-            {selectedNodeData.statistics?.map(({ key, value }) => (
+            {selectedNodeData.statistics?.map(({ key, value, quantity }) => (
               <div key={key} className="text-xs">
                 {Array.isArray(value) ? (
                   <div className="flex items-center justify-between gap-0.5">
@@ -95,7 +101,13 @@ export const DAGNodeInfoPanel = ({ isDark = false }: { isDark?: boolean }) => {
                   <div className="flex items-center justify-between">
                     <DataText className="capitalize">{key.replace(/_/g, ' ')}:</DataText>
                     <DataText className="text-muted-foreground ml-1">
-                      {isNumericValue(value) ? inferFieldFormatter(key)(value) : String(value)}
+                      {typeof value === 'number'
+                        ? formatStatWithQuantity(
+                            value,
+                            key,
+                            quantity && quantitySpecs ? quantitySpecs[quantity] : undefined
+                          )
+                        : String(value)}
                     </DataText>
                   </div>
                 )}

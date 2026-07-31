@@ -44,6 +44,7 @@ export {
   formatAttributeValue,
   unwrapTaggedValue,
   inferFieldFormatter,
+  formatStatWithQuantity,
   isNumericValue,
 } from './formatters';
 

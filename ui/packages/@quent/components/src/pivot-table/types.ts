@@ -86,6 +86,8 @@ export interface PivotTableDisplayConfig {
   aggMode: AggMode;
   colorPalette: ContinuousPaletteName;
   darkMode: boolean;
+  /** Optional formatter for numeric stat values; falls back to inferFieldFormatter when absent. */
+  formatNumericValue?: (value: number, statName: string) => string;
 }
 
 // --- PivotedStatTable types ---

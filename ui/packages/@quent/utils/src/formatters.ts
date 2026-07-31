@@ -387,3 +387,16 @@ export function formatQuantity(
   const symbol = kind === 'Rate' ? `${spec.symbol}/s` : spec.symbol;
   return formatWithPrefix(value, symbol, prefixSystem, decimals);
 }
+
+/**
+ * Format a numeric statistic value, using a QuantitySpec when one is available.
+ * Falls back to the name-based `inferFieldFormatter` heuristic when no spec is provided.
+ */
+export function formatStatWithQuantity(
+  value: number,
+  key: string,
+  quantitySpec: QuantitySpec | undefined
+): string {
+  if (quantitySpec) return formatQuantity(value, quantitySpec, 'Occupancy');
+  return inferFieldFormatter(key)(value);
+}

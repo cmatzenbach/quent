@@ -27,6 +27,7 @@ export type { FsmUsage } from '../../../../../generated/ts-bindings/FsmUsage';
 export type { DynamicList } from '../../../../../generated/ts-bindings/DynamicList';
 export type { Operator } from '../../../../../generated/ts-bindings/Operator';
 export type { OperatorFilter } from '../../../../../generated/ts-bindings/OperatorFilter';
+export type { OperatorStatistic } from '../../../../../generated/ts-bindings/OperatorStatistic';
 export type { OperatorStatistics } from '../../../../../generated/ts-bindings/OperatorStatistics';
 export type { Plan } from '../../../../../generated/ts-bindings/Plan';
 export type { PlanTree } from '../../../../../generated/ts-bindings/PlanTree';
