@@ -8,7 +8,9 @@ use quent_query_engine_model::query_group;
 use quent_query_engine_ui as ui;
 use uuid::Uuid;
 
-/// A QueryGroup is an entity that groups [`super::query::Query`]s
+use crate::QueryGroupEntity;
+
+/// An event-backed group of queries.
 #[derive(Debug)]
 pub struct QueryGroup(EntityEvents<query_group::QueryGroup>);
 
@@ -20,8 +22,10 @@ impl QueryGroup {
     pub fn push(&mut self, event: Event<query_group::QueryGroupEvent>) {
         self.0.push(event);
     }
+}
 
-    pub fn to_ui(&self) -> ui::QueryGroup {
+impl QueryGroupEntity for QueryGroup {
+    fn to_ui(&self) -> ui::QueryGroup {
         let d = self.0.data();
         ui::QueryGroup {
             id: self.0.id(),
@@ -35,9 +39,11 @@ impl Entity for QueryGroup {
     fn id(&self) -> Uuid {
         self.0.id()
     }
+
     fn type_name(&self) -> &str {
         "query group"
     }
+
     fn instance_name(&self) -> &str {
         self.0
             .data()
