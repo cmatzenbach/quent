@@ -36,7 +36,14 @@ interface ContinuousLegendProps {
   formatValue?: (v: number) => string;
 }
 
-const ContinuousLegend = ({ field, min, max, palette, isDark, formatValue }: ContinuousLegendProps) => {
+const ContinuousLegend = ({
+  field,
+  min,
+  max,
+  palette,
+  isDark,
+  formatValue,
+}: ContinuousLegendProps) => {
   const fmt = formatValue ?? inferFieldFormatter(field);
   return (
     <div className="flex flex-col gap-1">

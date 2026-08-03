@@ -335,7 +335,6 @@ const FlowLayout = ({
     }
     return result;
   }, [data.nodes, data.quantitySpecs]);
-  console.log(statQuantitySpecs);
 
   // Convert DAGData to ReactFlow format
   const convertToReactFlow = useCallback(() => {
