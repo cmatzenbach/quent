@@ -1,34 +1,26 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 //! Generation of per-entity event payload enums.
 
 use convert_case::Case;
 use proc_macro2::TokenStream;
-use quent_schema::{Entity, Schema};
+use quent_schema::Entity;
 use quote::quote;
 
-use crate::common::{derive_attr, doc_attr, doc_attr_or, raw_ident, to_case};
+use crate::common::{derive_attr, doc_attr, doc_attr_or, path_name_pascal, raw_ident, to_case};
 use crate::data_type::map_data_type;
 use crate::{GenerateError, Options};
 
-pub(crate) fn generate_event_types(
-    schema: &Schema,
+pub(crate) fn entity_event_enum(
+    entity: &Entity,
     opts: &Options,
 ) -> Result<TokenStream, GenerateError> {
-    let enums: Vec<TokenStream> = schema
-        .entities()
-        .map(|entity| entity_event_enum(entity, opts))
-        .collect::<Result<_, _>>()?;
-    Ok(quote! { #(#enums)* })
-}
-
-fn entity_event_enum(entity: &Entity, opts: &Options) -> Result<TokenStream, GenerateError> {
-    let entity_pascal = to_case(entity.name(), Case::Pascal);
+    let entity_pascal = path_name_pascal(entity.path());
     let enum_ident = raw_ident(format!("{entity_pascal}Event"));
     let docs = doc_attr_or(
         entity.annotations().docs(),
-        &format!("Events emitted by `{entity_pascal}` entities."),
+        &format!("Events emitted by `{}` entities.", entity.path()),
     );
     let derives = derive_attr(opts.event_derives)?;
     let variants: Vec<TokenStream> = entity
@@ -43,7 +35,7 @@ fn entity_event_enum(entity: &Entity, opts: &Options) -> Result<TokenStream, Gen
                 .fields()
                 .map(|field| {
                     let name = raw_ident(to_case(field.name(), Case::Snake));
-                    let ty = map_data_type(field.ty(), 0);
+                    let ty = map_data_type(field.ty(), 0, entity.path().namespace());
                     let field_docs = doc_attr(field.annotations().docs());
                     quote! { #field_docs #name: #ty }
                 })
@@ -69,11 +61,11 @@ mod tests {
     use super::*;
     use crate::common::pretty;
     use quent_schema::builder::{AnnotationsBuilder, EntityBuilder, EventBuilder, SchemaBuilder};
-    use quent_schema::test_utils::{entity, event, field, ident, schema};
+    use quent_schema::test_utils::{entity, event, field, ident, record_type, schema};
     use quent_schema::{Annotations, Cardinality, DataType, Field};
 
-    fn events_src(s: &Schema) -> String {
-        pretty(generate_event_types(s, &Options::default()).unwrap())
+    fn event_src(entity: &Entity) -> String {
+        pretty(entity_event_enum(entity, &Options::default()).unwrap())
     }
 
     #[test]
@@ -91,7 +83,7 @@ mod tests {
                         field("n", DataType::U32),
                         field("opt", DataType::Option(Box::new(DataType::I32))),
                         field("list", DataType::List(Box::new(DataType::String))),
-                        field("rec", DataType::Record(ident("SomeRecord"))),
+                        field("rec", record_type("SomeRecord")),
                         field("dynrec", DataType::DynamicRecord),
                         field(
                             "eref",
@@ -124,37 +116,33 @@ mod tests {
                     opt: Option<i32>,
                     list: Vec<String>,
                     rec: SomeRecord,
-                    dynrec: ::quent_instrumentation::CustomAttributes,
+                    dynrec: ::quent_instrumentation::DynamicAttributes,
                     eref: ::quent_instrumentation::EntityRef<AnyEntity>,
                     eref_payload: ::quent_instrumentation::EntityRef<AnyEntity, u64>
                 }
             }
         };
-        assert_eq!(events_src(&s), pretty(expected));
+        assert_eq!(event_src(s.entities().next().unwrap()), pretty(expected));
     }
 
     #[test]
     fn docs_annotations_become_doc_attributes() {
-        let docs = |text: &str| {
-            let mut builder = AnnotationsBuilder::new();
-            builder.set_docs(text);
-            builder.build()
-        };
+        let docs = |text: &str| AnnotationsBuilder::new().with_docs(text).build().unwrap();
         let field_x = Field::new(ident("x"), DataType::U8, docs("field doc"));
         let ev = EventBuilder::new(ident("ev"), Cardinality::Once)
-            .try_with_field(field_x)
-            .unwrap()
+            .with_field(field_x)
             .with_annotations(docs("event doc"))
-            .build();
+            .build()
+            .unwrap();
         let en = EntityBuilder::new(ident("E"))
-            .try_with_event(ev)
-            .unwrap()
+            .with_event(ev)
             .with_annotations(docs("entity doc"))
-            .build();
+            .build()
+            .unwrap();
         let s = SchemaBuilder::new(ident("M"))
-            .try_with_entity(en)
-            .unwrap()
-            .build();
+            .with_entity(en)
+            .build()
+            .unwrap();
 
         let expected = quote! {
             #[doc = "entity doc"]
@@ -166,42 +154,7 @@ mod tests {
                 }
             }
         };
-        assert_eq!(events_src(&s), pretty(expected));
-    }
-
-    #[test]
-    fn multiple_entities_emit_in_declaration_order() {
-        let s = schema(
-            "M",
-            [
-                entity("Alpha", [event("started", [field("id", DataType::U32)])]),
-                entity("Beta", [event("ended", [])]),
-            ],
-            [],
-        );
-        let expected = quote! {
-            #[doc = "Events emitted by `Alpha` entities."]
-            pub enum AlphaEvent {
-                #[doc = "The `started` event."]
-                Started { id: u32 }
-            }
-            #[doc = "Events emitted by `Beta` entities."]
-            pub enum BetaEvent {
-                #[doc = "The `ended` event."]
-                Ended
-            }
-        };
-        assert_eq!(events_src(&s), pretty(expected));
-    }
-
-    #[test]
-    fn entity_without_events_emits_empty_enum() {
-        let s = schema("M", [entity("E", [])], []);
-        let expected = quote! {
-            #[doc = "Events emitted by `E` entities."]
-            pub enum EEvent {}
-        };
-        assert_eq!(events_src(&s), pretty(expected));
+        assert_eq!(event_src(s.entities().next().unwrap()), pretty(expected));
     }
 
     #[test]
@@ -241,7 +194,7 @@ mod tests {
                 }
             }
         };
-        assert_eq!(events_src(&s), pretty(expected));
+        assert_eq!(event_src(s.entities().next().unwrap()), pretty(expected));
     }
 
     #[test]
@@ -275,6 +228,6 @@ mod tests {
                 }
             }
         };
-        assert_eq!(events_src(&s), pretty(expected));
+        assert_eq!(event_src(s.entities().next().unwrap()), pretty(expected));
     }
 }

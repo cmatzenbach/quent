@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 use quent_constraints::Constraint as _;
@@ -13,27 +13,24 @@ fn event(name: &str, cardinality: Cardinality) -> Event {
     event_with(name, cardinality, vec![])
 }
 
-fn state(name: &str, to: &[&str], initial: bool, exit: bool) -> StateDecl {
+fn state(name: &str, to: &[&str], initial: bool) -> StateDecl {
     StateDecl {
         name: ident(name),
         attributes: vec![],
         to: to.iter().map(|s| ident(s)).collect(),
         initial,
-        exit,
     }
 }
 
 // Build the constraint's JSON directly so we can build it in an invalid way.
-fn fsm(initial: &str, transitions: &[(&str, &str)], exit: &[&str]) -> String {
+fn fsm(initial: &str, transitions: &[(&str, &str)]) -> String {
     let transitions: Vec<serde_json::Value> = transitions
         .iter()
         .map(|&(source, target)| serde_json::json!({ "source": source, "target": target }))
         .collect();
-    let (first_exit, other_exit) = exit.split_first().unwrap();
     serde_json::json!({
         "initial_state": initial,
         "transitions": transitions,
-        "exit_from_states": { "state": first_exit, "others": other_exit },
     })
     .to_string()
 }
@@ -41,17 +38,17 @@ fn fsm(initial: &str, transitions: &[(&str, &str)], exit: &[&str]) -> String {
 /// Annotations carrying the FSM constraint with `data`.
 fn fsm_annotations(data: Option<String>) -> Annotations {
     AnnotationsBuilder::new()
-        .try_with_constraint(FsmConstraint::NAME, data)
-        .unwrap()
+        .with_constraint(FsmConstraint::NAME, data)
         .build()
+        .unwrap()
 }
 
 fn entity_with(name: &str, events: Vec<Event>, data: &str) -> Entity {
-    EntityBuilder::new(ident(name))
-        .try_with_events(events)
-        .unwrap()
+    EntityBuilder::new(name.parse::<quent_schema::Path>().unwrap())
+        .with_events(events)
         .with_annotations(fsm_annotations(Some(data.to_string())))
         .build()
+        .unwrap()
 }
 
 fn schema_with(entity: Entity) -> Schema {
@@ -69,7 +66,7 @@ fn validate(schema: &Schema) -> Vec<FsmError> {
 
 #[test]
 fn well_formed_linear_fsm_passes() {
-    let fsm = fsm("a", &[("a", "b")], &["b"]);
+    let fsm = fsm("a", &[("a", "b")]);
     let entity = entity_with(
         "E",
         vec![event("a", Cardinality::Once), event("b", Cardinality::Once)],
@@ -79,26 +76,50 @@ fn well_formed_linear_fsm_passes() {
 }
 
 #[test]
+fn diagnostics_include_the_qualified_entity_path() {
+    let fsm = fsm("a", &[("a", "missing")]);
+    let entity = entity_with("Foo::E", vec![event("a", Cardinality::Once)], &fsm);
+
+    assert!(
+        validate(&schema_with(entity)).iter().any(
+            |error| matches!(error, FsmError::UnknownState { entity, .. } if entity == "Foo::E")
+        )
+    );
+}
+
+#[test]
 fn well_formed_self_loop_fsm_passes() {
-    let fsm = fsm("a", &[("a", "a")], &["a"]);
-    let entity = entity_with("E", vec![event("a", Cardinality::Multi)], &fsm);
+    let fsm = fsm("a", &[("a", "a"), ("a", "b")]);
+    let entity = entity_with(
+        "E",
+        vec![
+            event("a", Cardinality::Multi),
+            event("b", Cardinality::Once),
+        ],
+        &fsm,
+    );
     assert!(validate(&schema_with(entity)).is_empty());
 }
 
 #[test]
-fn single_state_fsm_passes() {
-    let fsm = fsm("a", &[], &["a"]);
+fn initial_state_cannot_also_be_final() {
+    let fsm = fsm("a", &[]);
     let entity = entity_with("E", vec![event("a", Cardinality::Once)], &fsm);
-    assert!(validate(&schema_with(entity)).is_empty());
+    let errors = validate(&schema_with(entity));
+    assert!(
+        errors.iter().any(
+            |error| matches!(error, FsmError::InitialStateIsFinal { state, .. } if state == "a")
+        )
+    );
 }
 
 #[test]
 fn missing_data_is_rejected() {
     let entity = EntityBuilder::new(ident("E"))
-        .try_with_event(event("a", Cardinality::Once))
-        .unwrap()
+        .with_event(event("a", Cardinality::Once))
         .with_annotations(fsm_annotations(None))
-        .build();
+        .build()
+        .unwrap();
     let errors = validate(&schema_with(entity));
     assert!(
         errors
@@ -110,10 +131,10 @@ fn missing_data_is_rejected() {
 #[test]
 fn invalid_json_is_rejected() {
     let entity = EntityBuilder::new(ident("E"))
-        .try_with_event(event("a", Cardinality::Once))
-        .unwrap()
+        .with_event(event("a", Cardinality::Once))
         .with_annotations(fsm_annotations(Some("{ trash".to_string())))
-        .build();
+        .build()
+        .unwrap();
     let errors = validate(&schema_with(entity));
     assert!(
         errors
@@ -123,8 +144,8 @@ fn invalid_json_is_rejected() {
 }
 
 #[test]
-fn reserved_name_exit_is_rejected() {
-    let fsm = fsm("a", &[], &["a"]);
+fn exit_is_an_ordinary_state_name() {
+    let fsm = fsm("a", &[("a", "EXIT")]);
     let entity = entity_with(
         "E",
         vec![
@@ -133,38 +154,33 @@ fn reserved_name_exit_is_rejected() {
         ],
         &fsm,
     );
-    let errors = validate(&schema_with(entity));
-    assert!(
-        errors
-            .iter()
-            .any(|e| matches!(e, FsmError::ReservedStateName { name: "exit", .. })),
-    );
+    assert!(validate(&schema_with(entity)).is_empty());
 }
 
 #[test]
-fn empty_exit_is_rejected() {
-    let data = serde_json::json!({
-        "initial_state": "a",
-        "transitions": [],
-        "exit_from_states": [],
-    })
-    .to_string();
-    let entity = entity_with("E", vec![event("a", Cardinality::Once)], &data);
+fn fsm_without_a_final_state_is_rejected() {
+    let data = fsm("a", &[("a", "a")]);
+    let entity = entity_with("E", vec![event("a", Cardinality::Multi)], &data);
     let errors = validate(&schema_with(entity));
     assert!(
         errors
             .iter()
-            .any(|e| matches!(e, FsmError::InvalidData { .. }))
+            .any(|e| matches!(e, FsmError::CannotReachFinalState { state, .. } if state == "a"))
     );
 }
 
 #[test]
 fn state_unreachable_from_initial_is_rejected() {
-    // b is listed as an exit state but nothing transitions into it
-    let fsm = fsm("a", &[], &["a", "b"]);
+    // b and c form a disconnected component.
+    let fsm = fsm("a", &[("a", "done"), ("b", "c")]);
     let entity = entity_with(
         "E",
-        vec![event("a", Cardinality::Once), event("b", Cardinality::Once)],
+        vec![
+            event("a", Cardinality::Once),
+            event("done", Cardinality::Once),
+            event("b", Cardinality::Once),
+            event("c", Cardinality::Once),
+        ],
         &fsm,
     );
     let errors = validate(&schema_with(entity));
@@ -176,31 +192,23 @@ fn state_unreachable_from_initial_is_rejected() {
 }
 
 #[test]
-fn state_cannot_reach_exit_is_rejected() {
-    // a may exit, but b has no path to an exit state
-    let fsm = fsm("a", &[("a", "b")], &["a"]);
+fn state_cannot_reach_a_final_state_is_rejected() {
+    // c is final, but b is trapped in a self-loop.
+    let fsm = fsm("a", &[("a", "b"), ("a", "c"), ("b", "b")]);
     let entity = entity_with(
         "E",
-        vec![event("a", Cardinality::Once), event("b", Cardinality::Once)],
+        vec![
+            event("a", Cardinality::Once),
+            event("b", Cardinality::Multi),
+            event("c", Cardinality::Once),
+        ],
         &fsm,
     );
     let errors = validate(&schema_with(entity));
     assert!(
         errors
             .iter()
-            .any(|e| matches!(e, FsmError::CannotReachExit { state, .. } if state == "b")),
-    );
-}
-
-#[test]
-fn fsm_state_not_in_events_is_rejected() {
-    let fsm = fsm("phantom", &[], &["phantom"]);
-    let entity = entity_with("E", vec![event("a", Cardinality::Once)], &fsm);
-    let errors = validate(&schema_with(entity));
-    assert!(
-        errors
-            .iter()
-            .any(|e| matches!(e, FsmError::UnknownState { state, .. } if state == "phantom")),
+            .any(|e| matches!(e, FsmError::CannotReachFinalState { state, .. } if state == "b"))
     );
 }
 
@@ -208,11 +216,12 @@ fn fsm_state_not_in_events_is_rejected() {
 #[test]
 fn event_not_covered_by_fsm_is_rejected() {
     // dead is declared but never appears as a state in the FSM.
-    let fsm = fsm("a", &[], &["a"]);
+    let fsm = fsm("a", &[("a", "done")]);
     let entity = entity_with(
         "E",
         vec![
             event("a", Cardinality::Once),
+            event("done", Cardinality::Once),
             event("dead", Cardinality::Once),
         ],
         &fsm,
@@ -224,8 +233,12 @@ fn event_not_covered_by_fsm_is_rejected() {
 
 #[test]
 fn cycle_requires_multi_cardinality() {
-    let fsm = fsm("a", &[("a", "a")], &["a"]);
-    let entity = entity_with("E", vec![event("a", Cardinality::Once)], &fsm);
+    let fsm = fsm("a", &[("a", "a"), ("a", "b")]);
+    let entity = entity_with(
+        "E",
+        vec![event("a", Cardinality::Once), event("b", Cardinality::Once)],
+        &fsm,
+    );
     let errors = validate(&schema_with(entity));
     assert!(errors.iter().any(|e| matches!(
         e,
@@ -239,8 +252,15 @@ fn cycle_requires_multi_cardinality() {
 
 #[test]
 fn acyclic_requires_once_cardinality() {
-    let fsm = fsm("a", &[], &["a"]);
-    let entity = entity_with("E", vec![event("a", Cardinality::Multi)], &fsm);
+    let fsm = fsm("a", &[("a", "done")]);
+    let entity = entity_with(
+        "E",
+        vec![
+            event("a", Cardinality::Multi),
+            event("done", Cardinality::Once),
+        ],
+        &fsm,
+    );
     let errors = validate(&schema_with(entity));
     assert!(errors.iter().any(|e| matches!(
         e,
@@ -254,12 +274,16 @@ fn acyclic_requires_once_cardinality() {
 
 #[test]
 fn scc_of_size_two_requires_multi_for_both_states() {
-    let fsm = fsm("a", &[("a", "b"), ("b", "a")], &["b"]);
+    let fsm = fsm("a", &[("a", "b"), ("b", "a"), ("b", "final_state")]);
 
     // a and b should actually be multi, so this should not validate
     let entity = entity_with(
         "E",
-        vec![event("a", Cardinality::Once), event("b", Cardinality::Once)],
+        vec![
+            event("a", Cardinality::Once),
+            event("b", Cardinality::Once),
+            event("final_state", Cardinality::Once),
+        ],
         &fsm,
     );
     let errors = validate(&schema_with(entity));
@@ -280,6 +304,7 @@ fn scc_of_size_two_requires_multi_for_both_states() {
         vec![
             event("a", Cardinality::Multi),
             event("b", Cardinality::Multi),
+            event("final_state", Cardinality::Once),
         ],
         &fsm,
     );
@@ -295,10 +320,7 @@ fn entity_without_fsm_constraint_is_ignored() {
 #[test]
 fn builder_produces_entity_with_state_events() {
     let entity = FsmEntityBuilder::new(ident("E"))
-        .with_states([
-            state("a", &["b"], true, false),
-            state("b", &[], false, true),
-        ])
+        .with_states([state("a", &["b"], true), state("b", &[], false)])
         .build()
         .unwrap();
 
@@ -312,8 +334,9 @@ fn cardinality_is_derived_from_cycles() {
     // a -> b, b -> b: a sits off any cycle (Once), b self-loops (Multi).
     let entity = FsmEntityBuilder::new(ident("E"))
         .with_states([
-            state("a", &["b"], true, false),
-            state("b", &["b"], false, true),
+            state("a", &["b"], true),
+            state("b", &["b", "done"], false),
+            state("done", &[], false),
         ])
         .build()
         .unwrap();
@@ -326,13 +349,13 @@ fn cardinality_is_derived_from_cycles() {
 #[test]
 fn builder_rejects_malformed_states() {
     let no_initial = FsmEntityBuilder::new(ident("E"))
-        .with_states([state("a", &[], false, true)])
+        .with_states([state("a", &[], false)])
         .build()
         .unwrap_err();
     assert!(matches!(no_initial, FsmEntityBuilderError::NoInitialState));
 
     let many_initial = FsmEntityBuilder::new(ident("E"))
-        .with_states([state("a", &[], true, false), state("b", &[], true, true)])
+        .with_states([state("a", &[], true), state("b", &[], true)])
         .build()
         .unwrap_err();
     assert!(matches!(
@@ -340,17 +363,20 @@ fn builder_rejects_malformed_states() {
         FsmEntityBuilderError::MultipleInitialStates(_)
     ));
 
-    let no_exit = FsmEntityBuilder::new(ident("E"))
-        .with_states([state("a", &["a"], true, false)])
+    let no_final = FsmEntityBuilder::new(ident("E"))
+        .with_states([state("a", &["a"], true)])
         .build()
         .unwrap_err();
-    assert!(matches!(no_exit, FsmEntityBuilderError::NoExitState));
+    assert!(matches!(
+        no_final,
+        FsmEntityBuilderError::Invalid(FsmError::CannotReachFinalState { .. })
+    ));
 
     // A duplicate that is also marked initial must report the duplicate, not
     // `MultipleInitialStates`.
     let duplicate = FsmEntityBuilder::new(ident("E"))
-        .with_state(state("a", &[], true, true))
-        .with_state(state("a", &[], true, false))
+        .with_state(state("a", &[], true))
+        .with_state(state("a", &[], true))
         .build()
         .unwrap_err();
     assert!(matches!(
@@ -360,9 +386,9 @@ fn builder_rejects_malformed_states() {
 }
 
 #[test]
-fn multiple_exit_states_pass() {
-    // Both b and c are valid exit states.
-    let fsm = fsm("a", &[("a", "b"), ("a", "c")], &["b", "c"]);
+fn multiple_final_states_pass() {
+    // Both b and c have no outgoing transitions.
+    let fsm = fsm("a", &[("a", "b"), ("a", "c")]);
     let entity = entity_with(
         "E",
         vec![
@@ -376,27 +402,17 @@ fn multiple_exit_states_pass() {
 }
 
 #[test]
-fn exit_state_may_have_outgoing_transition() {
-    // a is an exit state but may also continue to b.
-    let fsm = fsm("a", &[("a", "b")], &["a", "b"]);
-    let entity = entity_with(
-        "E",
-        vec![event("a", Cardinality::Once), event("b", Cardinality::Once)],
-        &fsm,
-    );
-    assert!(validate(&schema_with(entity)).is_empty());
-}
-
-#[test]
 fn multiple_violations_are_aggregated() {
-    // b is unreachable from the initial state
-    // b is declared Multi though it is acyclic
-    let fsm = fsm("a", &[], &["a", "b"]);
+    // b and c are unreachable from the initial state.
+    // b is declared Multi though it is acyclic.
+    let fsm = fsm("a", &[("a", "done"), ("b", "c")]);
     let entity = entity_with(
         "E",
         vec![
             event("a", Cardinality::Once),
+            event("done", Cardinality::Once),
             event("b", Cardinality::Multi),
+            event("c", Cardinality::Once),
         ],
         &fsm,
     );

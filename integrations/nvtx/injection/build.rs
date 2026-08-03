@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Build script for `quent-nvtx-injection`.
+//! Build script for `nvtx-injection`.
 //!
 //! Runs `bindgen` over the NVTX injection ABI and writes the result to
 //! `$OUT_DIR/bindings.rs`, which `lib.rs` `include!`s. The NVTX headers and
@@ -13,6 +13,19 @@
 use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Fail fast before bindgen or any rustc step runs.
+    // NVTX injection relies on ELF weak-symbol override / NVTX_INJECTION64_PATH,
+    // which is Linux 64-bit only. ARM Linux (aarch64) is supported — gettid and
+    // the ELF mechanism work there too.
+    let os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let bits = std::env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap_or_default();
+    if os != "linux" || bits != "64" {
+        return Err(format!(
+            "nvtx-injection supports Linux 64-bit only (got os={os}, pointer_width={bits})"
+        )
+        .into());
+    }
+
     generate_bindings()?;
 
     #[cfg(feature = "static-injection")]
@@ -25,8 +38,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///
 /// Headers resolve from the active pixi environment (`$CONDA_PREFIX/include`,
 /// populated by the `nvtx-c` package); `libclang` is located under
-/// `$CONDA_PREFIX/lib`. Both are pinned in `pixi.toml` for `linux-64`, the only
-/// target this crate supports.
+/// `$CONDA_PREFIX/lib`. Both are pinned in `pixi.toml` for `linux-64` and
+/// `linux-aarch64`, the targets this crate supports.
 fn generate_bindings() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo::rerun-if-changed=wrapper.h");
     println!("cargo::rerun-if-env-changed=CONDA_PREFIX");
@@ -34,7 +47,7 @@ fn generate_bindings() -> Result<(), Box<dyn std::error::Error>> {
 
     let prefix = PathBuf::from(std::env::var("CONDA_PREFIX").map_err(|_| {
         "CONDA_PREFIX is unset — build this crate inside the pixi env (e.g. \
-         `pixi run cargo build -p quent-nvtx-injection`) so the pinned nvtx-c \
+         `pixi run cargo build -p nvtx-injection`) so the pinned nvtx-c \
          headers and libclang are on the path"
     })?);
 
@@ -85,10 +98,16 @@ fn generate_bindings() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Compile the strong-symbol C shim for the static-injection attach path.
+///
+/// The shim's *strong* `InitializeInjectionNvtx2_fnptr` overrides NVTX's *weak*
+/// one, but only if its object is linked in. Nothing references it from Rust and
+/// `-u` would bind to NVTX's weak def, so `+whole-archive` forces it in —
+/// otherwise the linker drops the override and injection never initializes.
 #[cfg(feature = "static-injection")]
 fn compile_symbol_shim() {
     println!("cargo::rerun-if-changed=c/symbol.c");
     cc::Build::new()
         .file("c/symbol.c")
-        .compile("quent_nvtx_symbol");
+        .link_lib_modifier("+whole-archive")
+        .compile("nvtx_symbol");
 }

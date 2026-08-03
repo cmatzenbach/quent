@@ -1,14 +1,14 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 use std::collections::HashSet;
 
 use quent_constraints::Constraint;
 use quent_schema::builder::{AnnotationsBuilder, BuilderError, EntityBuilder, EventBuilder};
-use quent_schema::{Annotations, Cardinality, Entity, Field, Identifier};
+use quent_schema::{Annotations, Cardinality, Entity, Field, Identifier, Path};
 use thiserror::Error;
 
-use crate::{ExitStates, Fsm, FsmConstraint, FsmError, Transition, check_entity};
+use crate::{Fsm, FsmConstraint, FsmError, Transition, check_entity};
 
 /// A declared state of an FSM entity.
 pub struct StateDecl {
@@ -16,12 +16,10 @@ pub struct StateDecl {
     pub name: Identifier,
     /// Fields of the state event.
     pub attributes: Vec<Field>,
-    /// States this state transitions to.
+    /// States this state transitions to. An empty list makes this a final state.
     pub to: Vec<Identifier>,
     /// Whether the FSM begins in this state.
     pub initial: bool,
-    /// Whether the FSM may exit from this state.
-    pub exit: bool,
 }
 
 /// Builds an FSM [`Entity`] from its states: each state becomes one event whose
@@ -30,7 +28,7 @@ pub struct StateDecl {
 /// [`Self::build`] validates the topology with the same checks as
 /// [`crate::FsmConstraint`], so a built entity is always valid.
 pub struct FsmEntityBuilder {
-    id: Identifier,
+    path: Path,
     annotations: AnnotationsBuilder,
     states: Vec<StateDecl>,
 }
@@ -42,26 +40,24 @@ pub enum FsmEntityBuilderError {
     NoInitialState,
     #[error("more than one state is marked as the initial state")]
     MultipleInitialStates(Vec<Identifier>),
-    #[error("no state is marked as an exit state")]
-    NoExitState,
     #[error("duplicate state `{0}`")]
     DuplicateState(Identifier),
-    /// A duplicate attribute name within a state reached the schema builder.
+    /// The generated schema element is invalid.
     #[error(transparent)]
     Build(#[from] BuilderError),
     /// The FSM topology failed to serialize to its constraint payload.
     #[error(transparent)]
     Serialize(#[from] serde_json::Error),
-    /// The FSM topology is invalid (unreachable state, no path to an exit, ...).
+    /// The FSM topology is invalid (unreachable state, no path to a final state, ...).
     #[error(transparent)]
     Invalid(#[from] FsmError),
 }
 
 impl FsmEntityBuilder {
-    /// Begin an FSM entity named `id`.
-    pub fn new(id: Identifier) -> Self {
+    /// Begin an FSM entity at `path`.
+    pub fn new(path: impl Into<Path>) -> Self {
         Self {
-            id,
+            path: path.into(),
             annotations: AnnotationsBuilder::new(),
             states: Vec::new(),
         }
@@ -94,12 +90,12 @@ impl FsmEntityBuilder {
     /// # Errors
     ///
     /// Returns [`FsmEntityBuilderError`] if a state name is declared twice,
-    /// there is not exactly one initial state, no exit state, a state has a
-    /// duplicate attribute name, the topology fails to serialize, or the
-    /// topology is invalid.
+    /// there is not exactly one initial state, a state has a duplicate
+    /// attribute name, the topology fails to serialize, or the topology is
+    /// invalid.
     pub fn build(self) -> Result<Entity, FsmEntityBuilderError> {
         let Self {
-            id,
+            path,
             mut annotations,
             states,
         } = self;
@@ -119,21 +115,12 @@ impl FsmEntityBuilder {
             .map(|s| s.name.clone())
             .collect();
         let initial = match initials.as_slice() {
-            [one] => one.clone(),
+            [initial] => initial.clone(),
             [] => return Err(FsmEntityBuilderError::NoInitialState),
             _ => return Err(FsmEntityBuilderError::MultipleInitialStates(initials)),
         };
 
-        let exits: Vec<Identifier> = states
-            .iter()
-            .filter(|s| s.exit)
-            .map(|s| s.name.clone())
-            .collect();
-        let Some((first_exit, other_exits)) = exits.split_first() else {
-            return Err(FsmEntityBuilderError::NoExitState);
-        };
-
-        let transitions: Vec<Transition> = states
+        let transitions = states
             .iter()
             .flat_map(|state| {
                 let source = state.name.clone();
@@ -143,34 +130,29 @@ impl FsmEntityBuilder {
                     .map(move |target| Transition::new(source.clone(), target.clone()))
             })
             .collect();
-        let fsm = Fsm::new(
-            initial,
-            transitions,
-            ExitStates::new(first_exit.clone(), other_exits.to_vec()),
-        );
+        let fsm = Fsm::new(initial, transitions);
 
-        let mut entity = EntityBuilder::new(id);
+        let mut entity = EntityBuilder::new(path);
         for state in states {
-            // An isolated state has no place on the topology; the FSM constraint
-            // reports it, so `Once` here is only a stand-in.
             let cardinality = fsm.cardinality(&state.name).unwrap_or(Cardinality::Once);
             let event = EventBuilder::new(state.name, cardinality)
-                .try_with_fields(state.attributes)?
-                .build();
-            entity = entity.try_with_event(event)?;
+                .with_fields(state.attributes)
+                .build()?;
+            entity = entity.with_event(event);
         }
 
-        annotations.set_constraint(FsmConstraint::NAME, Some(fsm.constraint_data()?));
-        let entity = entity.with_annotations(annotations.build()).build();
+        annotations =
+            annotations.with_constraint(FsmConstraint::NAME, Some(fsm.constraint_data()?));
+        let entity = entity.with_annotations(annotations.build()?).build()?;
 
         // Validate the full topology now, the same checks the constraint runs
         // during schema validation, so a built entity is always valid.
-        let mut errors = Vec::new();
-        check_entity(&entity, &fsm, &mut errors);
-        match errors.len() {
-            0 => Ok(entity),
-            1 => Err(FsmEntityBuilderError::Invalid(errors.pop().unwrap())),
-            _ => Err(FsmEntityBuilderError::Invalid(FsmError::Multiple(errors))),
+        let mut topology_errors = Vec::new();
+        check_entity(&entity, &fsm, &mut topology_errors);
+        if let Some(error) = topology_errors.into_iter().next() {
+            Err(FsmEntityBuilderError::Invalid(error))
+        } else {
+            Ok(entity)
         }
     }
 }

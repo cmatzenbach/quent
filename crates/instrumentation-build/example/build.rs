@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 //! Parses the YAML model and generates the instrumentation library into `OUT_DIR`.
@@ -23,6 +23,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opts = Options {
         event_derives: &["Debug"],
         record_derives: &["Debug"],
+        // To just print the events in this example, we'll be using the callback
+        // exporter. This exporter takes a type-erased event, so in order to
+        // simplify downcasting back to a statically-typed event, this features
+        // enables the generation of the "AnyEvent" helper type (see main.rs).
+        // This is typically left false when using "real" exporters.
+        any_event: true,
         ..Default::default()
     };
     let GenerateInfo { path, warnings } = generate(&parsed.schema, &opts)?;

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -47,7 +47,6 @@ type ResourceTimelineProps = {
   queryId: string;
   resourceId: string;
   resourceType: string;
-  startTime: bigint;
   durationSeconds: number;
   fsmTypeName?: string | undefined;
   resourceTypeName?: string;
@@ -77,7 +76,6 @@ export function ResourceTimeline({
   queryId,
   resourceId,
   resourceType,
-  startTime,
   durationSeconds,
   fsmTypeName,
   resourceTypeName,
@@ -158,7 +156,7 @@ export function ResourceTimeline({
                 resource_type_name: resourceTypeName ?? '',
                 long_entities_threshold_s: getLongEntitiesThreshold(windowSeconds),
                 entity_filter: { entity_type_name: fsmTypeName ?? null },
-                app_params: { operator_id: null },
+                app_params: { operator_ids: [] },
                 config,
               },
             }
@@ -167,7 +165,7 @@ export function ResourceTimeline({
                 resource_id: resourceId,
                 long_entities_threshold_s: getLongEntitiesThreshold(windowSeconds),
                 entity_filter: { entity_type_name: fsmTypeName ?? null },
-                application: { operator_id: null },
+                application: { operator_ids: [] },
                 config,
               },
             },
@@ -192,7 +190,6 @@ export function ResourceTimeline({
     const base = buildBinnedTimelineSeries(
       data.data,
       data.config,
-      startTime,
       paletteTheme,
       resourceTypeDecl,
       quantitySpecs,
@@ -202,13 +199,7 @@ export function ResourceTimeline({
     const filterSet =
       resourceType === EntityTypeKey.Resource ? new Set([resourceId]) : new Set<string>();
 
-    const timelineMarks = buildTimelineMarks(
-      longFsms,
-      startTime,
-      paletteTheme,
-      filterSet,
-      fsmTypes
-    );
+    const timelineMarks = buildTimelineMarks(longFsms, paletteTheme, filterSet, fsmTypes);
 
     if (operatorId && operatorLabel) {
       if (overlayPreloadedData) {
@@ -219,7 +210,6 @@ export function ResourceTimeline({
           const opResult = buildBinnedTimelineSeries(
             overlayPreloadedData.data,
             overlayPreloadedData.config,
-            startTime,
             paletteTheme,
             resourceTypeDecl,
             quantitySpecs,
@@ -232,7 +222,6 @@ export function ResourceTimeline({
             yAxisLabel: base.yAxisLabel,
             marks: buildTimelineMarks(
               longFsms,
-              startTime,
               paletteTheme,
               filterSet,
               fsmTypes,
@@ -260,7 +249,6 @@ export function ResourceTimeline({
     fetchedData,
     operatorId,
     overlayPreloadedData,
-    startTime,
     resourceTypeDecl,
     quantitySpecs,
     fsmTypes,
@@ -318,7 +306,6 @@ export function ResourceTimeline({
         <Timeline
           series={series}
           timestamps={timestamps ?? []}
-          startTime={startTime}
           durationSeconds={durationSeconds}
           showTooltip={showTooltip}
           marks={effectiveMarks}
@@ -332,7 +319,6 @@ export function ResourceTimeline({
             series={series}
             timestamps={timestamps ?? []}
             marks={effectiveMarks}
-            startTime={startTime}
           />
         )}
       </Suspense>
