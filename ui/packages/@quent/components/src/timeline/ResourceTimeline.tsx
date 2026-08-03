@@ -36,9 +36,9 @@ import type {
   SingleTimelineRequest,
   QueryFilter,
   OperatorFilter,
-  CapacityDecl,
   QuantitySpec,
   FsmTypeDecl,
+  ResourceTypeDecl,
 } from '@quent/utils';
 const Timeline = lazy(() => import('./Timeline').then(mod => ({ default: mod.Timeline })));
 
@@ -54,7 +54,7 @@ type ResourceTimelineProps = {
   showTooltip?: boolean;
   /** Pre-fetched timeline data from bulk endpoint; skips individual fetch when present */
   preloadedData?: SingleTimelineResponse;
-  capacities?: CapacityDecl[];
+  resourceTypeDecl?: ResourceTypeDecl;
   quantitySpecs?: { [key in string]?: QuantitySpec };
   fsmTypes?: { [key in string]?: FsmTypeDecl };
   /** Whether dark mode is active. Passed explicitly to decouple from ThemeContext. */
@@ -80,7 +80,7 @@ export function ResourceTimeline({
   fsmTypeName,
   resourceTypeName,
   showTooltip = true,
-  capacities,
+  resourceTypeDecl,
   quantitySpecs,
   fsmTypes,
   isDark,
@@ -178,10 +178,11 @@ export function ResourceTimeline({
     placeholderData: keepPreviousData,
   });
 
-  const { timestamps, series, marks } = useMemo<{
+  const { timestamps, series, marks, yAxisLabel } = useMemo<{
     timestamps: number[];
     series: TimelineSeries;
     marks?: TimelineMark[];
+    yAxisLabel?: string;
   }>(() => {
     const data = preloadedData ?? fetchedData;
     if (!data) return { timestamps: [], series: EMPTY_TIMELINE_SERIES };
@@ -190,7 +191,7 @@ export function ResourceTimeline({
       data.data,
       data.config,
       paletteTheme,
-      capacities,
+      resourceTypeDecl,
       quantitySpecs,
       fsmTypes
     );
@@ -210,7 +211,7 @@ export function ResourceTimeline({
             overlayPreloadedData.data,
             overlayPreloadedData.config,
             paletteTheme,
-            capacities,
+            resourceTypeDecl,
             quantitySpecs,
             fsmTypes
           );
@@ -218,6 +219,7 @@ export function ResourceTimeline({
           return {
             timestamps: base.timestamps,
             series: mergeOverlaySeries(base.series, opResult.series, operatorLabel),
+            yAxisLabel: base.yAxisLabel,
             marks: buildTimelineMarks(
               longFsms,
               paletteTheme,
@@ -236,6 +238,7 @@ export function ResourceTimeline({
       return {
         timestamps: base.timestamps,
         series: dimSeries(base.series),
+        yAxisLabel: base.yAxisLabel,
         marks: timelineMarks,
       };
     }
@@ -246,7 +249,7 @@ export function ResourceTimeline({
     fetchedData,
     operatorId,
     overlayPreloadedData,
-    capacities,
+    resourceTypeDecl,
     quantitySpecs,
     fsmTypes,
     resourceType,
@@ -295,6 +298,7 @@ export function ResourceTimeline({
   }
 
   const effectiveMarks = hideTasks ? undefined : marks;
+  const effectiveYAxisLabel = yAxisLabel ?? fsmTypeName;
 
   return (
     <div className="h-full w-full">
@@ -306,6 +310,7 @@ export function ResourceTimeline({
           showTooltip={showTooltip}
           marks={effectiveMarks}
           isDark={isDark}
+          yAxisLabel={effectiveYAxisLabel}
           onHoverChange={handleHoverChange}
         />
         {showTooltip && (
