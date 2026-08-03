@@ -469,14 +469,12 @@ export function Timeline({
             color: textColor,
           }}
         >
-          {maxValue != null && (
-            <span
-              className="w-fit rounded-sm px-1 py-0.5"
-              style={{ background: labelBackgroundColor }}
-            >
-              {formatAxisValue(maxValue)}
-            </span>
-          )}
+          <span
+            className="w-fit rounded-sm px-1 py-0.5"
+            style={{ background: labelBackgroundColor }}
+          >
+            {maxValue !== null ? formatAxisValue(maxValue) : '-'}
+          </span>
           {yAxisLabel != null && (
             <span
               className="w-fit rounded-sm px-1 py-0.5"
