@@ -32,3 +32,6 @@ allowBuilds:
   esbuild: true
   msw: true
   protobufjs: true
+
+overrides:
+  brace-expansion: '>=5.0.9'
