@@ -208,11 +208,11 @@ interface DAGLegendProps {
   /** Whether dark mode is active. Passed explicitly to decouple from ThemeContext. */
   isDark: boolean;
   /** Pre-resolved stat-key → QuantitySpec for quantity-aware legend formatting. */
-  statQuantitySpecs: Record<string, QuantitySpec>;
+  statQuantitySpecs?: Record<string, QuantitySpec>;
 }
 
 /** Panel overlay showing node/edge coloring legends within the ReactFlow canvas. */
-export const DAGLegend = ({ isDark, statQuantitySpecs }: DAGLegendProps) => {
+export const DAGLegend = ({ isDark, statQuantitySpecs = {} }: DAGLegendProps) => {
   const nodeColoring = useNodeColoringValue();
   const edgeColoring = useEdgeColoring();
   const [nodePalette] = useNodeColorPalette();
