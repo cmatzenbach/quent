@@ -39,7 +39,7 @@ export const DAGNodeInfoPanel = ({
     setIsExpanded(!!selectedNodeData);
   }, [selectedNodeData?.nodeId]);
 
-  const scrollClass = `px-4 pb-2 h-48 overflow-y-auto ${thinScrollbarClass}`;
+  const scrollClass = `px-4 pb-2 h-48 overflow-auto ${thinScrollbarClass}`;
 
   const statsContent = (
     <div className="flex flex-col gap-1 pr-2 pt-1.5">

@@ -71,8 +71,7 @@ export const DataFlowMatrix = ({
           · {measureDecl?.display_name ?? frame.measure} during this bin
         </span>
       </div>
-      <div className="overflow-x-auto">
-        <table className="mt-1 text-xs min-w-full border-separate border-spacing-0">
+      <table className="mt-1 text-xs min-w-full border-separate border-spacing-0">
           <thead>
             <tr>
               <th scope="col" className="text-left font-normal text-muted-foreground pr-2">
@@ -130,8 +129,7 @@ export const DataFlowMatrix = ({
               </td>
             </tr>
           </tbody>
-        </table>
-      </div>
+      </table>
     </div>
   );
 };
