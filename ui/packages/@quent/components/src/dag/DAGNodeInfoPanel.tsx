@@ -13,6 +13,7 @@ import { DataText } from '../ui/data-text';
 import { thinScrollbarClass } from '../ui/thin-scroll';
 import { formatStatWithQuantity, type QuantitySpec } from '@quent/utils';
 import { DataFlowMatrix } from './DataFlowMatrix';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@quent/components';
 
 export const DAGNodeInfoPanel = ({
   isDark = false,
@@ -32,9 +33,53 @@ export const DAGNodeInfoPanel = ({
       ? dataFlowFrame.perOperator.get(selectedNodeData.nodeId)
       : undefined;
 
+  const showDataFlowTab = dataFlowEnabled && dataFlowMeta != null;
+
   useEffect(() => {
     setIsExpanded(!!selectedNodeData);
   }, [selectedNodeData?.nodeId]);
+
+  const scrollClass = `px-4 pb-2 h-48 overflow-y-auto ${thinScrollbarClass}`;
+
+  const statsContent = (
+    <div className="flex flex-col gap-1 pr-2 pt-1.5">
+      <div className="text-xs flex items-center justify-between">
+        <DataText className="capitalize">ID:</DataText>
+        <DataText className="text-muted-foreground ml-1 truncate">
+          {selectedNodeData?.nodeId}
+        </DataText>
+      </div>
+      {selectedNodeData?.statistics?.map(({ key, value, quantity }) => (
+        <div key={key} className="text-xs">
+          {Array.isArray(value) ? (
+            <div className="flex items-center justify-between gap-0.5">
+              <DataText className="capitalize">{key.replace(/_/g, ' ')}:</DataText>
+              <div className="ml-2 flex flex-col gap-0.5">
+                {value.map((item, i) => (
+                  <DataText key={i} className="text-muted-foreground whitespace-pre-line">
+                    {String(item)}
+                  </DataText>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <DataText className="capitalize">{key.replace(/_/g, ' ')}:</DataText>
+              <DataText className="text-muted-foreground ml-1">
+                {typeof value === 'number'
+                  ? formatStatWithQuantity(
+                      value,
+                      key,
+                      quantity && quantitySpecs ? quantitySpecs[quantity] : undefined
+                    )
+                  : String(value)}
+              </DataText>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="border-t bg-card flex-shrink-0">
@@ -68,53 +113,35 @@ export const DAGNodeInfoPanel = ({
       </div>
 
       {isExpanded && selectedNodeData && (
-        <div className={`border-t px-4 pb-2 h-48 overflow-y-auto ${thinScrollbarClass}`}>
-          {operatorFrame && dataFlowMeta && dataFlowFrame && (
-            <DataFlowMatrix
-              meta={dataFlowMeta}
-              frame={dataFlowFrame}
-              operatorFrame={operatorFrame}
-              isDark={isDark}
-            />
-          )}
-          <div className="flex flex-col gap-1 pr-2 pt-1.5">
-            <div className="text-xs flex items-center justify-between">
-              <DataText className="capitalize">ID:</DataText>
-              <DataText className="text-muted-foreground ml-1 truncate">
-                {selectedNodeData.nodeId}
-              </DataText>
-            </div>
-            {selectedNodeData.statistics?.map(({ key, value, quantity }) => (
-              <div key={key} className="text-xs">
-                {Array.isArray(value) ? (
-                  <div className="flex items-center justify-between gap-0.5">
-                    <DataText className="capitalize">{key.replace(/_/g, ' ')}:</DataText>
-                    <div className="ml-2 flex flex-col gap-0.5">
-                      {value.map((item, i) => (
-                        <DataText key={i} className="text-muted-foreground whitespace-pre-line">
-                          {String(item)}
-                        </DataText>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <DataText className="capitalize">{key.replace(/_/g, ' ')}:</DataText>
-                    <DataText className="text-muted-foreground ml-1">
-                      {typeof value === 'number'
-                        ? formatStatWithQuantity(
-                            value,
-                            key,
-                            quantity && quantitySpecs ? quantitySpecs[quantity] : undefined
-                          )
-                        : String(value)}
-                    </DataText>
-                  </div>
-                )}
-              </div>
-            ))}
+        showDataFlowTab ? (
+          <Tabs defaultValue="stats" className="border-t overflow-visible">
+            <TabsList className="h-7 py-0 px-1 rounded-none">
+              <TabsTrigger value="stats" className="text-xs px-2 py-0.5">Stats</TabsTrigger>
+              <TabsTrigger value="activity" className="text-xs px-2 py-0.5">Activity</TabsTrigger>
+            </TabsList>
+            <TabsContent value="stats" className={scrollClass}>
+              {statsContent}
+            </TabsContent>
+            <TabsContent value="activity" className={scrollClass}>
+              {operatorFrame && dataFlowMeta && dataFlowFrame ? (
+                <DataFlowMatrix
+                  meta={dataFlowMeta}
+                  frame={dataFlowFrame}
+                  operatorFrame={operatorFrame}
+                  isDark={isDark}
+                />
+              ) : (
+                <p className="pt-6 text-xs text-muted-foreground text-center">
+                  No tasks at this bin
+                </p>
+              )}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div className={`border-t ${scrollClass}`}>
+            {statsContent}
           </div>
-        </div>
+        )
       )}
     </div>
   );
