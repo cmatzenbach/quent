@@ -48,6 +48,7 @@ mod any_event;
 mod common;
 mod data_type;
 mod events;
+mod model;
 mod namespace;
 mod records;
 mod runtime;
@@ -60,8 +61,7 @@ use quote::quote;
 
 /// Options controlling event and instrumentation source generation.
 pub struct Options {
-    /// Add handles, observers, a context, and model integration to the event
-    /// types.
+    /// Add handles, observers, and context integration to the event types.
     pub instrumentation: bool,
 
     /// Derive [`Debug`](std::fmt::Debug) on generated event and record types.
@@ -96,6 +96,15 @@ pub struct Options {
     ///
     /// No aggregate is emitted for a namespace without events.
     pub any_event: bool,
+
+    /// Emit model-wide umbrella event enums and implement the umbrella
+    /// capability for the generated model.
+    ///
+    /// No namespace enum is emitted without entity events, except at the root.
+    pub umbrella_event: bool,
+
+    /// Cargo package providing the analyzer for this model.
+    pub analyzer_package: Option<String>,
 }
 
 impl Default for Options {
@@ -109,6 +118,8 @@ impl Default for Options {
             out_dir: PathBuf::from(std::env::var("OUT_DIR").unwrap_or_default()),
             file_name: None,
             any_event: false,
+            umbrella_event: false,
+            analyzer_package: None,
         }
     }
 }
@@ -205,7 +216,7 @@ pub fn generate_str(schema: &Schema, opts: &Options) -> Result<String, GenerateE
     };
     let entity_types = opts.instrumentation.then(|| runtime::entity_types(schema));
     let types = generate_namespace(schema, opts, &namespaces, false)?;
-    let model = opts
+    let observable = opts
         .instrumentation
         .then(|| runtime::generate_model(schema, &namespaces));
     let any_event = if opts.any_event {
@@ -217,7 +228,7 @@ pub fn generate_str(schema: &Schema, opts: &Options) -> Result<String, GenerateE
         #reexports
         #entity_types
         #types
-        #model
+        #observable
         #any_event
     })
     .map_err(GenerateError::InvalidGeneratedCode)?;
@@ -281,12 +292,14 @@ fn generate_namespace(
     } else {
         quote! {}
     };
+    let model = model::generate(schema, namespace, opts)?;
     Ok(quote! {
         #(#records)*
         #(#events)*
         #(#entity_types)*
         #(#runtime)*
         #(#children)*
+        #model
         #observer_storage
         #any_event
     })
@@ -497,7 +510,8 @@ mod path_tests {
         assert!(source.contains("foo::AnyEvent::from_any(any)"));
         assert!(source.contains("nested::AnyEvent::from_any(any)"));
         assert!(
-            source.rfind("pub enum AnyEvent") > source.rfind("impl ::quent_instrumentation::Model")
+            source.rfind("pub enum AnyEvent")
+                > source.rfind("impl ::quent_instrumentation::InstrumentedModel")
         );
     }
 

@@ -10,19 +10,40 @@ use quent_time::{TimeUnixNanoSec, Timestamp, timestamp};
 use serde::{Deserialize, Serialize};
 
 pub use entity_ref::{AnyEntity, EntityRef};
+pub use quent_build_info as build_info;
 pub use quent_dynamic_attributes::DynamicAttributes;
 pub use uuid::Uuid;
 
-/// Trait for the event type of an entity.
+/// Identifies an entity event type with its stable stream name.
 pub trait EntityEvent {
-    /// The name of the entity.
+    /// Schema path used to route and store the entity's events.
     const NAME: &'static str;
 }
 
 /// Associates an entity marker with the events emitted for that entity.
-pub trait Entity: Sized {
+pub trait Entity {
     /// Events emitted for this entity.
     type Event: EntityEvent;
+}
+
+/// Associates a model marker with its identity.
+pub trait Model {
+    /// Stable model name recorded in artifact provenance.
+    const NAME: &'static str;
+
+    /// Returns the model identity and source provenance written with artifacts.
+    fn model_info() -> build_info::ModelInfo
+    where
+        Self: build_info::ModelSource,
+    {
+        build_info::model_info::<Self>(Self::NAME)
+    }
+}
+
+/// Associates a model marker with its model-wide event type.
+pub trait ModelEvents {
+    /// Model-wide event type to which entity events can be converted.
+    type UmbrellaEvent;
 }
 
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
