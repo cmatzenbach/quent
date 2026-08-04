@@ -9,15 +9,13 @@
 
 mod context;
 mod entity;
-mod entity_ref;
 mod handle;
 mod model;
 mod observer;
 mod sidecar;
 
 pub use context::ContextInner;
-pub use entity::{Entity, Observer};
-pub use entity_ref::{AnyEntity, EntityRef};
+pub use entity::{InstrumentedEntity, Observer};
 pub use handle::{HandleError, HandleInner};
 pub use model::{Context, Model, ObserverProvider};
 pub use observer::{EventSender, ObserverInner};
@@ -28,7 +26,9 @@ pub use sidecar::write_sidecar;
 // exporter backend through its `io-*` features.
 pub use quent_build_info as build_info;
 pub use quent_dynamic_attributes::DynamicAttributes;
-pub use quent_events::{EntityEvent, Event};
+#[doc(hidden)]
+pub use quent_events as events;
+pub use quent_events::{AnyEntity, EntityEvent, EntityRef, Event};
 pub use quent_io::ExporterOptions;
 pub use uuid::Uuid;
 
