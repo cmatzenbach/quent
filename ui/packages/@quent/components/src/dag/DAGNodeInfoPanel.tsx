@@ -27,6 +27,7 @@ export const DAGNodeInfoPanel = ({
   const dataFlowMeta = useDataFlowMeta();
   const dataFlowFrame = useDataFlowFrame();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState('stats');
 
   const operatorFrame =
     dataFlowEnabled && selectedNodeData && dataFlowMeta && dataFlowFrame
@@ -37,6 +38,7 @@ export const DAGNodeInfoPanel = ({
 
   useEffect(() => {
     setIsExpanded(!!selectedNodeData);
+    setActiveTab('stats');
   }, [selectedNodeData?.nodeId]);
 
   const scrollClass = `px-4 pb-2 h-48 overflow-auto ${thinScrollbarClass}`;
@@ -56,7 +58,10 @@ export const DAGNodeInfoPanel = ({
               <DataText className="capitalize">{key.replace(/_/g, ' ')}:</DataText>
               <div className="ml-2 flex flex-col gap-0.5">
                 {value.map((item, i) => (
-                  <DataText key={i} className="text-muted-foreground whitespace-pre-line">
+                  <DataText
+                    key={`${key}-${i}`}
+                    className="text-muted-foreground whitespace-pre-line"
+                  >
                     {String(item)}
                   </DataText>
                 ))}
@@ -115,7 +120,11 @@ export const DAGNodeInfoPanel = ({
       {isExpanded &&
         selectedNodeData &&
         (showDataFlowTab ? (
-          <Tabs defaultValue="stats" className="border-t overflow-visible">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="border-t overflow-visible"
+          >
             <TabsList className="h-7 py-0 px-1 rounded-none">
               <TabsTrigger value="stats" className="text-xs px-2 py-0.5">
                 Stats
