@@ -460,7 +460,7 @@ const FlowLayout = ({
     return () => {
       cancelled = true;
     };
-  }, [data, convertToReactFlow, fitView, setNodes, setEdges, layoutDirection]);
+  }, [data, convertToReactFlow, fitView, setNodes, setEdges, layoutDirection, flowBarVisible]);
 
   return (
     <ReactFlow
