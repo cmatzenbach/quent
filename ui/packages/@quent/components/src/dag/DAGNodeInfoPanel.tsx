@@ -11,7 +11,7 @@ import {
 } from '@quent/hooks';
 import { DataText } from '../ui/data-text';
 import { thinScrollbarClass } from '../ui/thin-scroll';
-import { formatStatWithQuantity, type QuantitySpec } from '@quent/utils';
+import { cn, formatStatWithQuantity, type QuantitySpec } from '@quent/utils';
 import { DataFlowMatrix } from './DataFlowMatrix';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 
@@ -41,7 +41,7 @@ export const DAGNodeInfoPanel = ({
     setActiveTab('stats');
   }, [selectedNodeData?.nodeId]);
 
-  const scrollClass = `px-4 pb-2 h-48 overflow-auto ${thinScrollbarClass}`;
+  const scrollClass = cn('px-4 pb-2 h-48 overflow-auto', thinScrollbarClass);
 
   const statsContent = (
     <div className="flex flex-col gap-1 pr-2 pt-1.5">
@@ -152,7 +152,7 @@ export const DAGNodeInfoPanel = ({
             </TabsContent>
           </Tabs>
         ) : (
-          <div className={`border-t ${scrollClass}`}>{statsContent}</div>
+          <div className={cn('border-t', scrollClass)}>{statsContent}</div>
         ))}
     </div>
   );
