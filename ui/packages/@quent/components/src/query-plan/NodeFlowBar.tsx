@@ -89,7 +89,12 @@ export const NodeFlowBar = memo(
 
     return (
       <div className="mt-1.5 w-full" data-testid="node-flow-bar">
-        <div className={cn('h-[12px] w-full overflow-hidden rounded-sm', hasData ? 'bg-muted/40' : 'bg-transparent')}>
+        <div
+          className={cn(
+            'h-[12px] w-full overflow-hidden rounded-sm',
+            hasData ? 'bg-muted/40' : 'bg-transparent'
+          )}
+        >
           <div className="flex h-full" style={{ width: filledWidth, transition: BAR_TRANSITION }}>
             {hasData &&
               meta.stateNames.map((state, stateIndex) => {
@@ -125,7 +130,12 @@ export const NodeFlowBar = memo(
               })}
           </div>
         </div>
-        <div className={cn('mt-[2px] h-[12px] w-full overflow-hidden rounded-sm', hasData ? 'bg-muted/40' : 'bg-transparent')}>
+        <div
+          className={cn(
+            'mt-[2px] h-[12px] w-full overflow-hidden rounded-sm',
+            hasData ? 'bg-muted/40' : 'bg-transparent'
+          )}
+        >
           <div className="flex h-full" style={{ width: filledWidth, transition: BAR_TRANSITION }}>
             {hasData &&
               meta.decl.dimension_keys.map((dimension, dimensionIndex) => {

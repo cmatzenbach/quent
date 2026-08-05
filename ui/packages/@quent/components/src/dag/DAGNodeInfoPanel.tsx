@@ -13,7 +13,7 @@ import { DataText } from '../ui/data-text';
 import { thinScrollbarClass } from '../ui/thin-scroll';
 import { formatStatWithQuantity, type QuantitySpec } from '@quent/utils';
 import { DataFlowMatrix } from './DataFlowMatrix';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@quent/components';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 
 export const DAGNodeInfoPanel = ({
   isDark = false,
@@ -112,12 +112,17 @@ export const DAGNodeInfoPanel = ({
         </button>
       </div>
 
-      {isExpanded && selectedNodeData && (
-        showDataFlowTab ? (
+      {isExpanded &&
+        selectedNodeData &&
+        (showDataFlowTab ? (
           <Tabs defaultValue="stats" className="border-t overflow-visible">
             <TabsList className="h-7 py-0 px-1 rounded-none">
-              <TabsTrigger value="stats" className="text-xs px-2 py-0.5">Stats</TabsTrigger>
-              <TabsTrigger value="activity" className="text-xs px-2 py-0.5">Activity</TabsTrigger>
+              <TabsTrigger value="stats" className="text-xs px-2 py-0.5">
+                Stats
+              </TabsTrigger>
+              <TabsTrigger value="activity" className="text-xs px-2 py-0.5">
+                Activity
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="stats" className={scrollClass}>
               {statsContent}
@@ -138,11 +143,8 @@ export const DAGNodeInfoPanel = ({
             </TabsContent>
           </Tabs>
         ) : (
-          <div className={`border-t ${scrollClass}`}>
-            {statsContent}
-          </div>
-        )
-      )}
+          <div className={`border-t ${scrollClass}`}>{statsContent}</div>
+        ))}
     </div>
   );
 };

@@ -205,7 +205,10 @@ export const DAGControls = ({ operatorStatFields, portStatFields, isDark }: DAGC
                 <ControlField label="Bar labels" icon={Tags}>
                   <SelectField
                     ariaLabel="Bar labels"
-                    options={[{ value: FOLLOW_MEASURE, label: 'Follow measure' }, ...measureOptions]}
+                    options={[
+                      { value: FOLLOW_MEASURE, label: 'Follow measure' },
+                      ...measureOptions,
+                    ]}
                     value={dataFlowLabelMeasure ?? FOLLOW_MEASURE}
                     onValueChange={v => setDataFlowLabelMeasure(v === FOLLOW_MEASURE ? null : v)}
                     clearable={false}

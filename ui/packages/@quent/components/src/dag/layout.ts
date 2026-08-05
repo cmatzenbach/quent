@@ -18,7 +18,7 @@ export async function calculateLayout<TData extends Record<string, unknown>>(
   nodes: Node<TData>[],
   edges: Edge[],
   direction: DagLayoutDirection = DAG_LAYOUT_DIRECTION.BOTTOM_TO_TOP,
-  nodeHeight = NODE_LAYOUT_HEIGHT,
+  nodeHeight = NODE_LAYOUT_HEIGHT
 ): Promise<{ nodes: Node<TData>[]; edges: Edge[] }> {
   const grf = graph<string, undefined>();
   const nodeById = new Map<string, ReturnType<typeof grf.node>>();

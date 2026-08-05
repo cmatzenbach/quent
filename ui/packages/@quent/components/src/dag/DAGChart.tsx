@@ -445,7 +445,7 @@ const FlowLayout = ({
         flowNodes,
         flowEdges,
         layoutDirection,
-        NODE_LAYOUT_HEIGHT + (flowBarVisible ? FLOW_BAR_HEIGHT : 0),
+        NODE_LAYOUT_HEIGHT + (flowBarVisible ? FLOW_BAR_HEIGHT : 0)
       );
       if (cancelled) return;
 

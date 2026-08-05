@@ -72,63 +72,69 @@ export const DataFlowMatrix = ({
         </span>
       </div>
       <table className="mt-1 text-xs min-w-full border-separate border-spacing-0">
-          <thead>
-            <tr>
-              <th scope="col" className="text-left font-normal text-muted-foreground pr-2">
-                State / {meta.decl.dimension_name}
+        <thead>
+          <tr>
+            <th scope="col" className="text-left font-normal text-muted-foreground pr-2">
+              State / {meta.decl.dimension_name}
+            </th>
+            {dimensionColumns.map(({ key: k }) => (
+              <th
+                scope="col"
+                key={k.key}
+                className="text-right font-normal text-muted-foreground px-1.5 whitespace-nowrap"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <ColorDot color={dimensionColor(k.key)} />
+                  <DataText>{k.display_name}</DataText>
+                </span>
               </th>
-              {dimensionColumns.map(({ key: k }) => (
-                <th
-                  scope="col"
-                  key={k.key}
-                  className="text-right font-normal text-muted-foreground px-1.5 whitespace-nowrap"
-                >
-                  <span className="inline-flex items-center gap-1">
-                    <ColorDot color={dimensionColor(k.key)} />
-                    <DataText>{k.display_name}</DataText>
-                  </span>
-                </th>
-              ))}
-              <th scope="col" className="text-right font-medium text-muted-foreground pl-1.5 whitespace-nowrap">
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {meta.stateNames.map((state, stateIndex) => (
-              <tr key={state}>
-                <th scope="row" className="pr-2 text-left font-normal whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1">
-                    <ColorDot color={stateColor(state)} />
-                    <DataText>{state}</DataText>
-                  </span>
-                </th>
-                {dimensionColumns.map(({ key: k, index: dimensionIndex }) => (
-                  <td key={k.key} className="text-right px-1.5 text-muted-foreground whitespace-nowrap">
-                    <DataText>
-                      {fmt(operatorFrame.matrix[stateIndex]?.[dimensionIndex] ?? 0)}
-                    </DataText>
-                  </td>
-                ))}
-                <td className="text-right pl-1.5 whitespace-nowrap">
-                  <DataText>{fmt(operatorFrame.byState[stateIndex] ?? 0)}</DataText>
-                </td>
-              </tr>
             ))}
-            <tr>
-              <th scope="row" className="pr-2 pt-0.5 text-left font-medium whitespace-nowrap">
-                Total
+            <th
+              scope="col"
+              className="text-right font-medium text-muted-foreground pl-1.5 whitespace-nowrap"
+            >
+              Total
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {meta.stateNames.map((state, stateIndex) => (
+            <tr key={state}>
+              <th scope="row" className="pr-2 text-left font-normal whitespace-nowrap">
+                <span className="inline-flex items-center gap-1">
+                  <ColorDot color={stateColor(state)} />
+                  <DataText>{state}</DataText>
+                </span>
               </th>
               {dimensionColumns.map(({ key: k, index: dimensionIndex }) => (
-                <td key={k.key} className="text-right px-1.5 pt-0.5 whitespace-nowrap">
-                  <DataText>{fmt(operatorFrame.byDimension[dimensionIndex] ?? 0)}</DataText>
+                <td
+                  key={k.key}
+                  className="text-right px-1.5 text-muted-foreground whitespace-nowrap"
+                >
+                  <DataText>
+                    {fmt(operatorFrame.matrix[stateIndex]?.[dimensionIndex] ?? 0)}
+                  </DataText>
                 </td>
               ))}
-              <td className="text-right pl-1.5 pt-0.5 font-medium whitespace-nowrap">
-                <DataText>{fmt(operatorFrame.total)}</DataText>
+              <td className="text-right pl-1.5 whitespace-nowrap">
+                <DataText>{fmt(operatorFrame.byState[stateIndex] ?? 0)}</DataText>
               </td>
             </tr>
-          </tbody>
+          ))}
+          <tr>
+            <th scope="row" className="pr-2 pt-0.5 text-left font-medium whitespace-nowrap">
+              Total
+            </th>
+            {dimensionColumns.map(({ key: k, index: dimensionIndex }) => (
+              <td key={k.key} className="text-right px-1.5 pt-0.5 whitespace-nowrap">
+                <DataText>{fmt(operatorFrame.byDimension[dimensionIndex] ?? 0)}</DataText>
+              </td>
+            ))}
+            <td className="text-right pl-1.5 pt-0.5 font-medium whitespace-nowrap">
+              <DataText>{fmt(operatorFrame.total)}</DataText>
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
   );
