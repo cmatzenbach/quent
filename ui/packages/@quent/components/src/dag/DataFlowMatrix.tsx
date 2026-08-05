@@ -74,7 +74,7 @@ export const DataFlowMatrix = ({
       <table className="mt-1 text-xs min-w-full border-separate border-spacing-0">
         <thead>
           <tr>
-            <th scope="col" className="text-left font-normal text-muted-foreground pr-2">
+            <th scope="col" className="text-left font-normal text-muted-foreground pr-2 whitespace-nowrap">
               State / {meta.decl.dimension_name}
             </th>
             {dimensionColumns.map(({ key: k }) => (
