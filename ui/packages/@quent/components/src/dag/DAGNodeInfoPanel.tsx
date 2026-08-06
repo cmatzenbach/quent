@@ -130,7 +130,7 @@ export const DAGNodeInfoPanel = ({
                 Stats
               </TabsTrigger>
               <TabsTrigger value="activity" className="text-xs px-2 py-0.5">
-                Activity
+                Data Flow
               </TabsTrigger>
             </TabsList>
             <TabsContent value="stats" className={scrollClass}>
