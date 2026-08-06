@@ -107,6 +107,8 @@ export {
   useSetDataFlowSelectedDimensions,
   useDataFlowMeta,
   useDataFlowFrame,
+  useDataFlowIsPlaying,
+  useSetDataFlowIsPlaying,
 } from './dataFlow/dataFlowSelectors';
 export { useDataFlowSync } from './dataFlow/useDataFlowSync';
 export {

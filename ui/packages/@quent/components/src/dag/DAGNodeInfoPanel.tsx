@@ -6,6 +6,7 @@ import { ChevronUp, ChevronDown } from 'lucide-react';
 import {
   useSelectedNodeData,
   useDataFlowEnabled,
+  useDataFlowIsPlaying,
   useDataFlowMeta,
   useDataFlowFrame,
 } from '@quent/hooks';
@@ -24,6 +25,7 @@ export const DAGNodeInfoPanel = ({
 }) => {
   const selectedNodeData = useSelectedNodeData();
   const dataFlowEnabled = useDataFlowEnabled();
+  const isPlaying = useDataFlowIsPlaying();
   const dataFlowMeta = useDataFlowMeta();
   const dataFlowFrame = useDataFlowFrame();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -40,6 +42,12 @@ export const DAGNodeInfoPanel = ({
     setIsExpanded(!!selectedNodeData);
     setActiveTab('stats');
   }, [selectedNodeData?.nodeId]);
+
+  useEffect(() => {
+    if (isPlaying && isExpanded && showDataFlowTab) {
+      setActiveTab('data-flow');
+    }
+  }, [isPlaying, isExpanded, showDataFlowTab]);
 
   const scrollClass = cn('px-4 pb-2 h-48 overflow-auto', thinScrollbarClass);
 
@@ -129,14 +137,14 @@ export const DAGNodeInfoPanel = ({
               <TabsTrigger value="stats" className="text-xs px-2 py-0.5">
                 Stats
               </TabsTrigger>
-              <TabsTrigger value="activity" className="text-xs px-2 py-0.5">
+              <TabsTrigger value="data-flow" className="text-xs px-2 py-0.5">
                 Data Flow
               </TabsTrigger>
             </TabsList>
             <TabsContent value="stats" className={scrollClass}>
               {statsContent}
             </TabsContent>
-            <TabsContent value="activity" className={scrollClass}>
+            <TabsContent value="data-flow" className={scrollClass}>
               {operatorFrame && dataFlowMeta && dataFlowFrame ? (
                 <DataFlowMatrix
                   meta={dataFlowMeta}

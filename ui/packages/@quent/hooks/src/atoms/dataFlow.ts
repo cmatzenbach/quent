@@ -49,3 +49,6 @@ export const dataFlowMetaAtom = atom<DataFlowMeta | null>(null);
  * panel) subscribe to this — a scrub tick must not re-render DAG nodes.
  */
 export const dataFlowFrameAtom = atom<DataFlowFrame | null>(null);
+
+/** Whether the data-flow playhead is currently playing. */
+export const dataFlowIsPlayingAtom = atom(false);
