@@ -52,3 +52,12 @@ export const dataFlowFrameAtom = atom<DataFlowFrame | null>(null);
 
 /** Whether the data-flow playhead is currently playing. */
 export const dataFlowIsPlayingAtom = atom(false);
+
+/**
+ * Timestamp (ms relative to query epoch) for the playhead overlay line on the
+ * timeline charts. `null` hides the line. Kept separate from
+ * {@link playheadTimeSAtom} so the overlay line can be hidden (e.g. when
+ * paused) without losing the playhead position used to drive the data-flow
+ * frame.
+ */
+export const playheadLineTimeMsAtom = atom<number | null>(null);

@@ -11,8 +11,8 @@ import {
   useSetDataFlowIsPlaying,
   usePlayheadTimeS,
   useSetPlayheadTimeS,
+  useSetPlayheadLineTimeMs,
 } from '@quent/hooks';
-import { broadcastSyncedPointer, hideSyncedPointer } from '../lib/timeline.utils';
 
 /** Interval between play ticks; each tick advances the playhead by one bin. */
 const PLAY_INTERVAL_MS = 100;
@@ -42,6 +42,7 @@ export function DagPlayhead({ className }: DagPlayheadProps) {
   const setPlayheadTimeS = useSetPlayheadTimeS();
   const isPlaying = useDataFlowIsPlaying();
   const setIsPlaying = useSetDataFlowIsPlaying();
+  const setPlayheadLineTimeMs = useSetPlayheadLineTimeMs();
 
   const trackRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
@@ -68,9 +69,9 @@ export function DagPlayhead({ className }: DagPlayheadProps) {
       const t = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
       const timeS = bin.startS + t * (bin.endS - bin.startS);
       setPlayheadTimeS(timeS);
-      broadcastSyncedPointer(timeS * 1000);
+      setPlayheadLineTimeMs(timeS * 1000);
     },
-    [bin, setPlayheadTimeS]
+    [bin, setPlayheadTimeS, setPlayheadLineTimeMs]
   );
 
   const handlePointerDown = useCallback(
@@ -95,12 +96,15 @@ export function DagPlayhead({ className }: DagPlayheadProps) {
     [applyClientX]
   );
 
-  const handlePointerEnd = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    hideSyncedPointer();
-  }, []);
+  const handlePointerEnd = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      setPlayheadLineTimeMs(null);
+    },
+    [setPlayheadLineTimeMs]
+  );
 
   const stepBy = useCallback(
     (bins: number) => {
@@ -150,15 +154,14 @@ export function DagPlayhead({ className }: DagPlayheadProps) {
     });
   }, [bin, setPlayheadTimeS]);
 
-  // Stop playback when the overlay is disabled or the bin metadata goes
-  // away: the component stays mounted while rendering null, so a live play
-  // interval would otherwise keep advancing the playhead and broadcasting
-  // the synced crosshair invisibly.
+  // Stop playback when the overlay is disabled or the bin metadata goes away:
+  // the component stays mounted while rendering null, so a live play interval
+  // would otherwise keep advancing the playhead invisibly.
   useEffect(() => {
     if (enabled && bin) return;
     setIsPlaying(false);
-    hideSyncedPointer();
-  }, [enabled, bin]);
+    setPlayheadLineTimeMs(null);
+  }, [enabled, bin, setPlayheadLineTimeMs]);
 
   // Advance one bin per tick while playing; stop at the window end.
   useEffect(() => {
@@ -168,24 +171,22 @@ export function DagPlayhead({ className }: DagPlayheadProps) {
       const current = playheadRef.current ?? startS;
       const next = Math.min(current + binDurationS, endS);
       setPlayheadTimeS(next);
-      broadcastSyncedPointer(next * 1000);
+      setPlayheadLineTimeMs(next * 1000);
       if (next >= endS) setIsPlaying(false);
     }, PLAY_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [isPlaying, bin, setPlayheadTimeS]);
+  }, [isPlaying, bin, setPlayheadTimeS, setPlayheadLineTimeMs]);
 
-  // Clear the synced crosshair when playback stops.
   useEffect(() => {
-    if (!isPlaying) hideSyncedPointer();
-  }, [isPlaying]);
+    if (!isPlaying) setPlayheadLineTimeMs(null);
+  }, [isPlaying, setPlayheadLineTimeMs]);
 
-  // Cleanup on unmount: pending rAF and any lingering crosshair.
   useEffect(() => {
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-      hideSyncedPointer();
+      setPlayheadLineTimeMs(null);
     };
-  }, []);
+  }, [setPlayheadLineTimeMs]);
 
   if (!enabled || !meta || !bin) return null;
 

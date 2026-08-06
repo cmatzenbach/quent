@@ -2075,6 +2075,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nvtx-analyzer"
+version = "0.1.0"
+dependencies = [
+ "nvtx-bridge",
+ "nvtx-events",
+ "nvtx-example",
+ "quent-events",
+ "quent-instrumentation",
+ "quent-time",
+ "rustc-hash",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "nvtx-bridge"
 version = "0.1.0"
 dependencies = [
@@ -2690,6 +2705,7 @@ dependencies = [
 name = "quent-instrumentation"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "criterion",
  "http",
  "pprof",
@@ -2699,6 +2715,7 @@ dependencies = [
  "quent-dynamic-attributes",
  "quent-events",
  "quent-io",
+ "quent-io-callback",
  "serde",
  "tempfile",
  "thiserror",
@@ -2733,7 +2750,6 @@ dependencies = [
  "clap",
  "http",
  "quent-events",
- "quent-io-callback",
  "quent-io-collector",
  "quent-io-msgpack",
  "quent-io-ndjson",
@@ -3119,7 +3135,6 @@ dependencies = [
 name = "quent-simulator-instrumentation"
 version = "0.1.0"
 dependencies = [
- "quent-io-callback",
  "quent-model",
  "quent-query-engine-model",
  "quent-stdlib",
