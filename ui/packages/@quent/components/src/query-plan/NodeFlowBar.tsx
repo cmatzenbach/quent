@@ -14,7 +14,13 @@ import {
   formatDataFlowValueCompact,
 } from '@quent/hooks';
 import { cn } from '@quent/utils';
-import { NODE_LAYOUT_WIDTH } from '../dag/layout';
+import {
+  NODE_LAYOUT_WIDTH,
+  FLOW_BAR_TOP_MARGIN,
+  FLOW_BAR_TRACK_HEIGHT,
+  FLOW_BAR_TRACK_GAP,
+  FLOW_BAR_LABEL_HEIGHT,
+} from '../dag/layout';
 import { SegmentValueLabel } from './SegmentValueLabel';
 
 const BAR_TRANSITION = 'width 120ms linear';
@@ -88,12 +94,10 @@ export const NodeFlowBar = memo(
       : '';
 
     return (
-      <div className="mt-1.5 w-full" data-testid="node-flow-bar">
+      <div className="w-full" style={{ marginTop: FLOW_BAR_TOP_MARGIN }} data-testid="node-flow-bar">
         <div
-          className={cn(
-            'h-[12px] w-full overflow-hidden rounded-sm',
-            hasData ? 'bg-muted/40' : 'bg-transparent'
-          )}
+          className={cn('w-full overflow-hidden rounded-sm', hasData ? 'bg-muted/40' : 'bg-transparent')}
+          style={{ height: FLOW_BAR_TRACK_HEIGHT }}
         >
           <div className="flex h-full" style={{ width: filledWidth, transition: BAR_TRANSITION }}>
             {hasData &&
@@ -131,10 +135,8 @@ export const NodeFlowBar = memo(
           </div>
         </div>
         <div
-          className={cn(
-            'mt-[2px] h-[12px] w-full overflow-hidden rounded-sm',
-            hasData ? 'bg-muted/40' : 'bg-transparent'
-          )}
+          className={cn('w-full overflow-hidden rounded-sm', hasData ? 'bg-muted/40' : 'bg-transparent')}
+          style={{ marginTop: FLOW_BAR_TRACK_GAP, height: FLOW_BAR_TRACK_HEIGHT }}
         >
           <div className="flex h-full" style={{ width: filledWidth, transition: BAR_TRANSITION }}>
             {hasData &&
@@ -172,7 +174,8 @@ export const NodeFlowBar = memo(
           </div>
         </div>
         <div
-          className="text-right text-[9px] leading-3 text-muted-foreground tabular-nums truncate"
+          className="text-right text-[9px] text-muted-foreground tabular-nums truncate"
+          style={{ lineHeight: `${FLOW_BAR_LABEL_HEIGHT}px` }}
           data-testid="flow-bar-totals"
         >
           {totalsLabel !== '' ? totalsLabel : '\u00A0'}

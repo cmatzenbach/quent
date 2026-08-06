@@ -7,8 +7,19 @@ import { DAG_LAYOUT_DIRECTION, type DagLayoutDirection } from '@quent/utils';
 
 export const NODE_LAYOUT_WIDTH = 200;
 export const NODE_LAYOUT_HEIGHT = 60;
-// NodeFlowBar fixed height
-export const FLOW_BAR_HEIGHT = 44;
+
+// NodeFlowBar geometry — these drive both the DAG node height calculation and
+// the inline styles in NodeFlowBar so the two stay in sync automatically.
+export const FLOW_BAR_TOP_MARGIN = 6; // mt-1.5
+export const FLOW_BAR_TRACK_HEIGHT = 12; // h-[12px] for each bar track
+export const FLOW_BAR_TRACK_GAP = 2; // mt-[2px] between the two tracks
+export const FLOW_BAR_LABEL_HEIGHT = 12; // leading-3 totals label
+export const FLOW_BAR_HEIGHT =
+  FLOW_BAR_TOP_MARGIN +
+  FLOW_BAR_TRACK_HEIGHT +
+  FLOW_BAR_TRACK_GAP +
+  FLOW_BAR_TRACK_HEIGHT +
+  FLOW_BAR_LABEL_HEIGHT;
 // Spacing between adjacent nodes in the same layer (horizontal gap)
 const NODE_SPACING = 50;
 // Spacing between layers (vertical gap)
