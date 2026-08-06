@@ -71,12 +71,12 @@ export const DataFlowMatrix = ({
           · {measureDecl?.display_name ?? frame.measure} during this bin
         </span>
       </div>
-      <table className="mt-1 text-xs min-w-full border-separate border-spacing-0">
+      <table className="mt-1 text-xs min-w-full border-separate border-spacing-0 whitespace-nowrap">
         <thead>
           <tr>
             <th
               scope="col"
-              className="text-left font-normal text-muted-foreground pr-2 whitespace-nowrap"
+              className="text-left font-normal text-muted-foreground pr-2"
             >
               State / {meta.decl.dimension_name}
             </th>
@@ -84,7 +84,7 @@ export const DataFlowMatrix = ({
               <th
                 scope="col"
                 key={k.key}
-                className="text-right font-normal text-muted-foreground px-1.5 whitespace-nowrap"
+                className="text-right font-normal text-muted-foreground px-1.5"
               >
                 <span className="inline-flex items-center gap-1">
                   <ColorDot color={dimensionColor(k.key)} />
@@ -94,7 +94,7 @@ export const DataFlowMatrix = ({
             ))}
             <th
               scope="col"
-              className="text-right font-medium text-muted-foreground pl-1.5 whitespace-nowrap"
+              className="text-right font-medium text-muted-foreground pl-1.5"
             >
               Total
             </th>
@@ -112,28 +112,28 @@ export const DataFlowMatrix = ({
               {dimensionColumns.map(({ key: k, index: dimensionIndex }) => (
                 <td
                   key={k.key}
-                  className="text-right px-1.5 text-muted-foreground whitespace-nowrap"
+                  className="text-right px-1.5 text-muted-foreground"
                 >
                   <DataText>
                     {fmt(operatorFrame.matrix[stateIndex]?.[dimensionIndex] ?? 0)}
                   </DataText>
                 </td>
               ))}
-              <td className="text-right pl-1.5 whitespace-nowrap">
+              <td className="text-right pl-1.5">
                 <DataText>{fmt(operatorFrame.byState[stateIndex] ?? 0)}</DataText>
               </td>
             </tr>
           ))}
           <tr>
-            <th scope="row" className="pr-2 pt-0.5 text-left font-medium whitespace-nowrap">
+            <th scope="row" className="pr-2 pt-0.5 text-left font-medium">
               Total
             </th>
             {dimensionColumns.map(({ key: k, index: dimensionIndex }) => (
-              <td key={k.key} className="text-right px-1.5 pt-0.5 whitespace-nowrap">
+              <td key={k.key} className="text-right px-1.5 pt-0.5">
                 <DataText>{fmt(operatorFrame.byDimension[dimensionIndex] ?? 0)}</DataText>
               </td>
             ))}
-            <td className="text-right pl-1.5 pt-0.5 font-medium whitespace-nowrap">
+            <td className="text-right pl-1.5 pt-0.5 font-medium">
               <DataText>{fmt(operatorFrame.total)}</DataText>
             </td>
           </tr>
