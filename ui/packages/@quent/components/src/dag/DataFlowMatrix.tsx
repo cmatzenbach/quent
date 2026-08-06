@@ -65,16 +65,19 @@ export const DataFlowMatrix = ({
   return (
     <div className="pt-1.5">
       <div className="text-xs font-medium">
-        Data flow @ <DataText>{formatDuration(frame.timeS * 1000)}</DataText>
+        Activity @ <DataText>{formatDuration(frame.timeS * 1000)}</DataText>
         <span className="text-muted-foreground font-normal">
           {' '}
           · {measureDecl?.display_name ?? frame.measure} during this bin
         </span>
       </div>
-      <table className="mt-1 text-xs w-full border-separate border-spacing-0">
+      <table className="mt-1 text-xs min-w-full border-separate border-spacing-0 whitespace-nowrap">
         <thead>
           <tr>
-            <th scope="col" className="text-left font-normal text-muted-foreground pr-2">
+            <th
+              scope="col"
+              className="text-left font-normal text-muted-foreground pr-2"
+            >
               State / {meta.decl.dimension_name}
             </th>
             {dimensionColumns.map(({ key: k }) => (
@@ -89,7 +92,10 @@ export const DataFlowMatrix = ({
                 </span>
               </th>
             ))}
-            <th scope="col" className="text-right font-medium text-muted-foreground pl-1.5">
+            <th
+              scope="col"
+              className="text-right font-medium text-muted-foreground pl-1.5"
+            >
               Total
             </th>
           </tr>
@@ -97,14 +103,17 @@ export const DataFlowMatrix = ({
         <tbody>
           {meta.stateNames.map((state, stateIndex) => (
             <tr key={state}>
-              <th scope="row" className="pr-2 text-left font-normal">
+              <th scope="row" className="pr-2 text-left font-normal whitespace-nowrap">
                 <span className="inline-flex items-center gap-1">
                   <ColorDot color={stateColor(state)} />
                   <DataText>{state}</DataText>
                 </span>
               </th>
               {dimensionColumns.map(({ key: k, index: dimensionIndex }) => (
-                <td key={k.key} className="text-right px-1.5 text-muted-foreground">
+                <td
+                  key={k.key}
+                  className="text-right px-1.5 text-muted-foreground"
+                >
                   <DataText>
                     {fmt(operatorFrame.matrix[stateIndex]?.[dimensionIndex] ?? 0)}
                   </DataText>
