@@ -65,7 +65,7 @@ export const DataFlowMatrix = ({
   return (
     <div className="pt-1.5">
       <div className="text-xs font-medium">
-        Data flow @ <DataText>{formatDuration(frame.timeS * 1000)}</DataText>
+        Activity @ <DataText>{formatDuration(frame.timeS * 1000)}</DataText>
         <span className="text-muted-foreground font-normal">
           {' '}
           · {measureDecl?.display_name ?? frame.measure} during this bin
