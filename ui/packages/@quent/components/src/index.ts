@@ -44,6 +44,8 @@ export {
   NavigationMenuViewport,
 } from './ui/navigation-menu';
 export { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
+export { PointerTooltipPortal } from './ui/pointer-tooltip-portal';
+export type { PointerPosition } from './ui/pointer-tooltip-portal';
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resizable';
 export { ScrollArea, ScrollBar } from './ui/scroll-area';
 export {
@@ -146,6 +148,7 @@ export type { DAGData, QueryPlanDataItem, QueryPlanNodeData } from './services/q
 // ─── Timeline components ──────────────────────────────────────────────────────
 export { TimelineController } from './timeline/TimelineController';
 export { TimelineRuler } from './timeline/TimelineRuler';
+export { TimelineSettingsPopover } from './timeline/TimelineSettingsPopover';
 export { TimelineSkeleton } from './timeline/TimelineSkeleton';
 export { TimelineToolbar } from './timeline/TimelineToolbar';
 export { QueryToolbar } from './timeline/QueryToolbar';
@@ -240,10 +243,18 @@ export {
 export type { GroupIndexDef, RowWithGroupKeys } from './pivot-table/utils';
 
 // ─── Long-entities components ─────────────────────────────────────────────────
-export { LongEntitiesGantt } from './long-entities/LongEntitiesGantt';
+export {
+  LongEntitiesGantt,
+  LONG_ENTITIES_TIMELINE_HEIGHT,
+} from './long-entities/LongEntitiesGantt';
 export type { LongEntitiesGanttProps } from './long-entities/LongEntitiesGantt';
 export type { LongEntityEntry, LongEntitySegment } from './long-entities/types';
-export { buildLongEntityEntries } from './long-entities/utils';
+export {
+  buildLongEntityEntries,
+  LONG_ENTITIES_ROW_TYPE,
+  longEntitiesRowId,
+  resourceIdFromLongEntitiesRowId,
+} from './long-entities/utils';
 
 // ─── Operator-timeline components ────────────────────────────────────────────
 export { OperatorGanttChart } from './operator-timeline/OperatorGanttChart';
