@@ -6,7 +6,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NavBarNavigator } from '@/components/NavBarNavigator';
-import { Button } from '@quent/components';
+import { Button, Toaster } from '@quent/components';
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -14,6 +14,7 @@ import {
   NavigationMenuLink,
 } from '@quent/components';
 import { cn } from '@quent/utils';
+import { DeepLinkNavSlot } from '@/features/deep-link';
 
 function AppNav({ highlightProfile }: { highlightProfile?: boolean }) {
   return (
@@ -55,6 +56,7 @@ function AppNav({ highlightProfile }: { highlightProfile?: boolean }) {
                   </Button>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+              <DeepLinkNavSlot />
             </NavigationMenuList>
           </NavigationMenu>
           <ThemeToggle />
@@ -108,6 +110,7 @@ function RootComponent() {
             <Outlet />
           </main>
         </div>
+        <Toaster />
       </ThemeProvider>
       {import.meta.env.VITE_DEBUG && !import.meta.env.TEST && <TanStackRouterDevtools />}
     </>

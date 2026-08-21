@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@base-ui/react": "^1.7.0",
     "@quent/client": "workspace:*",
     "@quent/hooks": "workspace:*",
     "@quent/utils": "workspace:*",
