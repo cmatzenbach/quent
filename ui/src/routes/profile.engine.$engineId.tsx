@@ -24,7 +24,7 @@ function ProfileLayout() {
   const queryBundle = queryMatch?.loaderData;
 
   return (
-    <Provider key={`${queryId ?? ''}:${encodedState ?? ''}`}>
+    <Provider key={`${engineId}:${queryId ?? ''}:${encodedState ?? ''}`}>
       <DeepLinkBoundary
         durationSeconds={queryBundle?.duration_s ?? 0}
         encodedState={encodedState}
