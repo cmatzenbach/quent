@@ -2819,6 +2819,8 @@ dependencies = [
  "quent-io-postcard",
  "quent-io-types",
  "serde",
+ "tempfile",
+ "tokio",
  "uuid",
 ]
 
