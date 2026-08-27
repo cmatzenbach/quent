@@ -55,6 +55,15 @@ export {
   NavigationMenuIndicator,
   NavigationMenuViewport,
 } from './ui/navigation-menu';
+export {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from './ui/pagination';
 export { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
 export { PointerTooltipPortal } from './ui/pointer-tooltip-portal';
 export type { PointerPosition } from './ui/pointer-tooltip-portal';
@@ -82,12 +91,19 @@ export {
 } from './ui/select';
 export { SelectField } from './ui/select-field';
 export type { SelectFieldProps, SelectFieldOption } from './ui/select-field';
+export { SearchableSelect } from './ui/searchable-select';
+export type { SearchableSelectProps } from './ui/searchable-select';
 export { RequiredMultiSelectField } from './ui/required-multi-select-field';
 export type {
   RequiredMultiSelectFieldProps,
   RequiredMultiSelectOption,
 } from './ui/required-multi-select-field';
 export { Skeleton } from './ui/skeleton';
+export { Slider } from './ui/slider';
+export { SliderField } from './ui/slider-field';
+export type { SliderFieldProps } from './ui/slider-field';
+export { RangeSliderField } from './ui/range-slider-field';
+export type { RangeSliderFieldProps } from './ui/range-slider-field';
 export { TreeView } from './ui/tree-view';
 export type { TreeDataItem } from './ui/tree-view';
 export { TreeTable } from './ui/tree-table';
