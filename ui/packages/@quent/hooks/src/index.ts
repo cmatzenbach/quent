@@ -19,6 +19,7 @@ export {
   useTimelineData,
   useReturnedTimelineNumBins,
   useReturnedTimelineIsStale,
+  useZeroUtilizationResourceIds,
   useZoomRange,
   useGetZoomRange,
   useReadZoomRange,
