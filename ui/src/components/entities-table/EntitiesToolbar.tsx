@@ -19,7 +19,6 @@ const FILTER_ERRORS_ID = 'entities-filter-errors';
 interface EntitiesToolbarProps {
   filters: EntityFilters;
   durationS: number;
-  windowMaxS: number;
   operatorId: string | null;
   operatorOptions: SelectFieldOption[];
   entityTypeOptions: SelectFieldOption[];
@@ -39,7 +38,6 @@ interface EntitiesToolbarProps {
 export function EntitiesToolbar({
   filters,
   durationS,
-  windowMaxS,
   operatorId,
   operatorOptions,
   entityTypeOptions,
@@ -53,7 +51,6 @@ export function EntitiesToolbar({
   onReset,
 }: EntitiesToolbarProps) {
   const sliderMax = Math.max(durationS, 0);
-  const windowSliderMax = Math.max(windowMaxS, 0);
   return (
     <div className="shrink-0 border-b bg-card px-3 py-2.5">
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
@@ -103,7 +100,7 @@ export function EntitiesToolbar({
             endLabel="Window end (s)"
             className="w-56"
             min={0}
-            max={windowSliderMax}
+            max={sliderMax}
             startValue={filters.windowStart}
             endValue={filters.windowEnd}
             invalidStart={invalidFilterFields.has('windowStart')}
