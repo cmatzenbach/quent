@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useEntities } from '@quent/client';
+import { useEntities, useEntityList } from '@quent/client';
 import { useSelectedNodeIds } from '@quent/hooks';
 import type { SelectFieldOption } from '@quent/components';
 import type { EntityRef, FiniteStateMachine, QueryBundle, SortDir } from '@quent/utils';
@@ -35,6 +35,15 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
   const { entities, duration_s: durationS } = queryBundle;
   const selectedNodeIds = useSelectedNodeIds();
   const dagOperatorId = selectedNodeIds.values().next().value ?? null;
+  const longestEntityQuery = useEntityList({
+    engineId,
+    queryId,
+    window: { start: 0, end: durationS },
+    sortKey: 'UsageDuration',
+    sortDir: 'Desc',
+    maxItems: 1,
+  });
+  const maxUsageS = longestEntityQuery.data?.items[0]?.usage_duration_s ?? durationS;
   const defaults = useMemo(() => defaultEntityFilters(durationS), [durationS]);
   const [filters, setFilters] = useState<EntityFilters>(() => defaultEntityFilters(durationS));
   const [manualOperatorOverride, setManualOperatorOverride] =
@@ -162,6 +171,7 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
     filters: {
       values: filters,
       durationS,
+      maxUsageS,
       validationErrors,
       invalidFilterFields,
       hasNonDefaultSettings: hasNonDefaultEntitySettings(filters, defaults, activeFilterCount),
