@@ -26,7 +26,8 @@ export function useFullDurationZeroUtilizationResourceIds(
   engineId: string,
   queryId: string,
   durationSeconds: number,
-  entities: QueryEntities
+  entities: QueryEntities,
+  enabled = true
 ): ReadonlySet<string> {
   const resourceIds = useMemo(() => Object.keys(entities.resources), [entities.resources]);
 
@@ -48,7 +49,7 @@ export function useFullDurationZeroUtilizationResourceIds(
     queryKey: ['fullDurationTimelines', engineId, queryId, resourceIds],
     queryFn: () => fetchBulkTimelines(engineId, { entries, app_params: { query_id: queryId } }),
     staleTime: Infinity,
-    enabled: resourceIds.length > 0,
+    enabled: enabled && resourceIds.length > 0,
   });
 
   return useMemo(() => {

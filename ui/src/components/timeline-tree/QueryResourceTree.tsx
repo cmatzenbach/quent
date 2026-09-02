@@ -68,7 +68,8 @@ export function QueryResourceTree({
     engineId,
     queryBundle.query_id,
     queryBundle.duration_s,
-    entities
+    entities,
+    resourceSubRows === undefined
   );
   const longEntitiesSubRow = useMemo(
     () =>
