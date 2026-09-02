@@ -14,15 +14,26 @@ vi.mock('@quent/client', async importOriginal => {
   return { ...actual, fetchBulkTimelines: (...args: unknown[]) => fetchBulkTimelines(...args) };
 });
 
-const entities = {
+const entitiesFixture: Pick<QueryEntities, 'resources' | 'resource_types'> = {
   resources: {
-    'zero-resource': { id: 'zero-resource', type_name: 'GPU', instance_name: 'GPU 0' },
-    'busy-resource': { id: 'busy-resource', type_name: 'GPU', instance_name: 'GPU 1' },
+    'zero-resource': {
+      id: 'zero-resource',
+      type_name: 'GPU',
+      instance_name: 'GPU 0',
+      parent_group_id: 'engine-1',
+    },
+    'busy-resource': {
+      id: 'busy-resource',
+      type_name: 'GPU',
+      instance_name: 'GPU 1',
+      parent_group_id: 'engine-1',
+    },
   },
   resource_types: {
-    GPU: { used_by: ['Worker'] },
+    GPU: { name: 'GPU', capacities: [], used_by: ['Worker'] },
   },
-} as unknown as QueryEntities;
+};
+const entities = entitiesFixture as QueryEntities;
 
 function response(overrides: Partial<BulkTimelinesResponse['entries']>): BulkTimelinesResponse {
   return { entries: overrides as BulkTimelinesResponse['entries'] };
