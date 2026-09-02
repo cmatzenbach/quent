@@ -4,10 +4,12 @@
 import { RotateCcw } from 'lucide-react';
 import {
   Button,
+  OptionMultiSelect,
   RangeSliderField,
   SearchableSelect,
   SelectField,
   SliderField,
+  type OptionMultiSelectOption,
   type SelectFieldOption,
 } from '@quent/components';
 import { cn } from '@quent/utils';
@@ -18,17 +20,19 @@ const FILTER_ERRORS_ID = 'entities-filter-errors';
 
 interface EntitiesToolbarProps {
   filters: EntityFilters;
-  durationS: number;
+  windowMaxS: number;
   maxUsageS: number;
-  operatorId: string | null;
-  operatorOptions: SelectFieldOption[];
+  operatorIds: ReadonlySet<string>;
+  operatorOptions: OptionMultiSelectOption[];
   entityTypeOptions: SelectFieldOption[];
   resourceOptions: SelectFieldOption[];
   activeFilterCount: number;
   hasNonDefaultSettings: boolean;
   validationErrors: string[];
   invalidFilterFields: Set<EntityNumberFilterField>;
-  onOperatorChange: (value: string | null) => void;
+  onToggleOperator: (value: string) => void;
+  onSelectAllOperators: () => void;
+  onSelectNoOperators: () => void;
   onFiltersChange: (
     patch: Partial<EntityFilters>,
     options?: { preserveSelection?: boolean }
@@ -38,9 +42,9 @@ interface EntitiesToolbarProps {
 
 export function EntitiesToolbar({
   filters,
-  durationS,
+  windowMaxS,
   maxUsageS,
-  operatorId,
+  operatorIds,
   operatorOptions,
   entityTypeOptions,
   resourceOptions,
@@ -48,11 +52,13 @@ export function EntitiesToolbar({
   hasNonDefaultSettings,
   validationErrors,
   invalidFilterFields,
-  onOperatorChange,
+  onToggleOperator,
+  onSelectAllOperators,
+  onSelectNoOperators,
   onFiltersChange,
   onReset,
 }: EntitiesToolbarProps) {
-  const sliderMax = Math.max(durationS, 0);
+  const windowSliderMax = Math.max(windowMaxS, 0);
   const minUsageSliderMax = Math.max(maxUsageS, 0);
   return (
     <div className="shrink-0 border-b bg-card px-3 py-2.5">
@@ -60,12 +66,18 @@ export function EntitiesToolbar({
         {/* Filters */}
         <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
           <FieldWrapper label="Operator" className="w-64">
-            <SearchableSelect
+            <OptionMultiSelect
               ariaLabel="Operator"
-              placeholder="All operators"
+              triggerText="All operators"
               options={operatorOptions}
-              value={operatorId}
-              onValueChange={onOperatorChange}
+              selectedOptionIds={new Set(operatorIds)}
+              onToggleOption={onToggleOperator}
+              onSelectAllOptions={onSelectAllOperators}
+              onSelectNoOptions={onSelectNoOperators}
+              searchPlaceholder="Search operators…"
+              emptyMessage="No operators found"
+              showSelectedBadges={false}
+              triggerClassName="h-8 w-full"
             />
           </FieldWrapper>
           <FieldWrapper label="Type" className="w-36">
@@ -103,7 +115,7 @@ export function EntitiesToolbar({
             endLabel="Window end (s)"
             className="w-56"
             min={0}
-            max={sliderMax}
+            max={windowSliderMax}
             startValue={filters.windowStart}
             endValue={filters.windowEnd}
             invalidStart={invalidFilterFields.has('windowStart')}
