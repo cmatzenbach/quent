@@ -17,7 +17,6 @@ import {
   buildEntityRequest,
   defaultEntityFilters,
   entityRows,
-  fsmSpan,
   hasNonDefaultEntitySettings,
   normalizePageSize,
   operatorLocationDescription,
@@ -40,9 +39,9 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
   const setSelectedNodeIds = useSetSelectedNodeIds();
   const setSelectedOperatorLabel = useSetSelectedOperatorLabel();
   const defaults = useMemo(() => defaultEntityFilters(durationS), [durationS]);
-  // The "Window (s)" and "Min usage (s)" sliders are bounded by the query duration, which is
-  // often far longer than when entities actually occur. Use the longest-running entity to
-  // derive tighter, more useful maxes so the sliders aren't mostly dead space.
+  // The "Min usage (s)" slider is bounded by the query duration, which is often far longer than
+  // when entities actually occur. Use the longest-running entity's usage duration as a tighter,
+  // more useful max so the slider isn't mostly dead space.
   const longestEntityQuery = useEntityList({
     engineId,
     queryId,
@@ -51,15 +50,7 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
     sortDir: 'Desc',
     maxItems: 1,
   });
-  const longestEntityItem = longestEntityQuery.data?.items[0];
-  const windowMaxS = useMemo(() => {
-    const longestEntity = longestEntityItem?.entity;
-    if (!longestEntity) {
-      return durationS;
-    }
-    return Math.min(durationS, Math.max(0, fsmSpan(longestEntity).end));
-  }, [longestEntityItem, durationS]);
-  const maxUsageS = longestEntityItem?.usage_duration_s ?? durationS;
+  const maxUsageS = longestEntityQuery.data?.items[0]?.usage_duration_s ?? durationS;
   const [filters, setFilters] = useState<EntityFilters>(() => defaultEntityFilters(durationS));
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<FiniteStateMachine | null>(null);
@@ -211,7 +202,6 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
     filters: {
       values: filters,
       durationS,
-      windowMaxS,
       maxUsageS,
       validationErrors,
       invalidFilterFields,
