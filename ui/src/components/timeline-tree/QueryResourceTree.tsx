@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback, useMemo, useState } from 'react';
-import { useZeroUtilizationResourceIds } from '@quent/hooks';
 import { createFsmTypeColorFn } from '@quent/utils';
 import type { EntityRef, FiniteStateMachine, QueryBundle, ZoomRange } from '@quent/utils';
 import { EntityDetailDrawer } from '@/components/EntityDetailDrawer';
@@ -14,6 +13,7 @@ import {
   type ResourceTimelineSubRow,
 } from './ResourceTimelinesTree';
 import { TimelineTreeTable, useTimelineTreeSetup } from './TimelineTreeTable';
+import { useFullDurationZeroUtilizationResourceIds } from './useFullDurationZeroUtilizationResourceIds';
 
 export interface QueryResourceTreeProps {
   engineId: string;
@@ -64,7 +64,12 @@ export function QueryResourceTree({
     () => createOperatorGanttTimelineSubRow({ queryBundle, isDark }),
     [isDark, queryBundle]
   );
-  const zeroUtilizationResourceIds = useZeroUtilizationResourceIds();
+  const zeroUtilizationResourceIds = useFullDurationZeroUtilizationResourceIds(
+    engineId,
+    queryBundle.query_id,
+    queryBundle.duration_s,
+    entities
+  );
   const longEntitiesSubRow = useMemo(
     () =>
       createLongEntitiesTimelineSubRow({

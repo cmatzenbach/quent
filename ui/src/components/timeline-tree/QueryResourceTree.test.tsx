@@ -40,6 +40,10 @@ vi.mock('@/hooks/useExpandedIds', () => ({
   useExpandedIds: () => ({ expandedIds: new Set<string>(), handleExpandChange: vi.fn() }),
 }));
 
+vi.mock('./useFullDurationZeroUtilizationResourceIds', () => ({
+  useFullDurationZeroUtilizationResourceIds: () => new Set<string>(),
+}));
+
 vi.mock('@/contexts/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', setTheme: vi.fn() }),
   THEME_DARK: 'dark',
