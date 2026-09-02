@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { buildBulkParamsForItem, type TreeTableItem } from '@quent/components';
 import { isTimelineUtilizationAllZero } from '@quent/hooks';
-import { fetchBulkTimelines } from '@quent/client';
+import { bulkTimelineQueryOptions } from '@quent/client';
 import {
   EntityTypeKey,
   type OperatorFilter,
@@ -46,9 +46,10 @@ export function useFullDurationZeroUtilizationResourceIds(
   }, [resourceIds, entities, durationSeconds]);
 
   const { data } = useQuery({
-    queryKey: ['fullDurationTimelines', engineId, queryId, resourceIds],
-    queryFn: () => fetchBulkTimelines(engineId, { entries, app_params: { query_id: queryId } }),
-    staleTime: Infinity,
+    ...bulkTimelineQueryOptions(
+      { engineId, request: { entries, app_params: { query_id: queryId } } },
+      { staleTime: Infinity }
+    ),
     enabled: enabled && resourceIds.length > 0,
   });
 

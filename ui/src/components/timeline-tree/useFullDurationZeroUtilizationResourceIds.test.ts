@@ -11,7 +11,18 @@ const fetchBulkTimelines = vi.fn();
 
 vi.mock('@quent/client', async importOriginal => {
   const actual = await importOriginal<typeof import('@quent/client')>();
-  return { ...actual, fetchBulkTimelines: (...args: unknown[]) => fetchBulkTimelines(...args) };
+  return {
+    ...actual,
+    fetchBulkTimelines: (...args: unknown[]) => fetchBulkTimelines(...args),
+    bulkTimelineQueryOptions: (
+      params: { engineId: string; request: unknown },
+      options?: { staleTime?: number }
+    ) => ({
+      queryKey: ['bulkTimelines', params.engineId, params.request],
+      queryFn: () => fetchBulkTimelines(params.engineId, params.request),
+      staleTime: options?.staleTime,
+    }),
+  };
 });
 
 const entitiesFixture: Pick<QueryEntities, 'resources' | 'resource_types'> = {
