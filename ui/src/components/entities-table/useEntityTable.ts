@@ -20,6 +20,7 @@ import {
   hasNonDefaultEntitySettings,
   normalizePageSize,
   operatorLocationDescription,
+  parseOptionalNumber,
   resourceLocationDescription,
   selectedOperatorsLabel,
   validateEntityFilters,
@@ -52,6 +53,18 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
   });
   const maxUsageS = longestEntityQuery.data?.items[0]?.usage_duration_s ?? durationS;
   const [filters, setFilters] = useState<EntityFilters>(() => defaultEntityFilters(durationS));
+  // maxUsageS starts at durationS (a loose upper bound) and narrows once longestEntityQuery
+  // resolves. If a previously entered minUsageS now exceeds the narrower bound, clamp it so
+  // effectiveFilters/buildEntityRequest stay consistent with what SliderField displays.
+  useEffect(() => {
+    setFilters(previous => {
+      const currentMinUsageS = parseOptionalNumber(previous.minUsageS);
+      if (currentMinUsageS === null || currentMinUsageS <= maxUsageS) {
+        return previous;
+      }
+      return { ...previous, minUsageS: String(maxUsageS) };
+    });
+  }, [maxUsageS]);
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<FiniteStateMachine | null>(null);
   const operatorLabel = useCallback(
