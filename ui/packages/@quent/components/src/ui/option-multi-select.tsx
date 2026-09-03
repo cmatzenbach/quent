@@ -112,7 +112,7 @@ export function OptionMultiSelect({
             role="combobox"
             aria-label={ariaLabel ?? label}
             className={cn(
-              'h-7 min-w-36 justify-between gap-2 px-2 text-xs font-normal hover:bg-background hover:text-foreground',
+              'h-7 min-w-36 cursor-pointer justify-between gap-2 px-2 text-xs font-normal hover:bg-background hover:text-foreground',
               triggerClassName
             )}
           >
