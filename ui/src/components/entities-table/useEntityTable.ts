@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEntities, useEntityList } from '@quent/client';
 import {
   useSelectedNodeIds,
@@ -53,20 +53,24 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
   });
   const maxUsageS = longestEntityQuery.data?.items[0]?.usage_duration_s ?? durationS;
   const [filters, setFilters] = useState<EntityFilters>(() => defaultEntityFilters(durationS));
-  // maxUsageS starts at durationS (a loose upper bound) and narrows once longestEntityQuery
-  // resolves. If a previously entered minUsageS now exceeds the narrower bound, clamp it so
-  // effectiveFilters/buildEntityRequest stay consistent with what SliderField displays.
-  useEffect(() => {
-    setFilters(previous => {
-      const currentMinUsageS = parseOptionalNumber(previous.minUsageS);
-      if (currentMinUsageS === null || currentMinUsageS <= maxUsageS) {
-        return previous;
-      }
-      return { ...previous, minUsageS: String(maxUsageS) };
-    });
-  }, [maxUsageS]);
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<FiniteStateMachine | null>(null);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  // maxUsageS starts at durationS (a loose upper bound) and narrows once longestEntityQuery
+  // resolves. If a previously entered minUsageS now exceeds the narrower bound, clamp it so
+  // effectiveFilters/buildEntityRequest stay consistent with what SliderField displays. Reads
+  // filters via a ref (rather than a dependency) so this only reacts to maxUsageS narrowing,
+  // not every filter change.
+  useEffect(() => {
+    const currentMinUsageS = parseOptionalNumber(filtersRef.current.minUsageS);
+    if (currentMinUsageS === null || currentMinUsageS <= maxUsageS) {
+      return;
+    }
+    setFilters(previous => ({ ...previous, minUsageS: String(maxUsageS) }));
+    setPage(0);
+    setSelected(null);
+  }, [maxUsageS]);
   const operatorLabel = useCallback(
     (id: string) => {
       const operator = entities.operators[id];
