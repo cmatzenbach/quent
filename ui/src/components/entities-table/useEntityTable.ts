@@ -63,6 +63,7 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<FiniteStateMachine | null>(null);
   const filtersRef = useRef(filters);
+  // eslint-disable-next-line react-hooks/refs -- latest-value mirror, only read from callbacks/effects
   filtersRef.current = filters;
   // maxUsageS starts at durationS (a loose upper bound) and narrows once longestEntityQuery
   // resolves. If a previously entered minUsageS now exceeds the narrower bound, clamp it so
