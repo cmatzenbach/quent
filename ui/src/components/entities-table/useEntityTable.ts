@@ -86,12 +86,13 @@ export function useEntityTable({ engineId, queryId, queryBundle }: UseEntityTabl
     },
     [entities.operators]
   );
-  // Reset pagination/selection whenever the operator filter changes, regardless of whether
-  // it came from this toolbar or another crossfiltered view (DAG, operator swimlanes, etc).
-  useEffect(() => {
+  // Reset pagination/selection as soon as the operator filter changes
+  const [prevOperatorIds, setPrevOperatorIds] = useState(operatorIds);
+  if (operatorIds !== prevOperatorIds) {
+    setPrevOperatorIds(operatorIds);
     setPage(0);
     setSelected(null);
-  }, [operatorIds]);
+  }
 
   const updateFilters = useCallback(
     (patch: Partial<EntityFilters>, options?: { preserveSelection?: boolean }) => {
