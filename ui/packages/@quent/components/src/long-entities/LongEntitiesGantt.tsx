@@ -134,7 +134,7 @@ export function LongEntitiesGantt({
       const hasSelection = selectedEntityId != null;
       const isSelected = hasSelection && entry.entityId === selectedEntityId;
       // Selecting an entity always overrides operator-filter graying
-      const opacity = isSelected ? 1 : entry.isDimmed ? DIMMED_OPACITY : hasSelection ? 0.3 : 1;
+      const opacity = isSelected ? 1 : entry.isDimmed ? DIMMED_OPACITY : hasSelection ? 0.5 : 1;
       const color = entry.isDimmed && !isSelected ? rollupTimelineColor : segment.color;
       const isFirst = datum!.segmentIndex === 0;
       const isLast = datum!.segmentIndex === entry.segments.length - 1;
