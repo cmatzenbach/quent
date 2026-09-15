@@ -129,11 +129,7 @@ export function LongEntitiesGantt({
 
       const hasSelection = selectedEntityId != null;
       const isSelected = hasSelection && entry.entityId === selectedEntityId;
-      const opacity = entry.isDimmed
-        ? DIMMED_OPACITY
-        : hasSelection && !isSelected
-          ? 0.3
-          : 1;
+      const opacity = entry.isDimmed ? DIMMED_OPACITY : hasSelection && !isSelected ? 0.3 : 1;
 
       const color = segment.color;
       const isFirst = datum!.segmentIndex === 0;
