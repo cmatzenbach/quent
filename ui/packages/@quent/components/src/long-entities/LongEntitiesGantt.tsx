@@ -4,6 +4,7 @@
 import { useCallback, useMemo } from 'react';
 
 import {
+  DIMMED_OPACITY,
   MARK_AREA_BORDER_OPACITY,
   MARK_AREA_FILL_OPACITY,
   useTimelineEchartsTheme,
@@ -128,7 +129,11 @@ export function LongEntitiesGantt({
 
       const hasSelection = selectedEntityId != null;
       const isSelected = hasSelection && entry.entityId === selectedEntityId;
-      const opacity = hasSelection && !isSelected ? 0.3 : 1;
+      const opacity = entry.isDimmed
+        ? DIMMED_OPACITY
+        : hasSelection && !isSelected
+          ? 0.3
+          : 1;
 
       const color = segment.color;
       const isFirst = datum!.segmentIndex === 0;
