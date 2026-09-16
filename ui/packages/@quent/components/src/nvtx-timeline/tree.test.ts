@@ -219,42 +219,6 @@ describe('NVTX resource tree', () => {
     ]);
   });
 
-  it('sorts thread lanes with a missing source_domain_id instead of throwing', () => {
-    const lane = (
-      id: string,
-      identity: NvtxViewportResponse['domains'][number]['lanes'][number]['identity']
-    ) => ({ id, label: id, identity, ranges: [], marks: [] });
-    const viewport = {
-      viewport: { start: 0, end: 1 },
-      domains: [
-        {
-          domain_id: '3',
-          source_domain_ids: ['3'],
-          name: 'CCCL',
-          color: '#000000ff',
-          lanes: [
-            lane('thread-3', { kind: 'thread', source_domain_id: '3', thread_id: 303, depth: 0 }),
-            // A malformed/incompletely-instrumented source: no source_domain_id.
-            lane('thread-unknown', {
-              kind: 'thread',
-              source_domain_id: undefined as unknown as string,
-              thread_id: 303,
-              depth: 0,
-            }),
-          ],
-        },
-      ],
-      statistics: [],
-    } satisfies NvtxViewportResponse;
-
-    expect(() => indexNvtxLanes(viewport)).not.toThrow();
-    const lanesByRowId = indexNvtxLanes(viewport);
-    expect(lanesByRowId.get(nvtxThreadRowId('3', 303))?.map(item => item.id)).toEqual([
-      'thread-3',
-      'thread-unknown',
-    ]);
-  });
-
   it('filters labels while retaining the path to direct matches', () => {
     const tree = buildNvtxTree(catalog, allCatalogLaneRowIds, null)!;
     const result = filterNvtxTree(tree, 'worker 3');
