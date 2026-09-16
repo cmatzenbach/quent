@@ -105,7 +105,13 @@ export function buildLongEntityEntries(
     });
   }
 
-  return stackIntervalsIntoRows(entries);
+  // With an operator filter active, pack entities matching the filter first so
+  // they claim the topmost swimlanes
+  const packingOrder = hasOperatorFilter
+    ? [...entries].sort((a, b) => Number(!!a.isDimmed) - Number(!!b.isDimmed))
+    : entries;
+
+  return stackIntervalsIntoRows(packingOrder);
 }
 
 /** Return every entity state whose half-open segment contains the timestamp. */

@@ -166,6 +166,22 @@ describe('buildLongEntityEntries', () => {
     const entries = buildLongEntityEntries([a, b], {}, 'light');
     expect(new Set(entries.map(e => e.rowIndex)).size).toBe(2);
   });
+
+  it('packs operator-filter-matching entities onto the topmost rows', () => {
+    // Three overlapping entities, each needing its own row. "b" matches the
+    // operator filter but appears last in input order; it should still be
+    // packed onto row 0 ahead of the dimmed "a" and "c".
+    const a = makeFsm('a', [transition('s', 0), transition('exit', 10)], { operator_id: 'op-2' });
+    const b = makeFsm('b', [transition('s', 0), transition('exit', 10)], { operator_id: 'op-1' });
+    const c = makeFsm('c', [transition('s', 0), transition('exit', 10)], { operator_id: 'op-2' });
+
+    const entries = buildLongEntityEntries([a, b, c], {}, 'light', null, new Set(['op-1']));
+
+    const byId = Object.fromEntries(entries.map(e => [e.entityId, e]));
+    expect(byId.b).toMatchObject({ rowIndex: 0, isDimmed: false });
+    expect(byId.a.rowIndex).toBeGreaterThan(0);
+    expect(byId.c.rowIndex).toBeGreaterThan(0);
+  });
 });
 
 describe('getLongEntitySegmentsAtTimestamp', () => {
