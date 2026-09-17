@@ -437,7 +437,7 @@ describe('QueryResourceTree — NVTX filters', () => {
 
     await waitFor(() => {
       const calls = vi.mocked(clientApi.useNvtxStream).mock.calls;
-      const liveCall = calls.findLast(call => call[3]?.categoryFilters != null);
+      const liveCall = [...calls].reverse().find(call => call[3]?.categoryFilters != null);
       expect(liveCall?.[3]?.categoryFilters?.get('1')).toEqual({
         categoryId: 7,
         includeUncategorized: false,
