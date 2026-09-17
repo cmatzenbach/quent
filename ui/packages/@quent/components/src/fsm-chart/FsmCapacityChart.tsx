@@ -138,14 +138,6 @@ export function FsmCapacityChart({
     return { resources, stateLabels };
   }, [transitions, resourceLabel, quantitySpecs, getCapacityDecl, defaultCapacityPredicate]);
 
-  // Reset selections as soon as the entity changes
-  const [prevTransitions, setPrevTransitions] = useState(transitions);
-  if (transitions !== prevTransitions) {
-    setPrevTransitions(transitions);
-    setSelectedResourceId(null);
-    setSelectedCapacityName(null);
-  }
-
   // Resolve active resource
   const activeResource =
     resources.find(r => r.resourceId === selectedResourceId) ?? resources[0] ?? null;
