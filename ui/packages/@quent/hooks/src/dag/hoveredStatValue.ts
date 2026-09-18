@@ -18,8 +18,7 @@ function aggregate(values: number[], mode: AggMode): number {
         return 0;
       }
       const mean = sum / values.length;
-      const variance =
-        values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (values.length - 1);
+      const variance = values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (values.length - 1);
       return Math.sqrt(variance);
     }
     case 'sum':

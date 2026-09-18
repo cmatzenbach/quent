@@ -33,10 +33,7 @@ describe('dagAggregatedHeatmapRangeAtom', () => {
       max: 4,
       aggMode: 'sum',
     });
-    store.set(
-      dagDisplayedNodeIdsAtom,
-      new Set(['logical-1', 'logical-2', 'a', 'b', 'c', 'd'])
-    );
+    store.set(dagDisplayedNodeIdsAtom, new Set(['logical-1', 'logical-2', 'a', 'b', 'c', 'd']));
     store.set(
       dagNodeGroupsAtom,
       new Map([
