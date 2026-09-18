@@ -282,7 +282,6 @@ describe('QueryResourceTree — TimelineController always shows full-range data'
       id: 'entity-1',
       type_name: 'Task',
       instance_name: 'Task 1',
-      operator_id: null,
       transitions: [],
     } as FiniteStateMachine;
 

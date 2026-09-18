@@ -1,7 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import type { FiniteStateMachine, FsmTypeDecl, PaletteTheme } from '@quent/utils';
+import type {
+  FiniteStateMachine,
+  FsmTypeDecl,
+  PaletteTheme,
+  QueryEngineFsm,
+} from '@quent/utils';
 import { createFsmTypeColorFn } from '@quent/utils';
 import { stackIntervalsIntoRows } from '../gantt-chart/utils';
 import type { LongEntityEntry, LongEntitySegment } from './types';
@@ -74,7 +79,7 @@ function buildSegments(
  * greedy first-fit packing shared with the operator Gantt.
  */
 export function buildLongEntityEntries(
-  items: FiniteStateMachine[],
+  items: QueryEngineFsm[],
   fsmTypes: { [key in string]?: FsmTypeDecl } | undefined,
   theme: PaletteTheme,
   resourceIdsForFilter?: ReadonlySet<string> | null,

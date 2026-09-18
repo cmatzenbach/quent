@@ -238,7 +238,6 @@ impl TaskExt for Task {
                     _ => None,
                 })
                 .unwrap_or_default(),
-            operator_id: self.operator_id(),
             transitions,
         })
     }

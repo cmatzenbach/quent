@@ -234,8 +234,6 @@ pub struct FiniteStateMachine {
     pub type_name: String,
     /// The instance name of this FSM.
     pub instance_name: String,
-    /// The operator that caused this FSM's activity, if known.
-    pub operator_id: Option<Uuid>,
     /// The transitions of this FSM.
     pub transitions: Vec<FsmTransition>,
 }
@@ -249,7 +247,6 @@ impl FiniteStateMachine {
             id: value.id(),
             type_name: value.type_name().to_owned(),
             instance_name: value.instance_name().to_owned(),
-            operator_id: None,
             transitions: value
                 .transitions()
                 .iter()
