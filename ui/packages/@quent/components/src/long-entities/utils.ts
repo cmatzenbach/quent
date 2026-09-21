@@ -1,12 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import type {
-  FiniteStateMachine,
-  FsmTypeDecl,
-  PaletteTheme,
-  QueryEngineFsm,
-} from '@quent/utils';
+import type { FiniteStateMachine, FsmTypeDecl, PaletteTheme, QueryEngineFsm } from '@quent/utils';
 import { createFsmTypeColorFn } from '@quent/utils';
 import { stackIntervalsIntoRows } from '../gantt-chart/utils';
 import type { LongEntityEntry, LongEntitySegment } from './types';
