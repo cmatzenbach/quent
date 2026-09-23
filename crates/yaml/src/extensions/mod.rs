@@ -14,6 +14,7 @@
 
 use quent_constraints::{Constraint, validate};
 use quent_fsm::FsmConstraint;
+use quent_log::LogConstraint;
 use quent_os::OsConstraint;
 use quent_ref_target::RefTargetConstraint;
 use quent_ref_tree::RefTreeConstraint;
@@ -25,6 +26,7 @@ use crate::ast::{self, AnnotationMap, Model, TypeExpr};
 use crate::diag::{Diagnostic, Diagnostics};
 
 pub(crate) mod fsm;
+pub(crate) mod log;
 pub(crate) mod os;
 pub(crate) mod reference;
 pub(crate) mod resource;
@@ -45,6 +47,7 @@ pub(crate) struct ModelElaboration {
     pub(crate) records: Vec<Record>,
 }
 
+#[derive(Default)]
 pub(crate) struct EventContext {
     resource_bounds_record: Option<Path>,
 }
@@ -75,17 +78,14 @@ impl Elaborator {
         let mut entities = Vec::new();
         let mut records = Vec::new();
         for (name, spec) in &model.fsms {
-            if model.entities.contains_key(name) {
-                sink.error(
-                    &format!("fsms.{name}"),
-                    format!("`{name}` is declared as both an entity and an FSM"),
-                    None,
-                );
-                continue;
-            }
             if let Some((entity, generated)) = fsm::elaborate(name, spec, self, sink) {
                 entities.push(entity);
                 records.extend(generated);
+            }
+        }
+        for (name, spec) in &model.logs {
+            if let Some(entity) = log::elaborate(name, spec, self, sink) {
+                entities.push(entity);
             }
         }
         ModelElaboration { entities, records }
@@ -208,6 +208,8 @@ impl Elaborator {
                 Some(
                     "the resource constraint is set from a `resource:` block, not written directly",
                 )
+            } else if name == LogConstraint::NAME {
+                Some("the log constraint is set from a `logs:` declaration, not written directly")
             } else {
                 None
             };
@@ -228,6 +230,7 @@ pub(crate) fn validate_schema(schema: &Schema, sink: &mut Diagnostics) -> Option
         FsmConstraint,
         ResourceConstraint,
         OsConstraint,
+        LogConstraint,
     )>(schema);
     if let Err(error) = report.base_constraints {
         for entity in error.entities_without_events {
@@ -252,13 +255,14 @@ pub(crate) fn validate_schema(schema: &Schema, sink: &mut Diagnostics) -> Option
         }
     }
 
-    let (ref_target, ref_tree, fsm, resource, os) = report.results;
+    let (ref_target, ref_tree, fsm, resource, os, log) = report.results;
     for result in [
         ref_target.map_err(|error| error.to_string()),
         ref_tree.map_err(|error| error.to_string()),
         fsm.map_err(|error| error.to_string()),
         resource.map_err(|error| error.to_string()),
         os.map_err(|error| error.to_string()),
+        log.map_err(|error| error.to_string()),
     ] {
         if let Err(error) = result {
             sink.error("", error, None);

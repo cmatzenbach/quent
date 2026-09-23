@@ -163,6 +163,7 @@ fn entity_of(
     let records = entity_elaboration.records;
     let event_context = entity_elaboration.event_context;
 
+    let annotations = build_or_diagnose(anns.build(), &path, sink).unwrap_or_default();
     let events: Vec<_> = entity
         .events
         .iter()
@@ -172,7 +173,7 @@ fn entity_of(
         .collect();
     match EntityBuilder::new(id?)
         .with_events(events)
-        .with_annotations(build_or_diagnose(anns.build(), &path, sink).unwrap_or_default())
+        .with_annotations(annotations)
         .build()
     {
         Ok(entity) => Some((entity, records)),

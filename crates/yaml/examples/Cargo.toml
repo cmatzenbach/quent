@@ -82,3 +82,7 @@ path = "operating-system/src/main.rs"
 [[bin]]
 name = "job-workload"
 path = "job-workload/src/main.rs"
+
+[[bin]]
+name = "log-sink"
+path = "log-sink/src/main.rs"
