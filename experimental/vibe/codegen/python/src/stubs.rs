@@ -23,6 +23,8 @@ pub(crate) fn emit(schema: &Schema, options: &Options) -> Vec<GeneratedFile> {
         "class EventAlreadyEmittedError(QuentError): ...\n",
         "class ContextClosedError(QuentError): ...\n",
         "class HandleConsumedError(QuentError): ...\n\n",
+        "class InvalidFsmStateError(QuentError): ...\n\n",
+        "class InvalidFsmTransitionError(QuentError): ...\n\n",
         "def now_v7() -> uuid.UUID: ...\n",
         "def nil_uuid() -> uuid.UUID: ...\n\n",
         "class DynamicValue:\n",
@@ -200,6 +202,9 @@ fn emit_fsm_handles(
         "\nclass {entity_name}Handle:\n    \"\"\"Starts one `{}` state machine.\"\"\"\n    @property\n    def uuid(self) -> uuid.UUID: ...\n    def __repr__(self) -> str: ...\n",
         entity.path(),
     ));
+    output.push_str(&format!(
+        "    def into_dynamic(self) -> {entity_name}DynamicFsmHandle: ...\n"
+    ));
     let initial_target = state_handle_name(entity, initial.name());
     emit_event_method(output, schema, initial, &initial_target, true);
 
@@ -209,6 +214,9 @@ fn emit_fsm_handles(
             "\nclass {class_name}:\n    \"\"\"Represents a `{}` entity in the `{}` state.\"\"\"\n    @property\n    def uuid(self) -> uuid.UUID: ...\n    def __repr__(self) -> str: ...\n",
             entity.path(),
             state.name(),
+        ));
+        output.push_str(&format!(
+            "    def into_dynamic(self) -> {entity_name}DynamicFsmHandle: ...\n"
         ));
         for transition in fsm
             .transitions()
@@ -221,6 +229,22 @@ fn emit_fsm_handles(
             let target_name = state_handle_name(entity, target.name());
             emit_event_method(output, schema, target, &target_name, true);
         }
+    }
+
+    output.push_str(&format!(
+        "\nclass {entity_name}DynamicFsmHandle:\n    \"\"\"Represents a `{}` state machine checked dynamically.\"\"\"\n    @property\n    def uuid(self) -> uuid.UUID: ...\n    def __repr__(self) -> str: ...\n",
+        entity.path(),
+    ));
+    output.push_str(&format!(
+        "    def try_into_initial(self) -> {entity_name}Handle: ...\n"
+    ));
+    for state in entity.events() {
+        let method = py_safe(&format!("try_into_{}", to_case(state.name(), Case::Snake)));
+        let target = state_handle_name(entity, state.name());
+        output.push_str(&format!("    def {method}(self) -> {target}: ...\n"));
+    }
+    for event in entity.events() {
+        emit_event_method(output, schema, event, "None", true);
     }
 }
 
@@ -267,6 +291,7 @@ fn entity_reference_type(schema: &Schema, path: &quent_schema::Path) -> String {
         .expect("validated entity reference target");
     let mut handles = vec![format!("{}Handle", path_pascal(path))];
     if Fsm::try_from_entity(entity).ok().flatten().is_some() {
+        handles.push(format!("{}DynamicFsmHandle", path_pascal(path)));
         handles.extend(
             entity
                 .events()
