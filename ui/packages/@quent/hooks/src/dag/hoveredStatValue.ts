@@ -37,7 +37,7 @@ export interface ResolvedHoveredStatValue {
    * Aggregated values live on a different scale than raw item values (a sum
    * across several operators routinely exceeds any single item's max), so
    * callers must not compare them against `hoveredStat.min`/`max` directly —
-   * see `dagAggregatedHeatmapRangeAtom`.
+   * see `dagHeatmapRangeAtom`.
    */
   source: 'direct' | 'aggregated';
 }

@@ -22,7 +22,7 @@ import {
   useNodeColorPalette,
   useEffectiveHighlightedNodeIds,
   useEffectiveHoveredStat,
-  useDagAggregatedHeatmapRange,
+  useDagHeatmapRange,
   useSetHighlightedNodeIds,
   COLOR_REGISTRY_KEYS,
   useColorResolver,
@@ -86,7 +86,7 @@ export const QueryPlanNode = memo(({ data }: { data: QueryPlanNodeData }) => {
   const setHighlightState = useSetHighlightedNodeIds();
   const highlightState = useEffectiveHighlightedNodeIds();
   const hoveredStat = useEffectiveHoveredStat();
-  const aggregatedHeatmapRange = useDagAggregatedHeatmapRange();
+  const dagHeatmapRange = useDagHeatmapRange();
   const [nodePalette] = useNodeColorPalette();
   const resolveOperatorTypeColor = useColorResolver(COLOR_REGISTRY_KEYS.OPERATOR_TYPES);
   const isDark = data.isDark ?? false;
@@ -143,17 +143,16 @@ export const QueryPlanNode = memo(({ data }: { data: QueryPlanNodeData }) => {
     if (!hoveredStat || !resolvedHoveredValue) {
       return undefined;
     }
-    // Aggregated values (e.g. a logical node summed from related physical
-    // operators) live on a different scale than raw item values, so they're
-    // normalized against the aggregated-only range, not the table's range.
-    const { min, max } =
-      resolvedHoveredValue.source === 'aggregated' && aggregatedHeatmapRange
-        ? aggregatedHeatmapRange
-        : hoveredStat;
+    // Normalize against every currently-displayed node's resolved value
+    // (direct or aggregated) so a plain operator and a node grouping a
+    // nested subplan are colored on the same scale. Falls back to the
+    // table's own range only in the brief window before the DAG has
+    // reported what it shows.
+    const { min, max } = dagHeatmapRange ?? hoveredStat;
     const range = max - min;
     const t = range > 0 ? (resolvedHoveredValue.value - min) / range : 0.5;
     return continuousColor(t, nodePalette, isDark);
-  }, [hoveredStat, resolvedHoveredValue, aggregatedHeatmapRange, nodePalette, isDark]);
+  }, [hoveredStat, resolvedHoveredValue, dagHeatmapRange, nodePalette, isDark]);
 
   const opacityClass = getNodeOpacityClass({
     isHoveredStatActive: hoveredStat !== null,

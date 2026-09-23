@@ -29,12 +29,7 @@ export interface HoveredStatInfo {
   values: Map<string, number>;
   min: number;
   max: number;
-  /**
-   * How to combine multiple items' values into one when a DAG node (e.g. a
-   * logical-plan operator) represents a group of items rather than a single
-   * one with its own entry in `values`. Mirrors the pivot table's own
-   * aggregation mode when it's aggregating, otherwise defaults to 'sum'.
-   */
+  /** How to combine related items' values for a node with no entry of its own. */
   aggMode: AggMode;
 }
 
@@ -127,13 +122,7 @@ export const effectiveHoveredStatAtom = atom<HoveredStatInfo | null>(get => {
   return null;
 });
 
-/**
- * Node id → related operator ids for every node currently rendered in the
- * DAG chart. Written by `DAGChart` alongside `dagDisplayedNodeIdsAtom`;
- * consumed by `dagAggregatedHeatmapRangeAtom` to know which nodes group
- * other operators (and therefore need an aggregated value) rather than
- * having a stat entry of their own.
- */
+/** Node id → related operator ids for nodes that group other operators (e.g. a logical node). */
 export const dagNodeGroupsAtom = atom<ReadonlyMap<string, readonly string[]>>(new Map());
 
 export interface HeatmapRange {
@@ -142,15 +131,11 @@ export interface HeatmapRange {
 }
 
 /**
- * Value range for coloring nodes whose hovered-stat value came from
- * aggregating related operators (e.g. a logical-plan node), computed from
- * those nodes' resolved values rather than the pivot table's raw per-item
- * min/max. An aggregated value (e.g. a sum across several physical
- * operators) routinely falls outside the raw item range, which would
- * otherwise clamp every aggregated node to the same end of the color scale.
- * `null` when no stat is hovered or nothing in the displayed DAG aggregates.
+ * Value range for coloring every displayed node, built from each node's
+ * resolved value (direct or aggregated) so plain and grouped nodes share one
+ * color scale. `null` when no stat is hovered or nothing resolves.
  */
-export const dagAggregatedHeatmapRangeAtom = atom<HeatmapRange | null>(get => {
+export const dagHeatmapRangeAtom = atom<HeatmapRange | null>(get => {
   const stat = get(effectiveHoveredStatAtom);
   if (!stat) {
     return null;
@@ -159,11 +144,8 @@ export const dagAggregatedHeatmapRangeAtom = atom<HeatmapRange | null>(get => {
   let min = Infinity;
   let max = -Infinity;
   for (const [nodeId, relatedOperatorIds] of groups) {
-    if (relatedOperatorIds.length === 0) {
-      continue;
-    }
     const resolved = resolveHoveredStatValue(stat, nodeId, relatedOperatorIds);
-    if (!resolved || resolved.source !== 'aggregated') {
+    if (!resolved) {
       continue;
     }
     if (resolved.value < min) {

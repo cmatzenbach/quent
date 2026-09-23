@@ -98,7 +98,7 @@ export {
   useSetHoveredStat,
   useSetDagDisplayedNodeIds,
   useSetDagNodeGroups,
-  useDagAggregatedHeatmapRange,
+  useDagHeatmapRange,
 } from './dag/dagControlSelectors';
 export type { HoveredStatInfo, HighlightedNodeIdsState, HeatmapRange } from './atoms/dagControls';
 export { resolveHoveredStatValue } from './dag/hoveredStatValue';
