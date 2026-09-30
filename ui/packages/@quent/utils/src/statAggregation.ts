@@ -104,3 +104,23 @@ export function aggregateToNumber(
   const value = getAggregateValue(aggregates, mode);
   return value === null ? undefined : Number(value);
 }
+
+export type GroupedValue<D> =
+  { value: D; source: 'direct' } | { value: number; source: 'aggregated' };
+
+/**
+ * The one rule for a node that may group other operators: its own value wins;
+ * otherwise its value is the numeric related values aggregated with `mode`.
+ * Callers only differ in where they read the values from.
+ */
+export function resolveGroupedValue<D>(
+  direct: D | null | undefined,
+  related: Iterable<number | bigint>,
+  mode: AggMode
+): GroupedValue<D> | undefined {
+  if (direct !== undefined && direct !== null) {
+    return { value: direct, source: 'direct' };
+  }
+  const value = aggregateToNumber(related, mode);
+  return value === undefined ? undefined : { value, source: 'aggregated' };
+}
