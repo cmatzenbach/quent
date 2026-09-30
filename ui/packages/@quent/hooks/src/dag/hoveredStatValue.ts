@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { aggregateNumericValues, getAggregateValue } from '@quent/utils';
+import { aggregateToNumber } from '@quent/utils';
 import type { HoveredStatInfo } from '../atoms/dagControls';
 
 export interface ResolvedHoveredStatValue {
@@ -48,13 +48,9 @@ export function resolveHoveredStatValue(
   if (values.length === 0) {
     return undefined;
   }
-  const aggregates = aggregateNumericValues(values);
-  if (!aggregates) {
+  const value = aggregateToNumber(values, hoveredStat.aggMode);
+  if (value === undefined) {
     return undefined;
   }
-  const value = getAggregateValue(aggregates, hoveredStat.aggMode);
-  if (value === null) {
-    return undefined;
-  }
-  return { value: Number(value), source: 'aggregated' };
+  return { value, source: 'aggregated' };
 }
