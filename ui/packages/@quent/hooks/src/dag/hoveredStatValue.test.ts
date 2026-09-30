@@ -37,6 +37,10 @@ describe('resolveHoveredStatValue', () => {
     });
   });
 
+  it('returns undefined when sample standard deviation has fewer than two values', () => {
+    expect(resolveHoveredStatValue(stat({ b: 5 }, 'stdev'), 'a', ['b'])).toBeUndefined();
+  });
+
   it('ignores related ids with no value', () => {
     expect(resolveHoveredStatValue(stat({ b: 5 }, 'sum'), 'a', ['b', 'missing'])).toEqual({
       value: 5,

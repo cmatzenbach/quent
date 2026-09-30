@@ -1,32 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import type { AggMode } from '@quent/utils';
+import { aggregateNumericValues, getAggregateValue } from '@quent/utils';
 import type { HoveredStatInfo } from '../atoms/dagControls';
-
-function aggregate(values: number[], mode: AggMode): number {
-  const sum = values.reduce((a, b) => a + b, 0);
-  switch (mode) {
-    case 'mean':
-      return sum / values.length;
-    case 'min':
-      return Math.min(...values);
-    case 'max':
-      return Math.max(...values);
-    case 'stdev': {
-      if (values.length < 2) {
-        return 0;
-      }
-      const mean = sum / values.length;
-      const variance = values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (values.length - 1);
-      return Math.sqrt(variance);
-    }
-    case 'sum':
-    case 'value':
-    default:
-      return sum;
-  }
-}
 
 export interface ResolvedHoveredStatValue {
   value: number;
@@ -72,5 +48,13 @@ export function resolveHoveredStatValue(
   if (values.length === 0) {
     return undefined;
   }
-  return { value: aggregate(values, hoveredStat.aggMode), source: 'aggregated' };
+  const aggregates = aggregateNumericValues(values);
+  if (!aggregates) {
+    return undefined;
+  }
+  const value = getAggregateValue(aggregates, hoveredStat.aggMode);
+  if (value === null) {
+    return undefined;
+  }
+  return { value: Number(value), source: 'aggregated' };
 }
