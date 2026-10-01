@@ -23,3 +23,8 @@ export {
   mapTreeItems,
   type ResourceTimelineSubRow,
 } from './sub-rows';
+export {
+  TimelineControlsSlotsContext,
+  useTimelineControlsSlots,
+  type TimelineControlsSlots,
+} from './TimelineControlsSlots';

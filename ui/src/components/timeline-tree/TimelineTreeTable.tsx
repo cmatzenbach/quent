@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useMemo, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   DEFAULT_TIMELINE_HEIGHT,
+  TimelineActions,
   TimelineController,
   TimelineRuler,
   TimelineToolbar,
@@ -22,6 +24,7 @@ import type {
   ZoomRange,
 } from '@quent/utils';
 import { useTheme, THEME_DARK } from '@/contexts/ThemeContext';
+import { useTimelineControlsSlots } from './TimelineControlsSlots';
 
 export type TimelineTreeItem = TreeTableItem<EntityTypeValue | NvtxTreeEntity>;
 
@@ -92,6 +95,7 @@ export function TimelineTreeTable({
   controls,
   children,
 }: TimelineTreeTableProps) {
+  const slots = useTimelineControlsSlots();
   const { data, modelsByItemId } = useMemo(() => {
     const modelsByItemId = new Map<string, TimelineTreeModel>();
     const data: TimelineTreeItem[] = [];
@@ -143,7 +147,15 @@ export function TimelineTreeTable({
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
-      <TimelineToolbar durationSeconds={durationSeconds} filters={controls.filters} />
+      {slots ? (
+        <>
+          {slots.filters && controls.filters && createPortal(controls.filters, slots.filters)}
+          {slots.actions &&
+            createPortal(<TimelineActions durationSeconds={durationSeconds} />, slots.actions)}
+        </>
+      ) : (
+        <TimelineToolbar durationSeconds={durationSeconds} filters={controls.filters} />
+      )}
       <div className="min-h-0 min-w-0 flex-1">
         {data.length > 0 ? (
           <TreeTable<TimelineTreeItem>
