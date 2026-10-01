@@ -10,8 +10,8 @@ export interface TimelineControlsSlots {
 }
 
 /**
- * Null means no tab bar is hosting the controls, so the timeline draws its own bar.
- * A provider with empty slots means the tab bar has not mounted its slots yet.
+ * `null` means no tab bar hosts the controls, so the timeline draws its own bar.
+ * Slots that are still `null` mean the tab bar hasn't mounted them yet.
  */
 export const TimelineControlsSlotsContext = createContext<TimelineControlsSlots | null>(null);
 
