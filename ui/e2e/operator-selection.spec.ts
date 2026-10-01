@@ -183,3 +183,32 @@ test('Gantt and entity operator selections stay synchronized with the DAG and de
   await page.waitForLoadState('networkidle');
   await expectNoErrors(page, errors, allowedMissingNvtxCatalogErrors);
 });
+
+test('Clear stays visible and clickable when the operator chip is wider than the filter bar', async ({
+  page,
+}) => {
+  const errors = await openTimeline(page);
+  await dagNode(page, LOGICAL_AGGREGATE_ID).click();
+  await expect(page.getByRole('button', { name: 'Remove Aggregate' })).toBeVisible();
+
+  // A narrow window gives the same result as a very long operator label.
+  await page.setViewportSize({ width: 300, height: 900 });
+
+  const clear = page.getByRole('button', { name: 'Clear all filters' });
+  const filterList = page.locator('[data-fit="trailing"]').locator('..');
+  await expect
+    .poll(async () => {
+      const clearBox = await clear.boundingBox();
+      const listBox = await filterList.boundingBox();
+      return (
+        clearBox !== null &&
+        listBox !== null &&
+        clearBox.x + clearBox.width <= listBox.x + listBox.width + 0.5
+      );
+    })
+    .toBe(true);
+
+  await clear.click();
+  await expect(clear).toHaveCount(0);
+  await expectNoErrors(page, errors, allowedMissingNvtxCatalogErrors);
+});

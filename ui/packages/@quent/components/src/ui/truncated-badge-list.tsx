@@ -207,7 +207,7 @@ export function TruncatedBadgeList<T>({
           key={getItemKey(item)}
           fit={fitToWidth}
           kind="item"
-          className="flex min-w-0 max-w-full shrink-0"
+          className={cn('flex min-w-0 max-w-full', isMeasuring ? 'shrink-0' : 'shrink')}
         >
           {renderBadge(item)}
         </FitSlot>
