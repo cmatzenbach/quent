@@ -128,8 +128,8 @@ test('logical operator selection stays synchronized across views and can be clea
   await expect(page.getByTestId('operator-details-title')).toContainText('FinalAggregate');
   await expect(page.getByTestId('operator-details-title')).toContainText('PartialAggregate');
 
-  await page.getByRole('button', { name: 'Clear all operator filters' }).click();
-  await expect(page.getByRole('button', { name: 'Clear all operator filters' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Clear all filters' }).click();
+  await expect(page.getByRole('button', { name: 'Clear all filters' })).toHaveCount(0);
   await expect(page.getByTestId('operator-details-title')).toHaveCount(0);
   await expectSelectedGanttOperators(page, []);
 
@@ -145,7 +145,7 @@ test('Gantt and entity operator selections stay synchronized with the DAG and de
 }) => {
   const errors = await openTimeline(page);
   await openOperatorGanttCharts(page);
-  await expect(page.getByRole('button', { name: 'Clear all operator filters' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Clear all filters' })).toHaveCount(0);
 
   const worker0Chart = page.getByRole('group', {
     name: /Operator Gantt chart:.*FinalAggregate/,
@@ -176,7 +176,7 @@ test('Gantt and entity operator selections stay synchronized with the DAG and de
   await expect(finalAggregate).toHaveAttribute('aria-selected', 'false');
   await expect(dagNode(page, FINAL_AGGREGATE_ID).locator('.border-2')).toHaveCount(0);
   await expect(page.getByTestId('operator-details-title')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Clear all operator filters' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Clear all filters' })).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Timeline' }).click();
   await expectSelectedGanttOperators(page, []);

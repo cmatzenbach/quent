@@ -3,16 +3,14 @@
 
 import { Maximize2 } from 'lucide-react';
 import { useSetZoomRange, useSetDebouncedZoomRange } from '@quent/hooks';
-import { QueryToolbar } from './QueryToolbar';
 import { TimelineSettingsPopover } from './TimelineSettingsPopover';
 
-interface TimelineToolbarProps {
+interface TimelineActionsProps {
   durationSeconds: number;
-  filters?: React.ReactNode;
 }
 
-/** Toolbar for the timeline view: shows the active operator filter, zoom reset, and settings. */
-export function TimelineToolbar({ durationSeconds, filters }: TimelineToolbarProps) {
+/** Timeline-only actions: reset zoom and settings. */
+export function TimelineActions({ durationSeconds }: TimelineActionsProps) {
   const setZoomRange = useSetZoomRange();
   const setDebouncedZoomRange = useSetDebouncedZoomRange();
 
@@ -23,10 +21,10 @@ export function TimelineToolbar({ durationSeconds, filters }: TimelineToolbarPro
   };
 
   return (
-    <QueryToolbar filters={filters}>
+    <>
       <button
         onClick={resetZoom}
-        className="inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+        className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1.5 py-0.5 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
         title="Reset zoom"
       >
         <Maximize2 className="h-3 w-3" />
@@ -34,6 +32,22 @@ export function TimelineToolbar({ durationSeconds, filters }: TimelineToolbarPro
       </button>
       <div className="h-3 w-px bg-border" />
       <TimelineSettingsPopover />
-    </QueryToolbar>
+    </>
+  );
+}
+
+interface TimelineToolbarProps extends TimelineActionsProps {
+  filters?: React.ReactNode;
+}
+
+/** Standalone bar for the timeline view: resource filter on the left, actions on the right. */
+export function TimelineToolbar({ durationSeconds, filters }: TimelineToolbarProps) {
+  return (
+    <div className="flex min-h-8 shrink-0 items-center gap-4 border-b border-border px-3 py-1 text-xs text-muted-foreground">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">{filters}</div>
+      <div className="flex shrink-0 items-center gap-2">
+        <TimelineActions durationSeconds={durationSeconds} />
+      </div>
+    </div>
   );
 }

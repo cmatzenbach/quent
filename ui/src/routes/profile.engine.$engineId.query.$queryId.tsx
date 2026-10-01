@@ -8,7 +8,7 @@ import type { QueryBundle, EntityRef } from '@quent/utils';
 import { cn } from '@quent/utils';
 import { QueryLoading } from '@/components/QueryLoading';
 import { RouteError } from '@/components/RouteError';
-import { CopyLinkButton, validateDeepLinkSearch } from '@/features/deep-link';
+import { validateDeepLinkSearch } from '@/features/deep-link';
 
 export const Route = createFileRoute('/profile/engine/$engineId/query/$queryId')({
   component: QueryLayout,
@@ -61,7 +61,6 @@ function QueryLayout() {
           >
             Entities
           </Link>
-          <CopyLinkButton />
         </div>
       </div>
       <div className="min-w-0 flex-1 min-h-0">
