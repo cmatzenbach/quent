@@ -66,7 +66,7 @@ export function CopyLinkButton() {
         type="button"
         variant="ghost"
         size="icon"
-        className="size-8 [&_svg]:size-4"
+        className="size-8"
         aria-label="Copy Link"
         title={title}
         disabled={!deepLink || feedback.kind === 'working'}
