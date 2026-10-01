@@ -1,49 +1,46 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { Fragment, useLayoutEffect, useRef, useState, type Key, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type Key, type ReactNode } from 'react';
 import { cn } from '@quent/utils';
 import { Badge } from './badge';
 
 export interface TruncatedBadgeListProps<T> {
   items: readonly T[];
-  /** Upper bound on visible badges. */
   maxVisible: number;
   getItemKey: (item: T) => Key;
   getItemLabel: (item: T) => string;
   renderBadge: (item: T) => ReactNode;
   renderOverflowLabel?: (hiddenCount: number) => ReactNode;
-  /** Rendered inline after the last badge (and the overflow badge). */
   trailing?: ReactNode;
   /**
    * Keep everything on one line: show only as many badges as fit the container width
-   * (up to `maxVisible`) and fold the rest into the overflow badge.
+   * (up to `maxVisible`) and fold the rest into the overflow badge. The badges are
+   * measured again whenever `items` changes, so pass a memoized array.
    */
   fitToWidth?: boolean;
   className?: string;
   overflowBadgeClassName?: string;
 }
 
-interface Measurements {
-  /** Identifies the item list these widths belong to. */
-  key: string;
+interface Widths {
   itemWidths: number[];
   overflowWidth: number;
   trailingWidth: number;
+}
+
+interface Measurements extends Widths {
+  items: readonly unknown[];
   fitCount: number;
 }
 
-interface FitInput {
-  itemWidths: readonly number[];
-  overflowWidth: number;
-  trailingWidth: number;
+interface FitInput extends Widths {
   hasTrailing: boolean;
   available: number;
   gap: number;
   maxVisible: number;
 }
 
-/** How many leading badges fit next to the overflow badge and trailing content. */
 function countBadgesThatFit({
   itemWidths,
   overflowWidth,
@@ -71,8 +68,31 @@ function countBadgesThatFit({
   return Math.min(1, limit);
 }
 
-function readWidth(container: HTMLElement, selector: string): number {
-  return container.querySelector<HTMLElement>(selector)?.offsetWidth ?? 0;
+type FitKind = 'item' | 'overflow' | 'trailing';
+
+/** In fit mode, wraps a piece in a span so its width can be measured on its own. */
+function FitSlot({
+  fit,
+  kind,
+  className,
+  children,
+}: {
+  fit: boolean;
+  kind: FitKind;
+  className: string;
+  children: ReactNode;
+}) {
+  return fit ? (
+    <span data-fit={kind} className={className}>
+      {children}
+    </span>
+  ) : (
+    <>{children}</>
+  );
+}
+
+function readWidth(container: HTMLElement, kind: FitKind): number {
+  return container.querySelector<HTMLElement>(`[data-fit="${kind}"]`)?.offsetWidth ?? 0;
 }
 
 function readGap(container: HTMLElement): number {
@@ -94,25 +114,23 @@ export function TruncatedBadgeList<T>({
 }: TruncatedBadgeListProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [measurements, setMeasurements] = useState<Measurements | null>(null);
-  const itemsKey = items.map(getItemKey).join('\0');
   const hasTrailing = trailing != null;
 
-  // Until the current items have been measured, render all of them once so their
-  // natural widths can be read before the browser paints.
-  const isMeasuring = fitToWidth && measurements?.key !== itemsKey;
+  // Show every badge once, before the browser paints, so we can read how wide each one is.
+  const isMeasuring = fitToWidth && measurements?.items !== items;
 
   useLayoutEffect(() => {
     const container = containerRef.current;
-    if (!fitToWidth || !isMeasuring || !container) {
+    if (!isMeasuring || !container) {
       return;
     }
-    const itemWidths = Array.from(container.querySelectorAll<HTMLElement>('[data-fit-item]')).map(
+    const itemWidths = Array.from(container.querySelectorAll<HTMLElement>('[data-fit="item"]')).map(
       element => element.offsetWidth
     );
-    const overflowWidth = readWidth(container, '[data-fit-overflow]');
-    const trailingWidth = readWidth(container, '[data-fit-trailing]');
+    const overflowWidth = readWidth(container, 'overflow');
+    const trailingWidth = readWidth(container, 'trailing');
     setMeasurements({
-      key: itemsKey,
+      items,
       itemWidths,
       overflowWidth,
       trailingWidth,
@@ -126,15 +144,16 @@ export function TruncatedBadgeList<T>({
         maxVisible,
       }),
     });
-  }, [fitToWidth, isMeasuring, itemsKey, hasTrailing, maxVisible]);
+  }, [isMeasuring, items, hasTrailing, maxVisible]);
 
-  // Re-fit with the stored widths whenever the container is resized.
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!fitToWidth || !container || typeof ResizeObserver === 'undefined') {
       return;
     }
     const observer = new ResizeObserver(() => {
+      const available = container.clientWidth;
+      const gap = readGap(container);
       setMeasurements(current => {
         if (!current) {
           return current;
@@ -142,8 +161,8 @@ export function TruncatedBadgeList<T>({
         const fitCount = countBadgesThatFit({
           ...current,
           hasTrailing,
-          available: container.clientWidth,
-          gap: readGap(container),
+          available,
+          gap,
           maxVisible,
         });
         return fitCount === current.fitCount ? current : { ...current, fitCount };
@@ -161,15 +180,18 @@ export function TruncatedBadgeList<T>({
   const visibleItems = items.slice(0, visibleCount);
   const hiddenItems = items.slice(visibleItems.length);
 
-  const overflowBadge = (hiddenCount: number, title: string) => (
-    <Badge
-      variant="outline"
-      className={cn('shrink-0 bg-muted/40 text-muted-foreground', overflowBadgeClassName)}
-      title={title}
-    >
-      {renderOverflowLabel(hiddenCount)}
-    </Badge>
-  );
+  // While measuring, size the overflow badge for the largest count it could show.
+  const overflowCount = isMeasuring ? items.length : hiddenItems.length;
+  const overflowBadge =
+    overflowCount > 0 ? (
+      <Badge
+        variant="outline"
+        className={cn('shrink-0 bg-muted/40 text-muted-foreground', overflowBadgeClassName)}
+        title={hiddenItems.map(getItemLabel).join(', ')}
+      >
+        {renderOverflowLabel(overflowCount)}
+      </Badge>
+    ) : null;
 
   return (
     <div
@@ -180,37 +202,26 @@ export function TruncatedBadgeList<T>({
         className
       )}
     >
-      {visibleItems.map(item =>
-        fitToWidth ? (
-          <span key={getItemKey(item)} data-fit-item className="flex min-w-0 max-w-full shrink-0">
-            {renderBadge(item)}
-          </span>
-        ) : (
-          <Fragment key={getItemKey(item)}>{renderBadge(item)}</Fragment>
-        )
+      {visibleItems.map(item => (
+        <FitSlot
+          key={getItemKey(item)}
+          fit={fitToWidth}
+          kind="item"
+          className="flex min-w-0 max-w-full shrink-0"
+        >
+          {renderBadge(item)}
+        </FitSlot>
+      ))}
+      {overflowBadge && (
+        <FitSlot fit={fitToWidth} kind="overflow" className="flex shrink-0">
+          {overflowBadge}
+        </FitSlot>
       )}
-      {hiddenItems.length > 0 &&
-        (fitToWidth ? (
-          <span data-fit-overflow className="flex shrink-0">
-            {overflowBadge(hiddenItems.length, hiddenItems.map(getItemLabel).join(', '))}
-          </span>
-        ) : (
-          overflowBadge(hiddenItems.length, hiddenItems.map(getItemLabel).join(', '))
-        ))}
-      {isMeasuring && items.length > 0 && (
-        // Measuring pass only: a worst-case overflow badge so its width is known.
-        <span data-fit-overflow className="flex shrink-0">
-          {overflowBadge(items.length, '')}
-        </span>
+      {hasTrailing && (
+        <FitSlot fit={fitToWidth} kind="trailing" className="flex shrink-0 items-center">
+          {trailing}
+        </FitSlot>
       )}
-      {hasTrailing &&
-        (fitToWidth ? (
-          <span data-fit-trailing className="flex shrink-0 items-center">
-            {trailing}
-          </span>
-        ) : (
-          trailing
-        ))}
     </div>
   );
 }

@@ -26,14 +26,12 @@ describe('TruncatedBadgeList', () => {
 
 const ITEMS = Array.from({ length: 10 }, (_, index) => `Item ${index + 1}`);
 const ITEM_WIDTH = 100;
+let itemWidth = ITEM_WIDTH;
 
-function renderList(containerWidth: number) {
-  // jsdom has no layout, so give every measured element a fixed width.
-  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(ITEM_WIDTH);
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(containerWidth);
-  return render(
+function fitList(items: readonly string[]) {
+  return (
     <TruncatedBadgeList
-      items={ITEMS}
+      items={items}
       maxVisible={50}
       fitToWidth
       getItemKey={item => item}
@@ -45,9 +43,18 @@ function renderList(containerWidth: number) {
   );
 }
 
+function renderList(containerWidth: number) {
+  // jsdom has no layout, so give every measured element a fixed width.
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(() => itemWidth);
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(containerWidth);
+  const view = render(fitList(ITEMS));
+  return { rerenderWithNewItems: () => view.rerender(fitList([...ITEMS])) };
+}
+
 describe('TruncatedBadgeList fitToWidth', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    itemWidth = ITEM_WIDTH;
   });
 
   it('shows only the badges that fit next to the overflow badge and trailing content', () => {
@@ -72,5 +79,16 @@ describe('TruncatedBadgeList fitToWidth', () => {
 
     expect(screen.getByText('Item 1')).toBeInTheDocument();
     expect(screen.queryByText('Item 2')).not.toBeInTheDocument();
+  });
+
+  it('measures again when the items change, even if the keys stay the same', () => {
+    const { rerenderWithNewItems } = renderList(500);
+    expect(screen.queryByText('Item 4')).not.toBeInTheDocument();
+
+    itemWidth = 50;
+    rerenderWithNewItems();
+
+    expect(screen.getByText('Item 8')).toBeInTheDocument();
+    expect(screen.queryByText('Item 9')).not.toBeInTheDocument();
   });
 });
