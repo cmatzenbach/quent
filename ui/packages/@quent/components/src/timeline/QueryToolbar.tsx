@@ -74,11 +74,10 @@ export function QueryToolbar({ children }: QueryToolbarProps) {
                 <div className="h-4 w-px shrink-0 bg-border" />
                 <Button
                   type="button"
-                  variant="link"
+                  variant="ghost"
                   size="xs"
                   onClick={clearOperators}
                   aria-label="Clear all filters"
-                  className="text-sm"
                 >
                   Clear
                 </Button>
