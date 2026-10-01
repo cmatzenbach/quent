@@ -10,6 +10,8 @@ import {
 } from '@quent/hooks';
 import { cn } from '@quent/utils';
 import { OperatorColorBar } from '../node-info';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import { DataText } from '../ui/data-text';
 import { TruncatedBadgeList } from '../ui/truncated-badge-list';
 
@@ -70,19 +72,22 @@ export function QueryToolbar({ children }: QueryToolbarProps) {
             trailing={
               <div className="flex items-center gap-1.5">
                 <div className="h-4 w-px shrink-0 bg-border" />
-                <button
+                <Button
                   type="button"
+                  variant="link"
+                  size="xs"
                   onClick={clearOperators}
                   aria-label="Clear all filters"
-                  className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-sm font-medium text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="text-sm"
                 >
                   Clear
-                </button>
+                </Button>
               </div>
             }
             renderBadge={operator => (
-              <span
-                className="flex h-6 min-w-0 max-w-64 shrink items-center gap-1.5 rounded-md border border-border bg-muted/40 pl-2 pr-1"
+              <Badge
+                variant="outline"
+                className="h-6 min-w-0 max-w-64 shrink gap-1.5 overflow-visible bg-muted/40 pl-2 pr-1 text-sm"
                 title={operator.label}
               >
                 {operator.operationType && (
@@ -91,15 +96,17 @@ export function QueryToolbar({ children }: QueryToolbarProps) {
                 <DataText className="truncate font-medium text-foreground">
                   {operator.label}
                 </DataText>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={() => removeOperator(operator.id)}
                   aria-label={`Remove ${operator.label}`}
-                  className="shrink-0 cursor-pointer rounded-sm p-0.5 opacity-60 hover:bg-muted hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="opacity-60 hover:opacity-100"
                 >
-                  <X className="size-3.5" />
-                </button>
-              </span>
+                  <X />
+                </Button>
+              </Badge>
             )}
           />
         ) : (

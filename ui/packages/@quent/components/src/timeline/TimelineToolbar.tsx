@@ -3,6 +3,7 @@
 
 import { Maximize2 } from 'lucide-react';
 import { useSetZoomRange, useSetDebouncedZoomRange } from '@quent/hooks';
+import { Button } from '../ui/button';
 import { TimelineSettingsPopover } from './TimelineSettingsPopover';
 
 interface TimelineActionsProps {
@@ -21,14 +22,10 @@ export function TimelineActions({ durationSeconds }: TimelineActionsProps) {
 
   return (
     <>
-      <button
-        onClick={resetZoom}
-        className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1.5 py-0.5 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
-        title="Reset zoom"
-      >
-        <Maximize2 className="h-3 w-3" />
-        <span>Reset zoom</span>
-      </button>
+      <Button type="button" variant="ghost" size="xs" onClick={resetZoom} title="Reset zoom">
+        <Maximize2 />
+        Reset zoom
+      </Button>
       <div className="h-3 w-px bg-border" />
       <TimelineSettingsPopover />
     </>
