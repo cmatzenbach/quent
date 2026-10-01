@@ -8,9 +8,9 @@ import {
   useOperatorSelectionActions,
   useSelectedOperatorsData,
 } from '@quent/hooks';
+import { cn } from '@quent/utils';
 import { OperatorColorBar } from '../node-info';
 import { DataText } from '../ui/data-text';
-import { cn } from '@quent/utils';
 import { TruncatedBadgeList } from '../ui/truncated-badge-list';
 
 const MAX_VISIBLE_OPERATOR_BADGES = 12;
@@ -19,16 +19,12 @@ interface QueryToolbarProps {
   children?: ReactNode;
 }
 
-/**
- * Query-wide toolbar: the selected operators on the left (shared by the DAG and every tab)
- * and query-level actions, such as copying a deep link, on the right.
- */
+/** Selected-operator filters on the left; `children` are query-wide actions on the right. */
 export function QueryToolbar({ children }: QueryToolbarProps) {
   const operatorSelection = useOperatorSelection();
   const updateOperatorSelection = useOperatorSelectionActions();
 
   const selectedOperatorsData = useSelectedOperatorsData();
-
   const selectedOperators = useMemo(() => {
     const operationTypeById = new Map(
       selectedOperatorsData.map(data => [data.nodeId, data.operationType])
@@ -52,17 +48,13 @@ export function QueryToolbar({ children }: QueryToolbarProps) {
 
   return (
     <div className="flex min-h-11 shrink-0 items-start gap-4 border-b border-border px-4 py-1.5 text-sm text-muted-foreground">
-      <div
-        className="flex min-w-0 max-w-[60%] flex-1 items-start gap-2"
-        data-testid="operator-filter-badges"
-      >
+      <div className="flex min-w-0 max-w-[60%] flex-1 items-start gap-2">
         <span className="flex h-8 shrink-0 items-center">
           <Filter
             className={cn(
               'size-4 transition-colors',
               hasSelection ? 'text-primary' : 'text-muted-foreground'
             )}
-            data-active={hasSelection}
           />
         </span>
         {hasSelection ? (
@@ -115,7 +107,7 @@ export function QueryToolbar({ children }: QueryToolbarProps) {
         )}
       </div>
 
-      <div className="ml-auto flex h-8 shrink-0 items-center gap-2">{children}</div>
+      {children && <div className="ml-auto flex h-8 shrink-0 items-center gap-2">{children}</div>}
     </div>
   );
 }

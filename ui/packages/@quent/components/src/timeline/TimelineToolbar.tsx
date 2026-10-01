@@ -9,7 +9,6 @@ interface TimelineActionsProps {
   durationSeconds: number;
 }
 
-/** Timeline-only actions: reset zoom and settings. */
 export function TimelineActions({ durationSeconds }: TimelineActionsProps) {
   const setZoomRange = useSetZoomRange();
   const setDebouncedZoomRange = useSetDebouncedZoomRange();
@@ -40,7 +39,6 @@ interface TimelineToolbarProps extends TimelineActionsProps {
   filters?: React.ReactNode;
 }
 
-/** Standalone bar for the timeline view: resource filter on the left, actions on the right. */
 export function TimelineToolbar({ durationSeconds, filters }: TimelineToolbarProps) {
   return (
     <div className="flex min-h-8 shrink-0 items-center gap-4 border-b border-border px-3 py-1 text-xs text-muted-foreground">

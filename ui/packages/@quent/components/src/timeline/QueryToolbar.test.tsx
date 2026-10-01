@@ -62,10 +62,6 @@ function ToolbarHarness() {
   );
 }
 
-function OperatorSelectionCount() {
-  return <span data-testid="operator-count">{useSelectedOperatorIds().size}</span>;
-}
-
 function MultiOperatorToolbarHarness() {
   const selectedOperatorIds = useSelectedOperatorIds();
   const selectedOperators = useSelectedOperatorsData();
@@ -154,20 +150,6 @@ describe('QueryToolbar', () => {
     expect(await screen.findByText('Scan')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument();
     expect(screen.queryByText('No active filters')).not.toBeInTheDocument();
-  });
-
-  it('clears the operator selection', async () => {
-    const user = userEvent.setup();
-    render(
-      <Provider>
-        <SeedOperatorFilter />
-        <OperatorSelectionCount />
-        <QueryToolbar />
-      </Provider>
-    );
-
-    await user.click(await screen.findByRole('button', { name: 'Clear all filters' }));
-    expect(screen.getByTestId('operator-count')).toHaveTextContent('0');
   });
 
   it('clears the full operator selection and pinned details', async () => {
