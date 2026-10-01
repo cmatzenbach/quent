@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 
 use quent_build_info::{ArtifactInfo, SIDECAR_FILE_NAME};
-use quent_events::{EntityEvent, Event, Model as EventModel, ModelEvents};
+use quent_events::{CombinedEventModel, Event, EventModel, EventPayload};
 use quent_io::ImporterProvider;
 use quent_io::filesystem::{Format, importer};
 use serde::de::DeserializeOwned;
@@ -53,7 +53,7 @@ pub enum Error {
 
 /// Associates a generated model with its filesystem entity-event streams.
 #[doc(hidden)]
-pub trait Model: ModelEvents {
+pub trait Model: CombinedEventModel {
     /// Returns the streams generated from the model schema.
     fn event_streams() -> &'static [EventStream<Self>]
     where
@@ -61,16 +61,16 @@ pub trait Model: ModelEvents {
 }
 
 type ImportFn<M> =
-    fn(Vec<EventFile>) -> Result<EventIterator<<M as ModelEvents>::UmbrellaEvent, Error>>;
+    fn(Vec<EventFile>) -> Result<EventIterator<<M as CombinedEventModel>::CombinedEvent, Error>>;
 
 /// Describes one entity-event stream in a generated analysis model.
 #[doc(hidden)]
-pub struct EventStream<M: ModelEvents> {
+pub struct EventStream<M: CombinedEventModel> {
     entity: &'static str,
     import: ImportFn<M>,
 }
 
-impl<M: ModelEvents> EventStream<M> {
+impl<M: CombinedEventModel> EventStream<M> {
     /// Creates a generated entity-event stream descriptor.
     #[doc(hidden)]
     pub const fn new(entity: &'static str, import: ImportFn<M>) -> Self {
@@ -85,15 +85,15 @@ pub struct EventFile {
     path: PathBuf,
 }
 
-/// Imports files containing entity events and converts them to the model umbrella type.
+/// Imports files containing entity events and converts them to the model combined type.
 #[doc(hidden)]
 pub fn import_event_files<M, E>(
     files: Vec<EventFile>,
-) -> Result<EventIterator<M::UmbrellaEvent, Error>>
+) -> Result<EventIterator<M::CombinedEvent, Error>>
 where
-    M: ModelEvents,
-    E: DeserializeOwned + Into<M::UmbrellaEvent> + 'static,
-    M::UmbrellaEvent: 'static,
+    M: CombinedEventModel,
+    E: DeserializeOwned + Into<M::CombinedEvent> + 'static,
+    M::CombinedEvent: 'static,
 {
     Ok(Box::new(import_files::<E>(files).map(|event| {
         event.map(|event| Event::new(event.id, event.timestamp, event.data.into()))
@@ -129,15 +129,15 @@ impl<M, E> EntityEventLoader<E> for Store<M>
 where
     M: EventModel,
     E: StoredEntity<M>,
-    E::Event: DeserializeOwned + 'static,
+    E::Payload: DeserializeOwned + 'static,
 {
     type Error = Error;
 
-    fn load_entity_events(&self, context_id: Uuid) -> Result<EventIterator<E::Event, Error>> {
+    fn load_entity_events(&self, context_id: Uuid) -> Result<EventIterator<E::Payload, Error>> {
         let context = self.context(context_id)?;
-        Ok(import_files::<E::Event>(event_files(
+        Ok(import_files::<E::Payload>(event_files(
             &context,
-            E::Event::NAME,
+            E::Payload::NAME,
         )?))
     }
 }
@@ -153,7 +153,7 @@ where
     fn load_model_events(
         &self,
         context_id: Uuid,
-    ) -> Result<EventIterator<M::UmbrellaEvent, Error>> {
+    ) -> Result<EventIterator<M::CombinedEvent, Error>> {
         let context = self.context(context_id)?;
         let mut streams = Vec::new();
         for descriptor in M::event_streams() {
@@ -317,7 +317,7 @@ mod tests {
     use std::fs;
 
     use quent_build_info::ModelInfo;
-    use quent_events::Model as EventModel;
+    use quent_events::EventModel;
     #[cfg(feature = "io-ndjson")]
     use serde::Deserialize;
 

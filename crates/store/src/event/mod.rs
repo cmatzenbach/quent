@@ -3,7 +3,7 @@
 
 //! Typed access to fully materialized model events.
 
-use quent_events::{Entity, Event, ModelEvents};
+use quent_events::{CombinedEventModel, EntityMarker, Event};
 use uuid::Uuid;
 
 #[cfg(any(feature = "io-ndjson", feature = "io-msgpack", feature = "io-postcard"))]
@@ -24,7 +24,7 @@ pub trait EntityEventStore<M> {
     fn entity_events<E>(
         &self,
         context_id: Uuid,
-    ) -> EventIteratorResult<E::Event, <Self as EntityEventStore<M>>::Error>
+    ) -> EventIteratorResult<E::Payload, <Self as EntityEventStore<M>>::Error>
     where
         E: StoredEntity<M>,
         Self: EntityEventLoader<E, Error = <Self as EntityEventStore<M>>::Error>,
@@ -33,16 +33,16 @@ pub trait EntityEventStore<M> {
     }
 }
 
-/// Loads model-wide stored events as owned values with umbrella-event payloads.
+/// Loads model-wide stored events as owned values with combined-event payloads.
 ///
 /// Generated models support this trait only when
-/// `quent_store_build::Options::umbrella_event` is enabled.
-pub trait ModelEventStore<M: ModelEvents>: EntityEventStore<M> {
+/// `quent_store_build::Options::combined_event` is enabled.
+pub trait ModelEventStore<M: CombinedEventModel>: EntityEventStore<M> {
     /// Loads every event stored for `context_id` without an ordering guarantee.
     fn events(
         &self,
         context_id: Uuid,
-    ) -> EventIteratorResult<M::UmbrellaEvent, <Self as EntityEventStore<M>>::Error>
+    ) -> EventIteratorResult<M::CombinedEvent, <Self as EntityEventStore<M>>::Error>
     where
         Self: ModelEventLoader<M, Error = <Self as EntityEventStore<M>>::Error>,
     {
@@ -52,17 +52,17 @@ pub trait ModelEventStore<M: ModelEvents>: EntityEventStore<M> {
 
 /// Loads one concrete entity event type for an [`EntityEventStore`].
 #[doc(hidden)]
-pub trait EntityEventLoader<E: Entity> {
+pub trait EntityEventLoader<E: EntityMarker> {
     /// Error returned when events cannot be loaded.
     type Error;
 
     /// Loads events for `E` without an ordering guarantee.
-    fn load_entity_events(&self, context_id: Uuid) -> EventIteratorResult<E::Event, Self::Error>;
+    fn load_entity_events(&self, context_id: Uuid) -> EventIteratorResult<E::Payload, Self::Error>;
 }
 
-/// Loads umbrella events for a [`ModelEventStore`].
+/// Loads combined events for a [`ModelEventStore`].
 #[doc(hidden)]
-pub trait ModelEventLoader<M: ModelEvents> {
+pub trait ModelEventLoader<M: CombinedEventModel> {
     /// Error returned when events cannot be loaded.
     type Error;
 
@@ -70,9 +70,9 @@ pub trait ModelEventLoader<M: ModelEvents> {
     fn load_model_events(
         &self,
         context_id: Uuid,
-    ) -> EventIteratorResult<M::UmbrellaEvent, Self::Error>;
+    ) -> EventIteratorResult<M::CombinedEvent, Self::Error>;
 }
 
 /// Marks an entity as belonging to analysis model `M`.
 #[doc(hidden)]
-pub trait StoredEntity<M>: Entity {}
+pub trait StoredEntity<M>: EntityMarker {}
