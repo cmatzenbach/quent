@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Badge } from './badge';
 import { TruncatedBadgeList } from './truncated-badge-list';
 
@@ -21,5 +21,56 @@ describe('TruncatedBadgeList', () => {
     expect(screen.getByText('Alpha')).toBeInTheDocument();
     expect(screen.queryByText('Beta')).not.toBeInTheDocument();
     expect(screen.getByText('+2 more')).toHaveAttribute('title', 'Beta, Gamma');
+  });
+});
+
+const ITEMS = Array.from({ length: 10 }, (_, index) => `Item ${index + 1}`);
+const ITEM_WIDTH = 100;
+
+function renderList(containerWidth: number) {
+  // jsdom has no layout, so give every measured element a fixed width.
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(ITEM_WIDTH);
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(containerWidth);
+  return render(
+    <TruncatedBadgeList
+      items={ITEMS}
+      maxVisible={50}
+      fitToWidth
+      getItemKey={item => item}
+      getItemLabel={item => item}
+      renderBadge={item => <span>{item}</span>}
+      renderOverflowLabel={hiddenCount => `and ${hiddenCount} more`}
+      trailing={<button type="button">Clear</button>}
+    />
+  );
+}
+
+describe('TruncatedBadgeList fitToWidth', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows only the badges that fit next to the overflow badge and trailing content', () => {
+    // 3 badges + overflow + trailing = 5 pieces of 100px each.
+    renderList(500);
+
+    expect(screen.getByText('Item 3')).toBeInTheDocument();
+    expect(screen.queryByText('Item 4')).not.toBeInTheDocument();
+    expect(screen.getByText('and 7 more')).toHaveAttribute('title', ITEMS.slice(3).join(', '));
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+  });
+
+  it('shows every badge and no overflow when they all fit', () => {
+    renderList(5000);
+
+    expect(screen.getByText('Item 10')).toBeInTheDocument();
+    expect(screen.queryByText(/more$/)).not.toBeInTheDocument();
+  });
+
+  it('always keeps one badge visible, even in a tiny container', () => {
+    renderList(10);
+
+    expect(screen.getByText('Item 1')).toBeInTheDocument();
+    expect(screen.queryByText('Item 2')).not.toBeInTheDocument();
   });
 });
