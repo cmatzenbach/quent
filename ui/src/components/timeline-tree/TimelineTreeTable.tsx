@@ -24,7 +24,7 @@ import type {
   ZoomRange,
 } from '@quent/utils';
 import { useTheme, THEME_DARK } from '@/contexts/ThemeContext';
-import { useTimelineControlsSlots } from './TimelineControlsSlots';
+import { useTabActionSlots } from '@/components/TabActionSlots';
 
 export type TimelineTreeItem = TreeTableItem<EntityTypeValue | NvtxTreeEntity>;
 
@@ -95,7 +95,7 @@ export function TimelineTreeTable({
   controls,
   children,
 }: TimelineTreeTableProps) {
-  const slots = useTimelineControlsSlots();
+  const slots = useTabActionSlots();
   const { data, modelsByItemId } = useMemo(() => {
     const modelsByItemId = new Map<string, TimelineTreeModel>();
     const data: TimelineTreeItem[] = [];
@@ -149,9 +149,9 @@ export function TimelineTreeTable({
     <div className="flex h-full w-full min-w-0 flex-col">
       {slots ? (
         <>
-          {slots.filters && controls.filters && createPortal(controls.filters, slots.filters)}
-          {slots.actions &&
-            createPortal(<TimelineActions durationSeconds={durationSeconds} />, slots.actions)}
+          {slots.leftSlot && controls.filters && createPortal(controls.filters, slots.leftSlot)}
+          {slots.rightSlot &&
+            createPortal(<TimelineActions durationSeconds={durationSeconds} />, slots.rightSlot)}
         </>
       ) : (
         <TimelineToolbar durationSeconds={durationSeconds} filters={controls.filters} />

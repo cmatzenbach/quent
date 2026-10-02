@@ -9,10 +9,7 @@ import type { QueryBundle, EntityRef } from '@quent/utils';
 import { cn } from '@quent/utils';
 import { QueryLoading } from '@/components/QueryLoading';
 import { RouteError } from '@/components/RouteError';
-import {
-  TimelineControlsSlotsContext,
-  type TimelineControlsSlots,
-} from '@/components/timeline-tree';
+import { TabActionSlotsContext, type TabActionSlots } from '@/components/TabActionSlots';
 import { validateDeepLinkSearch } from '@/features/deep-link';
 
 export const Route = createFileRoute('/profile/engine/$engineId/query/$queryId')({
@@ -38,18 +35,15 @@ const activeTabClass = cn(tabClass, 'text-foreground font-semibold bg-muted shad
 
 function QueryLayout() {
   const { engineId, queryId } = Route.useParams();
-  const [filtersSlot, setFiltersSlot] = useState<HTMLElement | null>(null);
-  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
-  const slots = useMemo<TimelineControlsSlots>(
-    () => ({ filters: filtersSlot, actions: actionsSlot }),
-    [filtersSlot, actionsSlot]
-  );
+  const [leftSlot, setLeftSlot] = useState<HTMLElement | null>(null);
+  const [rightSlot, setRightSlot] = useState<HTMLElement | null>(null);
+  const slots = useMemo<TabActionSlots>(() => ({ leftSlot, rightSlot }), [leftSlot, rightSlot]);
   return (
-    <TimelineControlsSlotsContext.Provider value={slots}>
+    <TabActionSlotsContext.Provider value={slots}>
       <div className="flex min-w-0 flex-col h-full w-full">
         <div className="shrink-0 border-b">
           <div className="grid h-9 w-full grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-1 text-xs text-muted-foreground">
-            <div ref={setFiltersSlot} className="flex min-w-0 items-center gap-1.5" />
+            <div ref={setLeftSlot} className="flex min-w-0 items-center gap-1.5" />
             <div className="flex items-center justify-center">
               <Link
                 to="/profile/engine/$engineId/query/$queryId/timeline"
@@ -76,13 +70,13 @@ function QueryLayout() {
                 Entities
               </Link>
             </div>
-            <div ref={setActionsSlot} className="flex items-center justify-end gap-2" />
+            <div ref={setRightSlot} className="flex items-center justify-end gap-2" />
           </div>
         </div>
         <div className="min-w-0 flex-1 min-h-0">
           <Outlet />
         </div>
       </div>
-    </TimelineControlsSlotsContext.Provider>
+    </TabActionSlotsContext.Provider>
   );
 }

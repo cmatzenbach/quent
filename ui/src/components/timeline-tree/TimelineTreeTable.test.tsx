@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TimelineControlsSlotsContext, type TimelineControlsSlots } from './TimelineControlsSlots';
+import { TabActionSlotsContext, type TabActionSlots } from '@/components/TabActionSlots';
 import { TimelineTreeTable } from './TimelineTreeTable';
 
 vi.mock('@quent/components', async importOriginal => {
@@ -27,9 +27,9 @@ function createSlot() {
   return slot;
 }
 
-function renderTable(slots: TimelineControlsSlots | null) {
+function renderTable(slots: TabActionSlots | null) {
   return render(
-    <TimelineControlsSlotsContext.Provider value={slots}>
+    <TabActionSlotsContext.Provider value={slots}>
       <TimelineTreeTable
         durationSeconds={10}
         isDark={false}
@@ -40,7 +40,7 @@ function renderTable(slots: TimelineControlsSlots | null) {
           filters: <input aria-label="Filter resources" />,
         }}
       />
-    </TimelineControlsSlotsContext.Provider>
+    </TabActionSlotsContext.Provider>
   );
 }
 
@@ -52,7 +52,7 @@ describe('TimelineTreeTable controls', () => {
   it('renders the filters and actions into the tab bar slots', () => {
     const filters = createSlot();
     const actions = createSlot();
-    renderTable({ filters, actions });
+    renderTable({ leftSlot: filters, rightSlot: actions });
 
     expect(within(filters).getByRole('textbox', { name: 'Filter resources' })).toBeInTheDocument();
     expect(within(actions).getByRole('button', { name: 'Reset zoom' })).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('TimelineTreeTable controls', () => {
   });
 
   it('renders no controls until the tab bar has mounted its slots', () => {
-    renderTable({ filters: null, actions: null });
+    renderTable({ leftSlot: null, rightSlot: null });
 
     expect(screen.queryByRole('textbox', { name: 'Filter resources' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reset zoom' })).not.toBeInTheDocument();
