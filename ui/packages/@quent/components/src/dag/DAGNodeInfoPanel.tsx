@@ -201,30 +201,6 @@ export const DAGNodeInfoPanel = ({
           <span className="text-xs text-muted-foreground font-medium flex-shrink-0">
             Operator Details
           </span>
-          {selectedOperator && (
-            <>
-              <span className="text-muted-foreground text-xs flex-shrink-0">·</span>
-              <div
-                data-testid="operator-details-title"
-                className="flex min-w-0 items-center gap-1.5 overflow-hidden"
-              >
-                {selectedOperators.map((operator, index) => (
-                  <span key={operator.nodeId} className="flex min-w-0 items-center gap-1">
-                    {index > 0 && <span className="text-muted-foreground text-xs shrink-0">,</span>}
-                    <OperatorColorBar operationType={operator.operationType} className="h-3 w-1" />
-                    <DataText className="text-xs font-medium truncate" title={operator.label}>
-                      {operator.label}
-                    </DataText>
-                    {!showHeaders && (
-                      <DataText className="text-xs text-muted-foreground capitalize px-1.5 py-0.5 bg-muted rounded flex-shrink-0">
-                        {operator.operationType}
-                      </DataText>
-                    )}
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
         </div>
         <button
           onClick={() => updateExpanded(!isExpanded)}
