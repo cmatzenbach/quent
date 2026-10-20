@@ -39,6 +39,7 @@ export function createLongEntitiesTimelineSubRow({
     id: 'long-entities',
     rowType: LONG_ENTITIES_ROW_TYPE,
     label: 'Entities',
+    parentId: item => resourceIdFromLongEntitiesRowId(item.id) ?? undefined,
     injectRows: rootItem =>
       mapTreeItems(rootItem, (_item, children) => {
         const next: TreeTableItem[] = [];

@@ -250,6 +250,7 @@ const customSubRow: ResourceTimelineSubRow = {
     ],
   }),
   matches: item => item.type === CUSTOM_SUB_ROW_TYPE,
+  parentId: () => undefined,
   renderLabel: () => null,
   renderTimeline: () => null,
 };
