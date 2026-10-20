@@ -34,9 +34,11 @@ import {
   selectedFsmTypesAtom,
   selectedTypesAtom,
 } from '@/atoms/resourceTree';
+import { buildPinnedPathLabels, resolvePinnedRows } from '@/features/pinned-rows/pinnedRows';
 import { ResourceFilterSearch } from '@/features/resource-filter/ResourceFilterSearch';
 import { filterResourceTree } from '@/features/resource-filter/resourceFilter';
 import { useAutoExpandMatchingAncestors, useExpandedIds } from '@/hooks/useExpandedIds';
+import { usePinnedIds } from '@/hooks/usePinnedIds';
 import type { ResourceTimelineSubRow } from './sub-rows';
 import {
   TimelineTreeTable,
@@ -63,6 +65,10 @@ export interface ResourceTimelinesTreeModel extends TimelineTreeModel, TimelineT
 export type { ResourceTimelineSubRow };
 
 const EMPTY_SUB_ROWS: readonly ResourceTimelineSubRow[] = [];
+
+function getEntityName(item: TreeTableItem): string | undefined {
+  return 'instance_name' in item.entity ? (item.entity.instance_name ?? undefined) : undefined;
+}
 
 export interface ResourceTimelinesTreeProps {
   engineId: string;
@@ -143,12 +149,16 @@ export function useResourceTimelinesTreeModel({
     }
   }, [rootResourceType, resourceTypeOptions, rootItem.availableResourceTypes, setRootResourceType]);
 
-  const trees = useMemo(() => {
-    const injectSubRows = (item: TreeTableItem) =>
-      subRows.reduce((current, subRow) => subRow.injectRows(current), item);
+  const injectSubRows = useCallback(
+    (item: TreeTableItem) => subRows.reduce((current, subRow) => subRow.injectRows(current), item),
+    [subRows]
+  );
+  // The whole tree with sub-rows, before any filter. Pinned rows are looked up here.
+  const fullTree = useMemo(() => injectSubRows(rootItem), [injectSubRows, rootItem]);
 
+  const trees = useMemo(() => {
     if (!resourceFilterResult.isActive || resourceFilter.showOthers) {
-      return [injectSubRows(rootItem)];
+      return [fullTree];
     }
     if (resourceFilterResult.filteredItems.length === 0) {
       return [];
@@ -157,12 +167,38 @@ export function useResourceTimelinesTreeModel({
     const filteredRoot = { ...rootItem, children: resourceFilterResult.filteredItems };
     return injectSubRows(filteredRoot).children ?? [];
   }, [
+    fullTree,
+    injectSubRows,
     resourceFilter.showOthers,
     resourceFilterResult.filteredItems,
     resourceFilterResult.isActive,
     rootItem,
-    subRows,
   ]);
+
+  const { pinnedIds, togglePin, isAtPinLimit } = usePinnedIds();
+  // A pin whose row a filter has removed is hidden, not forgotten; clearing the filter restores it.
+  const { shownItems: pinnedItems, hiddenCount: hiddenPinnedCount } = useMemo(
+    () => resolvePinnedRows(pinnedIds, [fullTree], trees),
+    [fullTree, pinnedIds, trees]
+  );
+  const pathLabels = useMemo(
+    () =>
+      buildPinnedPathLabels([fullTree], getEntityName, row =>
+        subRows
+          .find(subRow => subRow.matches(row as TimelineTreeItem))
+          ?.parentId(row as TimelineTreeItem)
+      ),
+    [fullTree, subRows]
+  );
+  // Only real resources and groups have bulk timeline data; sub-rows load their own.
+  const pinnedBulkItems = useMemo(
+    () =>
+      pinnedItems.flatMap(item => {
+        const resourceItem = findItemById(rootItem, item.id);
+        return resourceItem ? [resourceItem] : [];
+      }),
+    [pinnedItems, rootItem]
+  );
   const firstResourceTimelineId = trees[0]?.id ?? null;
 
   const { expandedIds, handleExpandChange } = useExpandedIds(
@@ -193,6 +229,7 @@ export function useResourceTimelinesTreeModel({
     collectVisibleEntriesFn: collectVisibleEntries,
     buildBulkParamsFn: buildBulkParamsForItem,
     findItemByIdFn: findItemById,
+    extraItems: pinnedBulkItems,
   });
 
   const onExpandChange = useCallback(
@@ -328,6 +365,12 @@ export function useResourceTimelinesTreeModel({
     rootItem,
     showOthers: resourceFilter.showOthers,
     trees: trees as TimelineTreeItem[],
+    pinnedItems: pinnedItems as TimelineTreeItem[],
+    hiddenPinnedCount,
+    pinnedIds,
+    pathLabels,
+    isAtPinLimit,
+    onTogglePin: togglePin,
     emptyMessage: 'No resources match this filter.',
     filters: (
       <ResourceFilterSearch

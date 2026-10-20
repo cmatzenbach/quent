@@ -24,7 +24,8 @@ import {
   OPERATOR_TIMELINE_ROW_TYPE,
   type TreeTableItem,
 } from '@quent/components';
-import { resourceFilterAtom } from '@/atoms/resourceTree';
+import { pinnedIdsAtom, resourceFilterAtom } from '@/atoms/resourceTree';
+import { EMPTY_RESOURCE_FILTER } from '@/features/resource-filter/resourceFilter';
 import type { ResourceTimelineSubRow } from './sub-rows';
 
 // ---------------------------------------------------------------------------
@@ -35,7 +36,10 @@ vi.mock('@quent/hooks', async importOriginal => {
   const actual = await importOriginal<typeof import('@quent/hooks')>();
   return {
     ...actual,
-    useBulkTimelines: () => ({ handleZoomChange: vi.fn(), handleExpand: vi.fn() }),
+    useBulkTimelines: (args: { extraItems?: TreeTableItem[] }) => {
+      capturedBulkExtraItems = args.extraItems;
+      return { handleZoomChange: vi.fn(), handleExpand: vi.fn() };
+    },
     useHighlightedItemIds: () => new Set<string>(),
   };
 });
@@ -55,6 +59,9 @@ let capturedTimelineData: SingleTimelineResponse | null | undefined = undefined;
 let capturedTreeData: TreeTableItem[] = [];
 let capturedHighlightedIds = new Set<string>();
 let capturedExpandedIds = new Set<string>();
+let capturedPinnedItems: TreeTableItem[] = [];
+let capturedHiddenPinnedCount = 0;
+let capturedBulkExtraItems: TreeTableItem[] | undefined;
 let capturedOnExpandChange: ((itemId: string, isExpanded: boolean) => void) | undefined;
 let capturedInlineSelectors: Array<{
   id: string;
@@ -88,8 +95,12 @@ vi.mock('@quent/components', async importOriginal => {
       data: TreeTableItem[];
       highlightedItemIds?: Set<string>;
       onExpandChange?: (itemId: string, isExpanded: boolean) => void;
+      pinnedItems?: TreeTableItem[];
+      hiddenPinnedCount?: number;
     }) => {
       capturedTreeData = props.data;
+      capturedPinnedItems = props.pinnedItems ?? [];
+      capturedHiddenPinnedCount = props.hiddenPinnedCount ?? 0;
       capturedHighlightedIds = props.highlightedItemIds ?? new Set();
       capturedExpandedIds = props.controlledExpandedIds ?? new Set();
       capturedOnExpandChange = props.onExpandChange;
@@ -262,6 +273,9 @@ beforeEach(() => {
   capturedTreeData = [];
   capturedHighlightedIds = new Set();
   capturedExpandedIds = new Set();
+  capturedPinnedItems = [];
+  capturedHiddenPinnedCount = 0;
+  capturedBulkExtraItems = undefined;
   capturedOnExpandChange = undefined;
   capturedLongEntityProps = undefined;
   vi.mocked(clientApi.useNvtxStream).mockReturnValue({
@@ -812,5 +826,127 @@ describe('QueryResourceTree — resource filtering', () => {
 
     expect(await findByText('No resources match this filter.')).toBeInTheDocument();
     expect(capturedTreeData).toEqual([]);
+  });
+});
+
+const SECOND_RESOURCE_ID = 'res-2';
+
+/** Two GPUs side by side, so a filter can keep one and remove the other. */
+const makeTwoResourceBundle = (): QueryBundle<EntityRef> => {
+  const bundle = makeBundle();
+  return {
+    ...bundle,
+    entities: {
+      ...bundle.entities,
+      resources: {
+        ...bundle.entities.resources,
+        [SECOND_RESOURCE_ID]: {
+          id: SECOND_RESOURCE_ID,
+          instance_name: 'GPU 1',
+          type_name: RESOURCE_TYPE,
+        },
+      },
+    },
+    resource_tree: {
+      ResourceGroup: {
+        id: { Engine: ENGINE_ID },
+        children: [
+          { Resource: { Resource: RESOURCE_ID } },
+          { Resource: { Resource: SECOND_RESOURCE_ID } },
+        ],
+      },
+    },
+  } as unknown as QueryBundle<EntityRef>;
+};
+
+const pinnedIds = () => capturedPinnedItems.map(item => item.id);
+
+describe('QueryResourceTree — pinned rows', () => {
+  beforeEach(() => {
+    vi.mocked(clientApi.fetchSingleTimeline).mockResolvedValue(makeTimeline(0, DURATION_S));
+    vi.mocked(clientApi.fetchBulkTimelines).mockResolvedValue({ entries: {} } as never);
+  });
+
+  function renderWithPins(ids: string[], bundle = makeTwoResourceBundle()) {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set(ids));
+    renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={bundle} />
+      </JotaiProvider>
+    );
+    return store;
+  }
+
+  it('shows a pinned resource in the pinned section', async () => {
+    renderWithPins([SECOND_RESOURCE_ID]);
+
+    await waitFor(() => expect(pinnedIds()).toEqual([SECOND_RESOURCE_ID]));
+    expect(capturedHiddenPinnedCount).toBe(0);
+  });
+
+  it('shows a pinned Entities lane', async () => {
+    const laneId = `__long_entities__${RESOURCE_ID}`;
+    renderWithPins([laneId]);
+
+    await waitFor(() => expect(pinnedIds()).toEqual([laneId]));
+  });
+
+  it('shows nothing and counts nothing for pinned ids that match no row', async () => {
+    renderWithPins(['not-a-row']);
+
+    await waitFor(() => expect(capturedTreeData.length).toBeGreaterThan(0));
+    expect(pinnedIds()).toEqual([]);
+    expect(capturedHiddenPinnedCount).toBe(0);
+  });
+
+  it('hides a pin when a filter removes its row, and restores it when the filter clears', async () => {
+    const laneId = `__long_entities__${SECOND_RESOURCE_ID}`;
+    const store = renderWithPins([SECOND_RESOURCE_ID, laneId, RESOURCE_ID]);
+    await waitFor(() => expect(pinnedIds()).toHaveLength(3));
+
+    act(() =>
+      store.set(resourceFilterAtom, {
+        search: 'GPU 0',
+        resourceTypes: [],
+        fsmTypes: [],
+        showOthers: false,
+      })
+    );
+
+    await waitFor(() => expect(pinnedIds()).toEqual([RESOURCE_ID]));
+    expect(capturedHiddenPinnedCount).toBe(2);
+
+    act(() => store.set(resourceFilterAtom, EMPTY_RESOURCE_FILTER));
+
+    await waitFor(() => expect(pinnedIds()).toHaveLength(3));
+    expect(capturedHiddenPinnedCount).toBe(0);
+    expect([...store.get(pinnedIdsAtom)]).toHaveLength(3);
+  });
+
+  it('keeps every pin while a filter only highlights matches', async () => {
+    const store = renderWithPins([SECOND_RESOURCE_ID, RESOURCE_ID]);
+    await waitFor(() => expect(pinnedIds()).toHaveLength(2));
+
+    act(() =>
+      store.set(resourceFilterAtom, {
+        search: 'GPU 0',
+        resourceTypes: [],
+        fsmTypes: [],
+        showOthers: true,
+      })
+    );
+
+    await waitFor(() => expect(capturedHighlightedIds).toContain(RESOURCE_ID));
+    expect(pinnedIds()).toHaveLength(2);
+    expect(capturedHiddenPinnedCount).toBe(0);
+  });
+
+  it('asks for bulk timeline data for pinned resources but not for pinned sub-rows', async () => {
+    renderWithPins([SECOND_RESOURCE_ID, `__long_entities__${RESOURCE_ID}`]);
+
+    await waitFor(() =>
+      expect(capturedBulkExtraItems?.map(item => item.id)).toEqual([SECOND_RESOURCE_ID])
+    );
   });
 });

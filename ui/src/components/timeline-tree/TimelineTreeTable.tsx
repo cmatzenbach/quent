@@ -44,6 +44,15 @@ export interface TimelineTreeControls {
   timelineData?: SingleTimelineResponse;
   onExpandChange: (itemId: string, isExpanded: boolean) => void;
   onZoomChange?: (range: ZoomRange) => void;
+  // Pinned rows to show above the tree, after any filter has been applied.
+  pinnedItems?: TimelineTreeItem[];
+  // Pinned rows that a filter currently hides.
+  hiddenPinnedCount?: number;
+  pinnedIds?: ReadonlySet<string>;
+  // Names of the rows each row lives under, keyed by row id.
+  pathLabels?: ReadonlyMap<string, string>;
+  isAtPinLimit?: boolean;
+  onTogglePin?: (itemId: string) => void;
 }
 
 interface TimelineTreeTableProps {
@@ -165,6 +174,8 @@ export function TimelineTreeTable({
             initialSelectedItemId={controls.initialSelectedItemId}
             columnWidths={[275, 'auto']}
             onExpandChange={controls.onExpandChange}
+            pinnedItems={controls.pinnedItems}
+            hiddenPinnedCount={controls.hiddenPinnedCount}
             highlightedItemIds={controls.highlightedItemIds}
             indicatorItemIds={controls.indicatorItemIds}
             controlledExpandedIds={controls.expandedIds}
