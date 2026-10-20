@@ -7,6 +7,8 @@ import type { TimelineTreeItem } from '../TimelineTreeTable';
 
 export interface ResourceTimelineSubRow {
   id: string;
+  /** Short name of the row, as plain text. */
+  label: string;
   injectRows: (rootItem: TreeTableItem) => TreeTableItem;
   matches: (item: TimelineTreeItem) => boolean;
   /** Id of the resource or group this row belongs to, if the row is one of this sub-row's. */
@@ -55,6 +57,7 @@ export function createTimelineSubRow({
 }): ResourceTimelineSubRow {
   return {
     id,
+    label,
     injectRows,
     matches: item => item.type === rowType,
     parentId,

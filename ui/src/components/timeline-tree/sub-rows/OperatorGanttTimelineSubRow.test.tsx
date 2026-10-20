@@ -28,4 +28,8 @@ describe('createOperatorGanttTimelineSubRow', () => {
   it('has no parent for a row that is not an Operators row', () => {
     expect(subRow.parentId(item('worker-1', EntityTypeKey.Resource))).toBeUndefined();
   });
+
+  it('is labeled Operators', () => {
+    expect(subRow.label).toBe('Operators');
+  });
 });
