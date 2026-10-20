@@ -58,6 +58,9 @@ export interface TimelineTreeControls {
   pathLabels?: ReadonlyMap<string, string>;
   isAtPinLimit?: boolean;
   onTogglePin?: (itemId: string) => void;
+  // Whether the pinned section shows only its header.
+  isPinnedCollapsed?: boolean;
+  onTogglePinnedCollapsed?: () => void;
 }
 
 interface TimelineTreeTableProps {
@@ -205,6 +208,8 @@ export function TimelineTreeTable({
             onExpandChange={controls.onExpandChange}
             pinnedItems={controls.pinnedItems}
             hiddenPinnedCount={controls.hiddenPinnedCount}
+            isPinnedCollapsed={controls.isPinnedCollapsed}
+            onTogglePinnedCollapsed={controls.onTogglePinnedCollapsed}
             highlightedItemIds={controls.highlightedItemIds}
             indicatorItemIds={controls.indicatorItemIds}
             controlledExpandedIds={controls.expandedIds}

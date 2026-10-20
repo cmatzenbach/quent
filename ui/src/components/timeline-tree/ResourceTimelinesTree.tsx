@@ -38,7 +38,7 @@ import { buildPinnedPathLabels, resolvePinnedRows } from '@/features/pinned-rows
 import { ResourceFilterSearch } from '@/features/resource-filter/ResourceFilterSearch';
 import { filterResourceTree } from '@/features/resource-filter/resourceFilter';
 import { useAutoExpandMatchingAncestors, useExpandedIds } from '@/hooks/useExpandedIds';
-import { usePinnedIds } from '@/hooks/usePinnedIds';
+import { usePinnedCollapsed, usePinnedIds } from '@/hooks/usePinnedIds';
 import type { ResourceTimelineSubRow } from './sub-rows';
 import {
   TimelineTreeTable,
@@ -176,6 +176,7 @@ export function useResourceTimelinesTreeModel({
   ]);
 
   const { pinnedIds, togglePin, isAtPinLimit } = usePinnedIds();
+  const { isPinnedCollapsed, togglePinnedCollapsed } = usePinnedCollapsed();
   // A pin whose row a filter has removed is hidden, not forgotten; clearing the filter restores it.
   const { shownItems: pinnedItems, hiddenCount: hiddenPinnedCount } = useMemo(
     () => resolvePinnedRows(pinnedIds, [fullTree], trees),
@@ -382,6 +383,8 @@ export function useResourceTimelinesTreeModel({
     pinnedIds,
     pathLabels,
     isAtPinLimit,
+    isPinnedCollapsed,
+    onTogglePinnedCollapsed: togglePinnedCollapsed,
     isPinnable,
     getRowName,
     onTogglePin: togglePin,

@@ -6,7 +6,7 @@ import { act, renderHook } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import { describe, expect, it } from 'vitest';
 import { MAX_PINNED_ROWS } from '@/features/pinned-rows/pinnedRows';
-import { usePinnedIds } from './usePinnedIds';
+import { usePinnedCollapsed, usePinnedIds } from './usePinnedIds';
 
 function renderPinnedHook() {
   const store = createStore();
@@ -69,5 +69,31 @@ describe('usePinnedIds', () => {
 
     expect(result.current.pinnedIds.has('row-0')).toBe(false);
     expect(result.current.isAtPinLimit).toBe(false);
+  });
+});
+
+describe('usePinnedCollapsed', () => {
+  function renderCollapsedHook() {
+    const store = createStore();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <Provider store={store}>{children}</Provider>
+    );
+    return renderHook(() => usePinnedCollapsed(), { wrapper });
+  }
+
+  it('starts expanded', () => {
+    const { result } = renderCollapsedHook();
+
+    expect(result.current.isPinnedCollapsed).toBe(false);
+  });
+
+  it('flips between collapsed and expanded', () => {
+    const { result } = renderCollapsedHook();
+
+    act(() => result.current.togglePinnedCollapsed());
+    expect(result.current.isPinnedCollapsed).toBe(true);
+
+    act(() => result.current.togglePinnedCollapsed());
+    expect(result.current.isPinnedCollapsed).toBe(false);
   });
 });
