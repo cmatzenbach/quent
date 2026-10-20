@@ -30,17 +30,18 @@ const columns: Column<Row>[] = [
 ];
 
 interface PinnedProps {
+  onRevealPinned?: (id: string) => void;
   pinnedItems?: Row[];
   hiddenPinnedCount?: number;
   isPinnedCollapsed?: boolean;
   onTogglePinnedCollapsed?: () => void;
 }
 
-function renderTable(pinned: PinnedProps = {}) {
+function renderTable(pinned: PinnedProps = {}, tableColumns: Column<Row>[] = columns) {
   return render(
     <TreeTable<Row>
       data={[row('a'), row('b')]}
-      columns={columns}
+      columns={tableColumns}
       virtualized
       rowHeight={ROW_HEIGHT}
       {...pinned}
@@ -124,6 +125,61 @@ describe('TreeTable pinned section', () => {
 
     const region = screen.getByRole('region', { name: 'Pinned rows' });
     expect(region.closest<HTMLElement>('[style*="sticky"]')).not.toBeNull();
+  });
+});
+
+describe('TreeTable pinned row clicks', () => {
+  const controlColumns: Column<Row>[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      widthIndex: 0,
+      isFirst: true,
+      render: ({ item }) => (
+        <>
+          <span>{item.name}</span>
+          <button type="button">Pin {item.name}</button>
+          <div role="combobox" aria-expanded="false" aria-label={`Type for ${item.name}`}>
+            GPU
+          </div>
+        </>
+      ),
+    },
+  ];
+
+  it('asks to reveal the row when the pinned row is clicked', async () => {
+    const onRevealPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x')], onRevealPinned });
+
+    await userEvent.click(screen.getByText('Row x'));
+
+    expect(onRevealPinned).toHaveBeenCalledWith('x');
+  });
+
+  it('does not reveal the row when a button inside it is clicked', async () => {
+    const onRevealPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x')], onRevealPinned }, controlColumns);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Pin Row x' }));
+
+    expect(onRevealPinned).not.toHaveBeenCalled();
+  });
+
+  it('does not reveal the row when a dropdown inside it is clicked', async () => {
+    const onRevealPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x')], onRevealPinned }, controlColumns);
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Type for Row x' }));
+
+    expect(onRevealPinned).not.toHaveBeenCalled();
+  });
+
+  it('ignores clicks when no reveal handler is given', async () => {
+    renderTable({ pinnedItems: [row('x')] });
+
+    await userEvent.click(screen.getByText('Row x'));
+
+    expect(screen.getByText('Row x')).toBeInTheDocument();
   });
 });
 
