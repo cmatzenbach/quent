@@ -25,6 +25,7 @@ import type {
 } from '@quent/utils';
 import { useTheme, THEME_DARK } from '@/contexts/ThemeContext';
 import { useTabActionSlots } from '@/components/TabActionSlots';
+import { PinnableRowLabel } from './PinnableRowLabel';
 
 export type TimelineTreeItem = TreeTableItem<EntityTypeValue | NvtxTreeEntity>;
 
@@ -32,6 +33,10 @@ export interface TimelineTreeModel {
   trees: TimelineTreeItem[];
   renderLabel: (item: TimelineTreeItem) => ReactNode;
   renderTimeline: (item: TimelineTreeItem) => ReactNode;
+  // Rows a user can pin. Trees that leave these out have no pin buttons.
+  isPinnable?: (item: TimelineTreeItem) => boolean;
+  // Plain-text name of a row, used to label its pin button.
+  getRowName?: (item: TimelineTreeItem) => string;
 }
 
 export interface TimelineTreeControls {
@@ -117,6 +122,7 @@ export function TimelineTreeTable({
     }
     return { data, modelsByItemId };
   }, [trees]);
+  const { isAtPinLimit, onTogglePin, pathLabels, pinnedIds } = controls;
   const columns = useMemo(
     () =>
       [
@@ -130,8 +136,21 @@ export function TimelineTreeTable({
               Resource
             </div>
           ),
-          render: ({ item }: { item: TimelineTreeItem }) =>
-            modelsByItemId.get(item.id)?.renderLabel(item) ?? null,
+          render: ({ item, isPinned }: { item: TimelineTreeItem; isPinned?: boolean }) => {
+            const model = modelsByItemId.get(item.id);
+            return (
+              <PinnableRowLabel
+                label={model?.renderLabel(item) ?? null}
+                name={model?.getRowName?.(item) ?? item.id}
+                isPinnable={onTogglePin != null && (model?.isPinnable?.(item) ?? false)}
+                isPinned={pinnedIds?.has(item.id) ?? false}
+                isPinnedRow={isPinned ?? false}
+                isAtPinLimit={isAtPinLimit ?? false}
+                pathLabel={pathLabels?.get(item.id)}
+                onTogglePin={() => onTogglePin?.(item.id)}
+              />
+            );
+          },
         },
         {
           key: 'usage',
@@ -152,7 +171,17 @@ export function TimelineTreeTable({
             modelsByItemId.get(item.id)?.renderTimeline(item) ?? null,
         },
       ] satisfies Column<TimelineTreeItem>[],
-    [controls.onZoomChange, controls.timelineData, durationSeconds, isDark, modelsByItemId]
+    [
+      controls.onZoomChange,
+      controls.timelineData,
+      durationSeconds,
+      isAtPinLimit,
+      isDark,
+      modelsByItemId,
+      onTogglePin,
+      pathLabels,
+      pinnedIds,
+    ]
   );
 
   return (

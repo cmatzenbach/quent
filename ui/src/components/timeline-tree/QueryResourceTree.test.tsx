@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { waitFor, act } from '@testing-library/react';
+import { waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithQuery } from '@/test/test-utils';
 import { Provider as JotaiProvider, createStore } from 'jotai';
@@ -89,7 +89,11 @@ vi.mock('@quent/components', async importOriginal => {
       columns: Array<{
         headerContent?: React.ReactNode;
         subHeaderContent?: React.ReactNode;
-        render?: (props: { item: TreeTableItem; level?: number }) => React.ReactNode;
+        render?: (props: {
+          item: TreeTableItem;
+          level?: number;
+          isPinned?: boolean;
+        }) => React.ReactNode;
       }>;
       controlledExpandedIds?: Set<string>;
       data: TreeTableItem[];
@@ -131,6 +135,11 @@ vi.mock('@quent/components', async importOriginal => {
             </React.Fragment>
           ))}
           {renderItems(props.data)}
+          {props.pinnedItems?.map(item => (
+            <div key={`pinned-${item.id}`} data-testid="pinned-row">
+              {props.columns[0]?.render?.({ item, level: 0, isPinned: true })}
+            </div>
+          ))}
         </>
       );
     },
@@ -948,5 +957,85 @@ describe('QueryResourceTree — pinned rows', () => {
     await waitFor(() =>
       expect(capturedBulkExtraItems?.map(item => item.id)).toEqual([SECOND_RESOURCE_ID])
     );
+  });
+});
+
+describe('QueryResourceTree — pin buttons', () => {
+  beforeEach(() => {
+    vi.mocked(clientApi.fetchSingleTimeline).mockResolvedValue(makeTimeline(0, DURATION_S));
+    vi.mocked(clientApi.fetchBulkTimelines).mockResolvedValue({ entries: {} } as never);
+  });
+
+  const pinButtonNames = (container: HTMLElement) =>
+    within(container)
+      .queryAllByRole('button', { name: /^(Pin|Unpin) / })
+      .map(button => button.getAttribute('aria-label'));
+
+  it('offers pinning on resource and Entities rows, not on the root group or NVTX rows', () => {
+    vi.mocked(clientApi.useNvtxStream).mockReturnValue({
+      contextId: 'context-1',
+      catalog: {
+        domains: [
+          {
+            domain_id: '1',
+            source_domain_ids: ['1'],
+            name: 'CCCL',
+            color: '#76b900ff',
+            threads: [],
+            categories: [],
+            has_uncategorized: false,
+          },
+        ],
+      } as unknown as NvtxCatalog,
+      viewport: null,
+      isLoading: false,
+    });
+
+    const { container } = renderWithQuery(
+      <JotaiProvider store={createStore()}>
+        <QueryResourceTree engineId="engine-1" queryBundle={makeBundle()} />
+      </JotaiProvider>
+    );
+
+    expect(pinButtonNames(container)).toEqual(['Pin GPU 0', 'Pin Entities']);
+  });
+
+  it('pins a row when its button is clicked and unpins it from the pinned section', async () => {
+    const store = createStore();
+    const { getByRole, getAllByRole, getByTestId, queryAllByTestId } = renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={makeBundle()} />
+      </JotaiProvider>
+    );
+
+    await userEvent.click(getByRole('button', { name: 'Pin GPU 0' }));
+
+    expect([...store.get(pinnedIdsAtom)]).toEqual([RESOURCE_ID]);
+    // One button on the row in the tree and one on its copy in the pinned section.
+    const unpinButtons = getAllByRole('button', { name: 'Unpin GPU 0' });
+    expect(unpinButtons).toHaveLength(2);
+    unpinButtons.forEach(button => expect(button).toHaveAttribute('aria-pressed', 'true'));
+
+    await userEvent.click(within(getByTestId('pinned-row')).getByRole('button'));
+
+    expect(store.get(pinnedIdsAtom).size).toBe(0);
+    expect(queryAllByTestId('pinned-row')).toHaveLength(0);
+    expect(getByRole('button', { name: 'Pin GPU 0' })).toBeInTheDocument();
+  });
+
+  it('shows a pinned Entities row together with the resource it belongs to', async () => {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set([`__long_entities__${RESOURCE_ID}`]));
+    const { findAllByTestId } = renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={makeBundle()} />
+      </JotaiProvider>
+    );
+
+    const [pinnedRow] = await findAllByTestId('pinned-row');
+
+    expect(within(pinnedRow!).getByText('Entities')).toBeInTheDocument();
+    expect(within(pinnedRow!).getByTitle(/GPU 0$/)).toBeInTheDocument();
+    expect(within(pinnedRow!).getByRole('button', { name: 'Unpin Entities' })).toBeInTheDocument();
   });
 });
