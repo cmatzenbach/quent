@@ -53,4 +53,14 @@ describe('createLongEntitiesTimelineSubRow', () => {
 
     expect(subRow.parentId(item('res-1', EntityTypeKey.Resource))).toBeUndefined();
   });
+
+  it('is labeled Entities', () => {
+    const subRow = createLongEntitiesTimelineSubRow({
+      engineId: 'engine-1',
+      queryBundle,
+      isDark: false,
+    });
+
+    expect(subRow.label).toBe('Entities');
+  });
 });

@@ -238,6 +238,7 @@ function collectRowTypes(items: TreeTableItem[]): string[] {
 const CUSTOM_SUB_ROW_TYPE = 'custom-sub-row';
 const customSubRow: ResourceTimelineSubRow = {
   id: 'custom',
+  label: 'Custom',
   injectRows: rootItem => ({
     ...rootItem,
     children: [

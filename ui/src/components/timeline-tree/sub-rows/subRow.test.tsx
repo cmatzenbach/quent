@@ -50,4 +50,17 @@ describe('createTimelineSubRow', () => {
 
     expect(subRow.parentId(item('demo:res-1', 'demo-row'))).toBe('res-1');
   });
+
+  it('keeps its label as plain text', () => {
+    const subRow = createTimelineSubRow({
+      id: 'demo',
+      rowType: 'demo-row',
+      label: 'Demo',
+      injectRows: root => root,
+      parentId: () => undefined,
+      renderTimeline: () => null,
+    });
+
+    expect(subRow.label).toBe('Demo');
+  });
 });
