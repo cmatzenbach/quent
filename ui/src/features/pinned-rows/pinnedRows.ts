@@ -104,3 +104,37 @@ export function buildPinnedPathLabels<T extends TreeNode<T>>(
   }
   return labels;
 }
+
+/**
+ * Ids of the rows above `id`, from the top of the tree down to its direct parent, or undefined
+ * when the row is not in the tree. Used to expand the path to a row before scrolling to it.
+ */
+export function findAncestorIds<T extends TreeNode<T>>(
+  roots: readonly T[],
+  id: string
+): string[] | undefined {
+  for (const root of roots) {
+    const path = pathTo(root, id, []);
+    if (path) {
+      return path;
+    }
+  }
+  return undefined;
+}
+
+function pathTo<T extends TreeNode<T>>(
+  row: T,
+  id: string,
+  ancestors: string[]
+): string[] | undefined {
+  if (row.id === id) {
+    return ancestors;
+  }
+  for (const child of row.children ?? []) {
+    const path = pathTo(child, id, [...ancestors, row.id]);
+    if (path) {
+      return path;
+    }
+  }
+  return undefined;
+}
