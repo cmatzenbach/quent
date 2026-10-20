@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from 'vitest';
-import { buildPinnedPathLabels, resolvePinnedRows } from './pinnedRows';
+import { buildPinnedPathLabels, findAncestorIds, resolvePinnedRows } from './pinnedRows';
 
 interface Node {
   id: string;
@@ -175,5 +175,33 @@ describe('buildPinnedPathLabels', () => {
     ];
 
     expect(labels(roots).get('c')).toBe('B');
+  });
+});
+
+describe('findAncestorIds', () => {
+  const tree = () => [
+    group(
+      'root',
+      group('worker-1', leaf('gpu-0'), leaf('gpu-1')),
+      group('worker-2', leaf('gpu-2'))
+    ),
+  ];
+
+  it('lists the ancestors from the top of the tree down to the direct parent', () => {
+    expect(findAncestorIds(tree(), 'gpu-2')).toEqual(['root', 'worker-2']);
+  });
+
+  it('gives a top-level row no ancestors', () => {
+    expect(findAncestorIds(tree(), 'root')).toEqual([]);
+  });
+
+  it('returns undefined for a row that is not in the tree', () => {
+    expect(findAncestorIds(tree(), 'missing')).toBeUndefined();
+  });
+
+  it('searches every top-level tree', () => {
+    const roots = [group('a', leaf('a-1')), group('b', leaf('b-1'))];
+
+    expect(findAncestorIds(roots, 'b-1')).toEqual(['b']);
   });
 });
