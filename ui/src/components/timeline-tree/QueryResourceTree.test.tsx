@@ -62,6 +62,10 @@ let capturedExpandedIds = new Set<string>();
 let capturedPinnedItems: TreeTableItem[] = [];
 let capturedHiddenPinnedCount = 0;
 let capturedPinnedCollapse: { isCollapsed: boolean; toggle?: () => void } = { isCollapsed: false };
+let capturedReveal: {
+  request?: { id: string; token: number };
+  reveal?: (id: string) => void;
+} = {};
 let capturedBulkExtraItems: TreeTableItem[] | undefined;
 let capturedOnExpandChange: ((itemId: string, isExpanded: boolean) => void) | undefined;
 let capturedInlineSelectors: Array<{
@@ -104,6 +108,8 @@ vi.mock('@quent/components', async importOriginal => {
       hiddenPinnedCount?: number;
       isPinnedCollapsed?: boolean;
       onTogglePinnedCollapsed?: () => void;
+      revealItem?: { id: string; token: number };
+      onRevealPinned?: (id: string) => void;
     }) => {
       capturedTreeData = props.data;
       capturedPinnedItems = props.pinnedItems ?? [];
@@ -112,6 +118,7 @@ vi.mock('@quent/components', async importOriginal => {
         isCollapsed: props.isPinnedCollapsed ?? false,
         toggle: props.onTogglePinnedCollapsed,
       };
+      capturedReveal = { request: props.revealItem, reveal: props.onRevealPinned };
       capturedHighlightedIds = props.highlightedItemIds ?? new Set();
       capturedExpandedIds = props.controlledExpandedIds ?? new Set();
       capturedOnExpandChange = props.onExpandChange;
@@ -292,6 +299,7 @@ beforeEach(() => {
   capturedPinnedItems = [];
   capturedHiddenPinnedCount = 0;
   capturedPinnedCollapse = { isCollapsed: false };
+  capturedReveal = {};
   capturedBulkExtraItems = undefined;
   capturedOnExpandChange = undefined;
   capturedLongEntityProps = undefined;
@@ -1057,5 +1065,64 @@ describe('QueryResourceTree — pin buttons', () => {
     expect(within(pinnedRow!).getByText('Entities')).toBeInTheDocument();
     expect(within(pinnedRow!).getByTitle(/GPU 0$/)).toBeInTheDocument();
     expect(within(pinnedRow!).getByRole('button', { name: 'Unpin Entities' })).toBeInTheDocument();
+  });
+});
+
+describe('QueryResourceTree — revealing a pinned row', () => {
+  beforeEach(() => {
+    vi.mocked(clientApi.fetchSingleTimeline).mockResolvedValue(makeTimeline(0, DURATION_S));
+    vi.mocked(clientApi.fetchBulkTimelines).mockResolvedValue({ entries: {} } as never);
+  });
+
+  function renderNestedWithPins(ids: string[]) {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set(ids));
+    renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={makeNestedBundle()} />
+      </JotaiProvider>
+    );
+  }
+
+  it('expands the collapsed rows above a pinned resource and asks the tree to scroll to it', async () => {
+    renderNestedWithPins([RESOURCE_ID]);
+    await waitFor(() => expect(capturedReveal.reveal).toBeDefined());
+    expect(capturedExpandedIds).not.toContain(NESTED_GROUP_ID);
+
+    act(() => capturedReveal.reveal?.(RESOURCE_ID));
+
+    await waitFor(() => expect(capturedExpandedIds).toContain(NESTED_GROUP_ID));
+    expect(capturedReveal.request).toEqual({ id: RESOURCE_ID, token: 1 });
+  });
+
+  it('uses a new token each time so the same row can be revealed again', async () => {
+    renderNestedWithPins([RESOURCE_ID]);
+    await waitFor(() => expect(capturedReveal.reveal).toBeDefined());
+
+    act(() => capturedReveal.reveal?.(RESOURCE_ID));
+    await waitFor(() => expect(capturedReveal.request?.token).toBe(1));
+    act(() => capturedReveal.reveal?.(RESOURCE_ID));
+
+    await waitFor(() => expect(capturedReveal.request?.token).toBe(2));
+  });
+
+  it('expands the rows above a pinned Entities row', async () => {
+    const laneId = `__long_entities__${RESOURCE_ID}`;
+    renderNestedWithPins([laneId]);
+    await waitFor(() => expect(capturedReveal.reveal).toBeDefined());
+
+    act(() => capturedReveal.reveal?.(laneId));
+
+    await waitFor(() => expect(capturedExpandedIds).toContain(NESTED_GROUP_ID));
+    expect(capturedReveal.request?.id).toBe(laneId);
+  });
+
+  it('does nothing for a row that is not in the tree', async () => {
+    renderNestedWithPins([RESOURCE_ID]);
+    await waitFor(() => expect(capturedReveal.reveal).toBeDefined());
+
+    act(() => capturedReveal.reveal?.('not-a-row'));
+
+    expect(capturedReveal.request).toBeUndefined();
   });
 });

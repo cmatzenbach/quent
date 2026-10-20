@@ -61,6 +61,9 @@ export interface TimelineTreeControls {
   // Whether the pinned section shows only its header.
   isPinnedCollapsed?: boolean;
   onTogglePinnedCollapsed?: () => void;
+  // A request to select a row and scroll the tree to it; handled once per token.
+  revealItem?: { id: string; token: number };
+  onRevealPinned?: (itemId: string) => void;
 }
 
 interface TimelineTreeTableProps {
@@ -210,6 +213,8 @@ export function TimelineTreeTable({
             hiddenPinnedCount={controls.hiddenPinnedCount}
             isPinnedCollapsed={controls.isPinnedCollapsed}
             onTogglePinnedCollapsed={controls.onTogglePinnedCollapsed}
+            revealItem={controls.revealItem}
+            onRevealPinned={controls.onRevealPinned}
             highlightedItemIds={controls.highlightedItemIds}
             indicatorItemIds={controls.indicatorItemIds}
             controlledExpandedIds={controls.expandedIds}
