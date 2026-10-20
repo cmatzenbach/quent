@@ -190,6 +190,18 @@ export function useResourceTimelinesTreeModel({
       ),
     [fullTree, subRows]
   );
+  // The root group is already summarized by the overview bar, so it has no pin button.
+  const isPinnable = useCallback(
+    (item: TimelineTreeItem) => item.id !== rootItem.id,
+    [rootItem.id]
+  );
+  const getRowName = useCallback(
+    (item: TimelineTreeItem) =>
+      subRows.find(subRow => subRow.matches(item))?.label ??
+      getEntityName(item as TreeTableItem) ??
+      item.id,
+    [subRows]
+  );
   // Only real resources and groups have bulk timeline data; sub-rows load their own.
   const pinnedBulkItems = useMemo(
     () =>
@@ -370,6 +382,8 @@ export function useResourceTimelinesTreeModel({
     pinnedIds,
     pathLabels,
     isAtPinLimit,
+    isPinnable,
+    getRowName,
     onTogglePin: togglePin,
     emptyMessage: 'No resources match this filter.',
     filters: (
