@@ -3,7 +3,7 @@
 
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TreeTable, type Column } from './tree-table';
 
 interface Row {
@@ -124,5 +124,101 @@ describe('TreeTable pinned section', () => {
 
     const region = screen.getByRole('region', { name: 'Pinned rows' });
     expect(region.closest<HTMLElement>('[style*="sticky"]')).not.toBeNull();
+  });
+});
+
+describe('TreeTable revealItem', () => {
+  const tree: Row[] = [
+    {
+      id: 'root',
+      name: 'Root',
+      children: [{ id: 'worker', name: 'Worker', children: [row('gpu')] }],
+    },
+  ];
+  const scrollTo = vi.fn();
+  const originalScrollTo = Element.prototype.scrollTo;
+
+  // The virtualizer scrolls to 0 on mount; a reveal is the call that asks for `behavior: 'auto'`.
+  const revealCalls = () =>
+    scrollTo.mock.calls.filter(([options]) => (options as ScrollToOptions).behavior === 'auto');
+
+  beforeEach(() => {
+    scrollTo.mockClear();
+    Element.prototype.scrollTo = scrollTo as unknown as typeof Element.prototype.scrollTo;
+    // jsdom has no layout, and the virtualizer clamps offsets to the scroll height.
+    Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+      configurable: true,
+      get: () => 1000,
+    });
+  });
+
+  afterEach(() => {
+    Element.prototype.scrollTo = originalScrollTo;
+    delete (HTMLElement.prototype as { scrollHeight?: number }).scrollHeight;
+  });
+
+  function table(props: {
+    expanded: string[];
+    revealItem?: { id: string; token: number };
+    onSelectChange?: (item: Row | undefined) => void;
+  }) {
+    return (
+      <TreeTable<Row>
+        data={tree}
+        columns={columns}
+        virtualized
+        rowHeight={ROW_HEIGHT}
+        controlledExpandedIds={new Set(props.expanded)}
+        revealItem={props.revealItem}
+        onSelectChange={props.onSelectChange as never}
+      />
+    );
+  }
+
+  it('scrolls a visible row to the top of the tree', () => {
+    render(table({ expanded: ['root', 'worker'], revealItem: { id: 'gpu', token: 1 } }));
+
+    expect(revealCalls()).toEqual([[expect.objectContaining({ top: 2 * ROW_HEIGHT })]]);
+  });
+
+  it('selects the row it reveals', () => {
+    const onSelectChange = vi.fn();
+    render(
+      table({
+        expanded: ['root', 'worker'],
+        revealItem: { id: 'gpu', token: 1 },
+        onSelectChange,
+      })
+    );
+
+    expect(onSelectChange).toHaveBeenCalledWith(expect.objectContaining({ id: 'gpu' }));
+  });
+
+  it('waits for a collapsed parent to be expanded before scrolling', () => {
+    const revealItem = { id: 'gpu', token: 1 };
+    const { rerender } = render(table({ expanded: ['root'], revealItem }));
+    expect(revealCalls()).toHaveLength(0);
+
+    rerender(table({ expanded: ['root', 'worker'], revealItem }));
+
+    expect(revealCalls()).toEqual([[expect.objectContaining({ top: 2 * ROW_HEIGHT })]]);
+  });
+
+  it('reveals once per request, and again for a new request', () => {
+    const first = { id: 'gpu', token: 1 };
+    const { rerender } = render(table({ expanded: ['root', 'worker'], revealItem: first }));
+    expect(revealCalls()).toHaveLength(1);
+
+    rerender(table({ expanded: ['root', 'worker', 'extra'], revealItem: first }));
+    expect(revealCalls()).toHaveLength(1);
+
+    rerender(table({ expanded: ['root', 'worker'], revealItem: { id: 'gpu', token: 2 } }));
+    expect(revealCalls()).toHaveLength(2);
+  });
+
+  it('does nothing for a row that is not in the tree', () => {
+    render(table({ expanded: ['root', 'worker'], revealItem: { id: 'missing', token: 1 } }));
+
+    expect(revealCalls()).toHaveLength(0);
   });
 });

@@ -492,6 +492,12 @@ type TreeViewProps = React.HTMLAttributes<HTMLDivElement> & {
    * when `virtualized` is true.
    */
   overscanRows?: number;
+  /**
+   * Ask the tree to select a row and scroll it to the top of the list. Each request needs a new
+   * `token`; the tree acts once per token. If the row is not visible yet (a parent is still
+   * collapsed) it waits until the row appears.
+   */
+  revealItem?: { id: string; token: number };
 };
 
 // Timeline rows render at ~75px; keep virtualization estimate aligned with actual row height.
@@ -579,6 +585,7 @@ const VirtualizedTreeView = React.forwardRef<HTMLDivElement, TreeViewProps>(
       virtualized: _virtualized,
       rowHeight = DEFAULT_TREE_ROW_HEIGHT,
       overscanRows = DEFAULT_TREE_OVERSCAN_ROWS,
+      revealItem,
       ...props
     },
     ref
@@ -626,6 +633,27 @@ const VirtualizedTreeView = React.forwardRef<HTMLDivElement, TreeViewProps>(
     });
 
     const virtualItems = rowVirtualizer.getVirtualItems();
+
+    // Act on each reveal request once, as soon as the virtualizer can scroll and the row is in the
+    // visible list. This runs after every render, so it also picks up a request that arrived
+    // before the virtualizer was ready; handled requests return immediately.
+    const lastRevealToken = useRef<number | undefined>(undefined);
+    useEffect(() => {
+      if (!revealItem || lastRevealToken.current === revealItem.token) {
+        return;
+      }
+      // The virtualizer only learns its scroll element after the first render.
+      if (!rowVirtualizer.scrollElement) {
+        return;
+      }
+      const index = visibleRows.findIndex(row => row.item.id === revealItem.id);
+      if (index < 0) {
+        return;
+      }
+      lastRevealToken.current = revealItem.token;
+      handleSelectChange(visibleRows[index]!.item);
+      rowVirtualizer.scrollToIndex(index, { align: 'start' });
+    });
 
     return (
       <div className={cn('overflow-hidden relative bg-transparent w-full min-w-0', className)}>
@@ -746,6 +774,7 @@ const RecursiveTreeView = React.forwardRef<HTMLDivElement, TreeViewProps>(
       virtualized: _virtualized,
       rowHeight: _rowHeight,
       overscanRows: _overscanRows,
+      revealItem: _revealItem,
       ...props
     },
     ref
