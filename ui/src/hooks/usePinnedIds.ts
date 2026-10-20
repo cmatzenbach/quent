@@ -3,7 +3,7 @@
 
 import { useCallback } from 'react';
 import { useAtomValueRawSync, useSetAtom } from 'jotai';
-import { pinnedIdsAtom } from '@/atoms/resourceTree';
+import { pinnedCollapsedAtom, pinnedIdsAtom } from '@/atoms/resourceTree';
 import { MAX_PINNED_ROWS } from '@/features/pinned-rows/pinnedRows';
 
 /* getter/setter for the ids of pinned timeline rows */
@@ -30,4 +30,17 @@ export function usePinnedIds() {
   );
 
   return { pinnedIds, togglePin, isAtPinLimit: pinnedIds.size >= MAX_PINNED_ROWS } as const;
+}
+
+/* getter/setter for whether the pinned section is collapsed to just its header */
+export function usePinnedCollapsed() {
+  const isPinnedCollapsed = useAtomValueRawSync(pinnedCollapsedAtom);
+  const setPinnedCollapsed = useSetAtom(pinnedCollapsedAtom);
+
+  const togglePinnedCollapsed = useCallback(
+    () => setPinnedCollapsed(previous => !previous),
+    [setPinnedCollapsed]
+  );
+
+  return { isPinnedCollapsed, togglePinnedCollapsed } as const;
 }

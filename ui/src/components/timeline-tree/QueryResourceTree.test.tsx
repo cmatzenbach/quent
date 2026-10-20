@@ -61,6 +61,7 @@ let capturedHighlightedIds = new Set<string>();
 let capturedExpandedIds = new Set<string>();
 let capturedPinnedItems: TreeTableItem[] = [];
 let capturedHiddenPinnedCount = 0;
+let capturedPinnedCollapse: { isCollapsed: boolean; toggle?: () => void } = { isCollapsed: false };
 let capturedBulkExtraItems: TreeTableItem[] | undefined;
 let capturedOnExpandChange: ((itemId: string, isExpanded: boolean) => void) | undefined;
 let capturedInlineSelectors: Array<{
@@ -101,10 +102,16 @@ vi.mock('@quent/components', async importOriginal => {
       onExpandChange?: (itemId: string, isExpanded: boolean) => void;
       pinnedItems?: TreeTableItem[];
       hiddenPinnedCount?: number;
+      isPinnedCollapsed?: boolean;
+      onTogglePinnedCollapsed?: () => void;
     }) => {
       capturedTreeData = props.data;
       capturedPinnedItems = props.pinnedItems ?? [];
       capturedHiddenPinnedCount = props.hiddenPinnedCount ?? 0;
+      capturedPinnedCollapse = {
+        isCollapsed: props.isPinnedCollapsed ?? false,
+        toggle: props.onTogglePinnedCollapsed,
+      };
       capturedHighlightedIds = props.highlightedItemIds ?? new Set();
       capturedExpandedIds = props.controlledExpandedIds ?? new Set();
       capturedOnExpandChange = props.onExpandChange;
@@ -284,6 +291,7 @@ beforeEach(() => {
   capturedExpandedIds = new Set();
   capturedPinnedItems = [];
   capturedHiddenPinnedCount = 0;
+  capturedPinnedCollapse = { isCollapsed: false };
   capturedBulkExtraItems = undefined;
   capturedOnExpandChange = undefined;
   capturedLongEntityProps = undefined;
@@ -949,6 +957,18 @@ describe('QueryResourceTree — pinned rows', () => {
     await waitFor(() => expect(capturedHighlightedIds).toContain(RESOURCE_ID));
     expect(pinnedIds()).toHaveLength(2);
     expect(capturedHiddenPinnedCount).toBe(0);
+  });
+
+  it('collapses and expands the pinned section from its header', async () => {
+    renderWithPins([RESOURCE_ID]);
+    await waitFor(() => expect(capturedPinnedCollapse.toggle).toBeDefined());
+    expect(capturedPinnedCollapse.isCollapsed).toBe(false);
+
+    act(() => capturedPinnedCollapse.toggle?.());
+    await waitFor(() => expect(capturedPinnedCollapse.isCollapsed).toBe(true));
+
+    act(() => capturedPinnedCollapse.toggle?.());
+    await waitFor(() => expect(capturedPinnedCollapse.isCollapsed).toBe(false));
   });
 
   it('asks for bulk timeline data for pinned resources but not for pinned sub-rows', async () => {
