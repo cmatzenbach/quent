@@ -9,6 +9,8 @@ export interface ResourceTimelineSubRow {
   id: string;
   injectRows: (rootItem: TreeTableItem) => TreeTableItem;
   matches: (item: TimelineTreeItem) => boolean;
+  /** Id of the resource or group this row belongs to, if the row is one of this sub-row's. */
+  parentId: (item: TimelineTreeItem) => string | undefined;
   renderLabel: (item: TimelineTreeItem) => ReactNode;
   renderTimeline: (item: TimelineTreeItem) => ReactNode;
 }
@@ -41,18 +43,21 @@ export function createTimelineSubRow({
   rowType,
   injectRows,
   label,
+  parentId,
   renderTimeline,
 }: {
   id: string;
   rowType: string;
   injectRows: ResourceTimelineSubRow['injectRows'];
   label: string;
+  parentId: ResourceTimelineSubRow['parentId'];
   renderTimeline: ResourceTimelineSubRow['renderTimeline'];
 }): ResourceTimelineSubRow {
   return {
     id,
     injectRows,
     matches: item => item.type === rowType,
+    parentId,
     renderLabel: () => <TimelineSubRowLabel>{label}</TimelineSubRowLabel>,
     renderTimeline,
   };

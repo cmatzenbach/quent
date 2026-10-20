@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TreeTableItem } from '@quent/components';
 import { EntityTypeKey } from '@quent/utils';
-import { createSyntheticSubRow, mapTreeItems } from './subRow';
+import { createSyntheticSubRow, createTimelineSubRow, mapTreeItems } from './subRow';
 
 function item(id: string, type: string, children?: TreeTableItem[]): TreeTableItem {
   return { id, type, entity: {} as TreeTableItem['entity'], children };
@@ -34,5 +34,20 @@ describe('mapTreeItems', () => {
         : children
     );
     expect(next.children?.[0]?.children?.map(child => child.id)).toEqual(['worker-1-ops']);
+  });
+});
+
+describe('createTimelineSubRow', () => {
+  it('reports the row a sub-row belongs to through parentId', () => {
+    const subRow = createTimelineSubRow({
+      id: 'demo',
+      rowType: 'demo-row',
+      label: 'Demo',
+      injectRows: root => root,
+      parentId: row => row.id.replace('demo:', ''),
+      renderTimeline: () => null,
+    });
+
+    expect(subRow.parentId(item('demo:res-1', 'demo-row'))).toBe('res-1');
   });
 });
