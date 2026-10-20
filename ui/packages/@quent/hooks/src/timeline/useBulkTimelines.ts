@@ -7,7 +7,7 @@ import { useAtomValue, useStore } from 'jotai';
 import { fetchBulkTimelines, DEFAULT_STALE_TIME } from '@quent/client';
 import type { QueryEntities, TimelineRequest, OperatorFilter, ZoomRange } from '@quent/utils';
 import { MAX_TIMELINE_BINS } from '@quent/utils';
-import { getResourceTypeName, getFsmTypeName } from './timeline.utils';
+import { getResourceTypeName, getFsmTypeName, mergeExtraBulkEntries } from './timeline.utils';
 import {
   timelineCacheKey,
   timelineDataMapAtom,
@@ -32,6 +32,7 @@ export interface TreeNode {
 }
 
 const ZOOM_DEBOUNCE_MS = 150;
+const NO_EXTRA_ITEMS: readonly never[] = [];
 
 /**
  * useBulkTimelines — manages bulk fetching via Jotai atoms + TanStack Query.
@@ -50,6 +51,7 @@ export function useBulkTimelines<T extends TreeNode>({
   collectVisibleEntriesFn,
   buildBulkParamsFn,
   findItemByIdFn,
+  extraItems = NO_EXTRA_ITEMS,
 }: {
   engineId: string;
   queryId: string;
@@ -74,6 +76,8 @@ export function useBulkTimelines<T extends TreeNode>({
     groupFsmFilters?: Map<string, string | null>
   ) => TimelineRequest<OperatorFilter>;
   findItemByIdFn: (root: T, id: string) => T | undefined;
+  /** Rows to fetch even when the expanded-tree walk skips them, such as pinned rows. */
+  extraItems?: readonly T[];
 }) {
   const store = useStore();
   const queryClient = useQueryClient();
@@ -101,13 +105,17 @@ export function useBulkTimelines<T extends TreeNode>({
 
   const baseVisibleEntries = useMemo(
     () =>
-      collectVisibleEntriesFn(
-        [rootItem],
-        expandedIds,
-        selectedTypes,
-        entities,
-        bulkConfig,
-        groupFsmFilters
+      mergeExtraBulkEntries(
+        collectVisibleEntriesFn(
+          [rootItem],
+          expandedIds,
+          selectedTypes,
+          entities,
+          bulkConfig,
+          groupFsmFilters
+        ),
+        extraItems,
+        item => buildBulkParamsFn(item, selectedTypes, entities, bulkConfig, groupFsmFilters)
       ),
 
     [
@@ -118,6 +126,8 @@ export function useBulkTimelines<T extends TreeNode>({
       bulkConfig,
       groupFsmFilters,
       collectVisibleEntriesFn,
+      buildBulkParamsFn,
+      extraItems,
     ]
   );
 
