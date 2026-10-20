@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from 'vitest';
-import { resolvePinnedRows } from './pinnedRows';
+import { buildPinnedPathLabels, resolvePinnedRows } from './pinnedRows';
 
 interface Node {
   id: string;
@@ -103,5 +103,77 @@ describe('resolvePinnedRows', () => {
     expect([...pinned]).toEqual(['gpu-0']);
     expect(JSON.stringify(full)).toBe(fullSnapshot);
     expect(JSON.stringify(displayed)).toBe(displayedSnapshot);
+  });
+});
+
+describe('buildPinnedPathLabels', () => {
+  interface NamedNode {
+    id: string;
+    name?: string;
+    parent?: string;
+    children?: NamedNode[];
+  }
+
+  // Cluster
+  //  └─ Worker 1
+  //      ├─ GPU 0
+  //      ├─ (Entities lane for GPU 0, a sibling of GPU 0)
+  //      └─ (Operators lane, a child of Worker 1)
+  const tree = (): NamedNode[] => [
+    {
+      id: 'cluster',
+      name: 'Cluster',
+      children: [
+        {
+          id: 'worker-1',
+          name: 'Worker 1',
+          children: [
+            { id: 'ops:worker-1', parent: 'worker-1' },
+            { id: 'gpu-0', name: 'GPU 0' },
+            { id: 'ent:gpu-0', parent: 'gpu-0' },
+          ],
+        },
+      ],
+    },
+  ];
+  const labels = (roots = tree()) =>
+    buildPinnedPathLabels(
+      roots,
+      row => row.name,
+      row => row.parent
+    );
+
+  it('labels a row with the names of its ancestors', () => {
+    const result = labels();
+
+    expect(result.get('gpu-0')).toBe('Cluster › Worker 1');
+    expect(result.get('worker-1')).toBe('Cluster');
+  });
+
+  it('gives top-level rows an empty path', () => {
+    expect(labels().get('cluster')).toBe('');
+  });
+
+  it('labels a lane that belongs to a resource with that resource included', () => {
+    expect(labels().get('ent:gpu-0')).toBe('Cluster › Worker 1 › GPU 0');
+  });
+
+  it('labels a lane that is a child of a group with that group included', () => {
+    expect(labels().get('ops:worker-1')).toBe('Cluster › Worker 1');
+  });
+
+  it('falls back to the tree ancestors when the named parent is not in the tree', () => {
+    const roots = tree();
+    roots[0]!.children![0]!.children![2]!.parent = 'missing';
+
+    expect(labels(roots).get('ent:gpu-0')).toBe('Cluster › Worker 1');
+  });
+
+  it('skips ancestors that have no name', () => {
+    const roots: NamedNode[] = [
+      { id: 'a', children: [{ id: 'b', name: 'B', children: [{ id: 'c', name: 'C' }] }] },
+    ];
+
+    expect(labels(roots).get('c')).toBe('B');
   });
 });
