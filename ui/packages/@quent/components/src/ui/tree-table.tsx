@@ -7,6 +7,7 @@ import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { ChevronRight } from 'lucide-react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@quent/utils';
+import { Button } from './button';
 
 // Tree-table specific styling variants
 const treeVariants = cva(
@@ -496,6 +497,8 @@ type TreeViewProps = React.HTMLAttributes<HTMLDivElement> & {
 // Timeline rows render at ~75px; keep virtualization estimate aligned with actual row height.
 const DEFAULT_TREE_ROW_HEIGHT = 75;
 const DEFAULT_TREE_OVERSCAN_ROWS = 4;
+// Pinned rows beyond this many scroll inside their own section instead of growing it.
+const MAX_VISIBLE_PINNED_ROWS = 6;
 
 function normalizeTreeData(data: TreeTableDataItem[] | TreeTableDataItem): TreeTableDataItem[] {
   return data instanceof Array ? data : [data];
@@ -798,10 +801,13 @@ export type ColumnComponent<I> = ({
   item,
   level,
   isSelected,
+  isPinned,
 }: {
   item: I;
   level: number;
   isSelected: boolean;
+  /** True when the row is drawn in the pinned section instead of the tree. */
+  isPinned?: boolean;
 }) => React.ReactNode;
 
 export type Column<I> = {
@@ -826,11 +832,21 @@ export function TreeTable<I extends TreeTableDataItem>({
   data,
   columns,
   columnWidths = DEFAULT_COLUMN_WIDTHS,
+  pinnedItems,
+  hiddenPinnedCount = 0,
+  isPinnedCollapsed = false,
+  onTogglePinnedCollapsed,
   ...treeViewProps
 }: {
   data: I[];
   columns: Column<I>[];
   columnWidths?: ColumnWidth[];
+  /** Rows to show in a sticky section above the tree, in the order given. */
+  pinnedItems?: I[];
+  /** Pinned rows a filter has hidden; only used to explain why they are missing. */
+  hiddenPinnedCount?: number;
+  isPinnedCollapsed?: boolean;
+  onTogglePinnedCollapsed?: () => void;
 } & TreeViewProps) {
   const [currentColumnWidths, setCurrentColumnWidths] = useState<ColumnWidth[]>(columnWidths);
   const [hasUserResized, setHasUserResized] = useState(false);
@@ -943,7 +959,12 @@ export function TreeTable<I extends TreeTableDataItem>({
     [renderItemTotalWidth, gridTemplateColumns]
   );
 
-  const renderItem = ({ item, level, isSelected }: TreeTableRenderItemParams) => {
+  const renderRow = (
+    item: TreeTableDataItem,
+    level: number,
+    isSelected: boolean,
+    isPinned = false
+  ) => {
     const extended = item as I;
     const indentWidth = Math.max(
       Math.min(level * indentPerLevel, Math.max(firstColumnBodyWidth - 12, 0)),
@@ -965,7 +986,7 @@ export function TreeTable<I extends TreeTableDataItem>({
                 }}
               >
                 <span className="flex-1 truncate text-left text-sm text-foreground">
-                  {column.render({ item: extended, level, isSelected })}
+                  {column.render({ item: extended, level, isSelected, isPinned })}
                 </span>
               </div>
             );
@@ -976,13 +997,20 @@ export function TreeTable<I extends TreeTableDataItem>({
               key={column.key}
               className="min-w-0 text-left text-xs text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap"
             >
-              {column.render({ item: extended, level, isSelected })}
+              {column.render({ item: extended, level, isSelected, isPinned })}
             </div>
           );
         })}
       </div>
     );
   };
+
+  const renderItem = ({ item, level, isSelected }: TreeTableRenderItemParams) =>
+    renderRow(item, level, isSelected);
+
+  const pinnedRowHeight = treeViewProps.rowHeight ?? DEFAULT_TREE_ROW_HEIGHT;
+  const pinnedCount = pinnedItems?.length ?? 0;
+  const showPinnedSection = pinnedCount > 0 || hiddenPinnedCount > 0;
 
   const handleColumnResizeStart = (index: number, e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -1100,6 +1128,48 @@ export function TreeTable<I extends TreeTableDataItem>({
                     );
                   })}
                 </div>
+              )}
+              {showPinnedSection && (
+                <section aria-label="Pinned rows" className="border-b border-border">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="h-7 w-full justify-start rounded-none px-2 font-semibold text-muted-foreground"
+                    aria-expanded={!isPinnedCollapsed}
+                    onClick={onTogglePinnedCollapsed}
+                  >
+                    <ChevronRight
+                      aria-hidden="true"
+                      className={cn('transition-transform', !isPinnedCollapsed && 'rotate-90')}
+                    />
+                    <span>Pinned ({pinnedCount})</span>
+                    {hiddenPinnedCount > 0 && (
+                      <span className="font-normal">{hiddenPinnedCount} hidden by filter</span>
+                    )}
+                  </Button>
+                  {!isPinnedCollapsed && pinnedCount > 0 && (
+                    <div
+                      role="list"
+                      aria-label="Pinned rows list"
+                      className="overflow-y-auto overscroll-none"
+                      style={{ maxHeight: `${MAX_VISIBLE_PINNED_ROWS * pinnedRowHeight}px` }}
+                    >
+                      {pinnedItems?.map(item => (
+                        <div
+                          key={item.id}
+                          role="listitem"
+                          className="flex items-center text-foreground"
+                          style={{
+                            minHeight: `${pinnedRowHeight}px`,
+                            paddingLeft: `${totalLeftSpacing}px`,
+                          }}
+                        >
+                          {renderRow(item, 0, false, true)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
               )}
             </div>
             <div style={{ width: `${effectiveWidth}px`, minWidth: `${effectiveWidth}px` }}>
