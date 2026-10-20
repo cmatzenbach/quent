@@ -15,6 +15,27 @@ export function isTimelineUtilizationAllZero(data: ResourceTimeline): boolean {
   return valueLists.every(values => values.every(value => value === 0));
 }
 
+/**
+ * Add bulk entries for extra items (such as pinned rows under a collapsed parent) that the
+ * expanded-tree walk did not request. Existing entries win. Returns `base` itself when nothing
+ * is added so callers keep a stable reference.
+ */
+export function mergeExtraBulkEntries<T extends { id: string }>(
+  base: Record<string, TimelineRequest<OperatorFilter>>,
+  extraItems: readonly T[],
+  buildParams: (item: T) => TimelineRequest<OperatorFilter>
+): Record<string, TimelineRequest<OperatorFilter>> {
+  let merged: Record<string, TimelineRequest<OperatorFilter>> | null = null;
+  for (const item of extraItems) {
+    if (item.id in base || (merged !== null && item.id in merged)) {
+      continue;
+    }
+    merged ??= { ...base };
+    merged[item.id] = buildParams(item);
+  }
+  return merged ?? base;
+}
+
 /** Canonicalize an operator filter for stable request and cache keys. */
 export function canonicalOperatorIds(operatorIds?: readonly string[] | null): string[] {
   return [...new Set(operatorIds ?? [])].sort();
