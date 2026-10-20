@@ -505,6 +505,10 @@ const DEFAULT_TREE_ROW_HEIGHT = 75;
 const DEFAULT_TREE_OVERSCAN_ROWS = 4;
 // Pinned rows beyond this many scroll inside their own section instead of growing it.
 const MAX_VISIBLE_PINNED_ROWS = 6;
+// Clicks on these inside a pinned row use the control; they do not reveal the row. Dropdown
+// lists render in a portal but their clicks still bubble through React, so match them too.
+const PINNED_ROW_CONTROL_SELECTOR =
+  'button, a, input, select, textarea, [role="button"], [role="combobox"], [role="listbox"], [role="option"], [role="menuitem"], [data-radix-popper-content-wrapper]';
 
 function normalizeTreeData(data: TreeTableDataItem[] | TreeTableDataItem): TreeTableDataItem[] {
   return data instanceof Array ? data : [data];
@@ -865,6 +869,7 @@ export function TreeTable<I extends TreeTableDataItem>({
   hiddenPinnedCount = 0,
   isPinnedCollapsed = false,
   onTogglePinnedCollapsed,
+  onRevealPinned,
   ...treeViewProps
 }: {
   data: I[];
@@ -876,6 +881,8 @@ export function TreeTable<I extends TreeTableDataItem>({
   hiddenPinnedCount?: number;
   isPinnedCollapsed?: boolean;
   onTogglePinnedCollapsed?: () => void;
+  /** Called with the row id when a pinned row is clicked, to show it in the tree. */
+  onRevealPinned?: (id: string) => void;
 } & TreeViewProps) {
   const [currentColumnWidths, setCurrentColumnWidths] = useState<ColumnWidth[]>(columnWidths);
   const [hasUserResized, setHasUserResized] = useState(false);
@@ -1187,7 +1194,17 @@ export function TreeTable<I extends TreeTableDataItem>({
                         <div
                           key={item.id}
                           role="listitem"
-                          className="flex items-center text-foreground"
+                          className={cn(
+                            'flex items-center text-foreground',
+                            onRevealPinned && 'cursor-pointer hover:bg-secondary/10'
+                          )}
+                          onClick={event => {
+                            const target = event.target as HTMLElement;
+                            if (!onRevealPinned || target.closest(PINNED_ROW_CONTROL_SELECTOR)) {
+                              return;
+                            }
+                            onRevealPinned(item.id);
+                          }}
                           style={{
                             minHeight: `${pinnedRowHeight}px`,
                             paddingLeft: `${totalLeftSpacing}px`,
