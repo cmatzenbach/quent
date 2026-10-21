@@ -80,4 +80,13 @@ describe('PinnableRowLabel', () => {
 
     expect(screen.getByRole('button', { name: 'Unpin GPU 0' })).toBeEnabled();
   });
+
+  it('appears when the info area is hovered, not when anywhere else on the row is', () => {
+    renderLabel();
+
+    const classes = screen.getByRole('button', { name: 'Pin GPU 0' }).className;
+
+    expect(classes).toContain('group-hover/info:opacity-100');
+    expect(classes).not.toMatch(/(^|\s)group-hover:opacity-100/);
+  });
 });

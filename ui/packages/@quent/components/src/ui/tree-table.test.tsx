@@ -275,3 +275,15 @@ describe('TreeTable pinned row reordering', () => {
     expect(pinnedRow('Row x')).toBeInTheDocument();
   });
 });
+
+describe('TreeTable info cell', () => {
+  it('is a named hover group so controls in it can ignore hovering the other columns', () => {
+    renderTable({ pinnedItems: [row('x')] });
+
+    const cell = within(screen.getByRole('region', { name: 'Pinned rows' }))
+      .getByText('Row x')
+      .closest('.group\\/info');
+
+    expect(cell).not.toBeNull();
+  });
+});
