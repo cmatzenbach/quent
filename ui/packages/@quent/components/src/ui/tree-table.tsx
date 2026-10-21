@@ -986,7 +986,7 @@ export function TreeTable<I extends TreeTableDataItem>({
             return (
               <div
                 key={column.key}
-                className="flex min-w-0 items-center overflow-hidden pr-1"
+                className="group/info flex min-w-0 items-center overflow-hidden pr-1"
                 style={{
                   paddingLeft: `${firstCellPaddingLeft}px`,
                   paddingRight: '6px',

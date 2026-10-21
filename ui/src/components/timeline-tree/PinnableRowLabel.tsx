@@ -47,10 +47,11 @@ export function PinnableRowLabel({
           disabled={isBlockedByLimit}
           title={isBlockedByLimit ? `You can pin up to ${MAX_PINNED_ROWS} rows` : undefined}
           onClick={handleClick}
-          // Hidden until the row is hovered or focused, unless the row is pinned.
+          // Hidden until the info area is hovered or the button is focused, unless the row is pinned.
+          // Hovering the timelines does not show it.
           className={cn(
             'shrink-0 text-muted-foreground',
-            !isPinned && 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100'
+            !isPinned && 'opacity-0 focus-visible:opacity-100 group-hover/info:opacity-100'
           )}
         >
           <Pin className={cn(isPinned && 'fill-current')} />
