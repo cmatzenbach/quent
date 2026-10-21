@@ -161,7 +161,12 @@ vi.mock('@quent/components', async importOriginal => {
       capturedInlineSelectors.push(props);
       return <div data-testid={props.id} />;
     },
-    ResourceColumn: () => null,
+    ResourceColumn: (props: { workerName?: string }) =>
+      props.workerName ? (
+        <span>
+          Worker: <span>{props.workerName}</span>
+        </span>
+      ) : null,
     UsageColumn: () => null,
     TimelineToolbar: ({ filters }: { filters?: React.ReactNode }) => filters,
   };
@@ -884,6 +889,35 @@ const makeTwoResourceBundle = (): QueryBundle<EntityRef> => {
   } as unknown as QueryBundle<EntityRef>;
 };
 
+/** Engine > worker-0 > GPU 0, with an engine name that must not show up on pinned rows. */
+const makeWorkerBundle = (): QueryBundle<EntityRef> => {
+  const bundle = makeBundle();
+  const workerId = 'worker-id-1';
+  return {
+    ...bundle,
+    entities: {
+      ...bundle.entities,
+      engine: { ...bundle.entities.engine, instance_name: 'holodeck-1234' },
+      workers: {
+        [workerId]: { id: workerId, parent_engine_id: ENGINE_ID, instance_name: 'worker-0' },
+      },
+    },
+    resource_tree: {
+      ResourceGroup: {
+        id: { Engine: ENGINE_ID },
+        children: [
+          {
+            ResourceGroup: {
+              id: { Worker: workerId },
+              children: [{ Resource: { Resource: RESOURCE_ID } }],
+            },
+          },
+        ],
+      },
+    },
+  } as unknown as QueryBundle<EntityRef>;
+};
+
 const pinnedIds = () => capturedPinnedItems.map(item => item.id);
 
 describe('QueryResourceTree — pinned rows', () => {
@@ -1051,9 +1085,41 @@ describe('QueryResourceTree — pin buttons', () => {
     expect(getByRole('button', { name: 'Pin GPU 0' })).toBeInTheDocument();
   });
 
-  it('shows a pinned Entities row together with the resource it belongs to', async () => {
+  it('shows the worker under a pinned resource instead of the engine name', async () => {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set([RESOURCE_ID]));
+    const { findAllByTestId } = renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={makeWorkerBundle()} />
+      </JotaiProvider>
+    );
+
+    const [pinnedRow] = await findAllByTestId('pinned-row');
+
+    expect(within(pinnedRow!).getByText('Worker:')).toBeInTheDocument();
+    expect(within(pinnedRow!).getByText('worker-0')).toBeInTheDocument();
+    expect(within(pinnedRow!).queryByText(/holodeck/)).not.toBeInTheDocument();
+  });
+
+  it('shows the worker on a pinned Entities row', async () => {
     const store = createStore();
     store.set(pinnedIdsAtom, new Set([`__long_entities__${RESOURCE_ID}`]));
+    const { findAllByTestId } = renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={makeWorkerBundle()} />
+      </JotaiProvider>
+    );
+
+    const [pinnedRow] = await findAllByTestId('pinned-row');
+
+    expect(within(pinnedRow!).getByText('Entities')).toBeInTheDocument();
+    expect(within(pinnedRow!).getByText('worker-0')).toBeInTheDocument();
+    expect(within(pinnedRow!).getByRole('button', { name: 'Unpin Entities' })).toBeInTheDocument();
+  });
+
+  it('shows no worker line for a pinned row that has no worker', async () => {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set([RESOURCE_ID]));
     const { findAllByTestId } = renderWithQuery(
       <JotaiProvider store={store}>
         <QueryResourceTree engineId="engine-1" queryBundle={makeBundle()} />
@@ -1062,9 +1128,22 @@ describe('QueryResourceTree — pin buttons', () => {
 
     const [pinnedRow] = await findAllByTestId('pinned-row');
 
-    expect(within(pinnedRow!).getByText('Entities')).toBeInTheDocument();
-    expect(within(pinnedRow!).getByTitle(/GPU 0$/)).toBeInTheDocument();
-    expect(within(pinnedRow!).getByRole('button', { name: 'Unpin Entities' })).toBeInTheDocument();
+    expect(within(pinnedRow!).queryByText('Worker:')).not.toBeInTheDocument();
+  });
+
+  it('does not show the worker line on rows in the tree', async () => {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set([RESOURCE_ID]));
+    const { findAllByTestId, queryAllByText } = renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={makeWorkerBundle()} />
+      </JotaiProvider>
+    );
+
+    await findAllByTestId('pinned-row');
+
+    // The one pinned row shows it; the tree rows do not.
+    expect(queryAllByText('Worker:')).toHaveLength(1);
   });
 });
 

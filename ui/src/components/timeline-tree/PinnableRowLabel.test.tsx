@@ -18,7 +18,6 @@ function renderLabel(props: Partial<React.ComponentProps<typeof PinnableRowLabel
         name="GPU 0"
         isPinnable
         isPinned={false}
-        isPinnedRow={false}
         isAtPinLimit={false}
         onTogglePin={onTogglePin}
         {...props}
@@ -80,23 +79,5 @@ describe('PinnableRowLabel', () => {
     renderLabel({ isAtPinLimit: true, isPinned: true });
 
     expect(screen.getByRole('button', { name: 'Unpin GPU 0' })).toBeEnabled();
-  });
-
-  it('shows where a pinned row lives when drawn in the pinned section', () => {
-    renderLabel({ isPinned: true, isPinnedRow: true, pathLabel: 'Cluster › Worker 1' });
-
-    expect(screen.getByText('Cluster › Worker 1')).toHaveAttribute('title', 'Cluster › Worker 1');
-  });
-
-  it('does not repeat the path on rows in the tree', () => {
-    renderLabel({ isPinned: true, isPinnedRow: false, pathLabel: 'Cluster › Worker 1' });
-
-    expect(screen.queryByText('Cluster › Worker 1')).not.toBeInTheDocument();
-  });
-
-  it('shows no path text when the row has no ancestors', () => {
-    const { container } = renderLabel({ isPinnedRow: true, pathLabel: '' });
-
-    expect(container.textContent).toBe('GPU 0');
   });
 });

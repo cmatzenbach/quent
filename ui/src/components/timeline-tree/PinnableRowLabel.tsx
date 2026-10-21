@@ -13,11 +13,7 @@ interface PinnableRowLabelProps {
   name: string;
   isPinnable: boolean;
   isPinned: boolean;
-  // True when the row is drawn in the pinned section rather than in the tree.
-  isPinnedRow: boolean;
   isAtPinLimit: boolean;
-  // Names of the rows this row lives under; only shown in the pinned section.
-  pathLabel?: string;
   onTogglePin: () => void;
 }
 
@@ -27,12 +23,9 @@ export function PinnableRowLabel({
   name,
   isPinnable,
   isPinned,
-  isPinnedRow,
   isAtPinLimit,
-  pathLabel,
   onTogglePin,
 }: PinnableRowLabelProps) {
-  const showPath = isPinnedRow && !!pathLabel;
   const isBlockedByLimit = isAtPinLimit && !isPinned;
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -43,14 +36,7 @@ export function PinnableRowLabel({
 
   return (
     <span className="flex min-w-0 items-center gap-1">
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="min-w-0 truncate">{label}</span>
-        {showPath && (
-          <span title={pathLabel} className="min-w-0 truncate text-xs text-muted-foreground">
-            {pathLabel}
-          </span>
-        )}
-      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
       {isPinnable && (
         <Button
           type="button"
