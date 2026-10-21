@@ -1166,7 +1166,7 @@ export function TreeTable<I extends TreeTableDataItem>({
                 </div>
               )}
               {showPinnedSection && (
-                <section aria-label="Pinned rows" className="border-b border-border">
+                <section aria-label="Pinned rows" className="border-b border-border pb-4">
                   <Button
                     variant="ghost"
                     size="xs"
@@ -1217,6 +1217,7 @@ export function TreeTable<I extends TreeTableDataItem>({
                   )}
                 </section>
               )}
+              {showPinnedSection && <div aria-hidden="true" className="h-4" />}
             </div>
             <div style={{ width: `${effectiveWidth}px`, minWidth: `${effectiveWidth}px` }}>
               <TreeView
