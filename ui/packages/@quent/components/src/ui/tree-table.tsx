@@ -8,6 +8,7 @@ import { ChevronRight } from 'lucide-react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@quent/utils';
 import { Button } from './button';
+import { ThinScroll } from './thin-scroll';
 
 // Tree-table specific styling variants
 const treeVariants = cva(
@@ -1187,10 +1188,10 @@ export function TreeTable<I extends TreeTableDataItem>({
                     )}
                   </Button>
                   {!isPinnedCollapsed && pinnedCount > 0 && (
-                    <div
+                    <ThinScroll
                       role="list"
                       aria-label="Pinned rows list"
-                      className="overflow-y-auto overscroll-none"
+                      className="overscroll-none"
                       style={{ maxHeight: `${MAX_VISIBLE_PINNED_ROWS * pinnedRowHeight}px` }}
                     >
                       {pinnedItems?.map(item => (
@@ -1216,7 +1217,7 @@ export function TreeTable<I extends TreeTableDataItem>({
                           {renderRow(item, 0, false, true)}
                         </div>
                       ))}
-                    </div>
+                    </ThinScroll>
                   )}
                 </section>
               )}
