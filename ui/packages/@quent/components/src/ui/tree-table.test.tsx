@@ -120,6 +120,21 @@ describe('TreeTable pinned section', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(8);
   });
 
+  it('pads the bottom of the pinned section so the last row does not sit on the divider', () => {
+    renderTable({ pinnedItems: [row('x')] });
+
+    expect(screen.getByRole('region', { name: 'Pinned rows' })).toHaveClass('pb-4');
+  });
+
+  it('leaves a gap between the pinned section and the tree rows below', () => {
+    renderTable({ pinnedItems: [row('x')] });
+
+    const region = screen.getByRole('region', { name: 'Pinned rows' });
+    const gap = region.nextElementSibling;
+    expect(gap).toHaveAttribute('aria-hidden', 'true');
+    expect(gap).toHaveClass('h-4');
+  });
+
   it('sits inside the sticky header so it stays put while the tree scrolls', () => {
     renderTable({ pinnedItems: [row('x')] });
 
