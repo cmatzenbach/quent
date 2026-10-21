@@ -1,0 +1,157 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@quent/utils';
+import { ThinScroll } from './thin-scroll';
+
+// Presses on these start the control, not a drag. Dropdown lists render in a portal but their
+// events still bubble through React, so match them too.
+const ROW_CONTROL_SELECTOR =
+  'button, a, input, select, textarea, [role="button"], [role="combobox"], [role="listbox"], [role="option"], [role="menuitem"], [data-radix-popper-content-wrapper]';
+
+// How far the pointer must move before a press becomes a drag, so plain clicks stay clicks.
+const DRAG_START_DISTANCE_PX = 5;
+
+// The normal pointer sensor, except a press that lands on a control inside the row is left alone.
+class RowPointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent }: ReactPointerEvent) =>
+        nativeEvent.isPrimary &&
+        nativeEvent.button === 0 &&
+        !(
+          nativeEvent.target instanceof Element && nativeEvent.target.closest(ROW_CONTROL_SELECTOR)
+        ),
+    },
+  ];
+}
+
+interface PinnedRowProps {
+  id: string;
+  isSortable: boolean;
+  minHeight: number;
+  paddingLeft: number;
+  children: ReactNode;
+}
+
+function PinnedRow({ id, isSortable, minHeight, paddingLeft, children }: PinnedRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: !isSortable });
+  const style: CSSProperties = {
+    minHeight: `${minHeight}px`,
+    paddingLeft: `${paddingLeft}px`,
+    transform: CSS.Translate.toString(transform),
+    transition,
+  };
+  return (
+    <div
+      ref={node => {
+        setNodeRef(node);
+        // Only keys pressed on the row itself pick it up, not Space on a button inside it.
+        setActivatorNodeRef(node);
+      }}
+      {...(isSortable ? attributes : {})}
+      {...(isSortable ? listeners : {})}
+      // Keep the list item role; the drag attributes would otherwise call the row a button.
+      role="listitem"
+      className={cn(
+        'relative flex items-center text-foreground',
+        isSortable && 'cursor-grab touch-manipulation hover:bg-secondary/10',
+        isDragging && 'z-10 cursor-grabbing bg-background shadow-md'
+      )}
+      style={style}
+    >
+      {children}
+    </div>
+  );
+}
+
+interface PinnedRowListProps<T extends { id: string }> {
+  items: T[];
+  maxHeight: number;
+  rowMinHeight: number;
+  rowPaddingLeft: number;
+  renderRow: (item: T) => ReactNode;
+  /** Called when a row is dropped on another; without it the rows cannot be dragged. */
+  onReorder?: (activeId: string, overId: string) => void;
+}
+
+/**
+ * The pinned rows as a scrolling list the user can rearrange by dragging a row, or with the
+ * keyboard: focus a row, press Space, use the arrow keys, then press Space again.
+ */
+export function PinnedRowList<T extends { id: string }>({
+  items,
+  maxHeight,
+  rowMinHeight,
+  rowPaddingLeft,
+  renderRow,
+  onReorder,
+}: PinnedRowListProps<T>) {
+  const sensors = useSensors(
+    useSensor(RowPointerSensor, { activationConstraint: { distance: DRAG_START_DISTANCE_PX } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (over && active.id !== over.id) {
+      onReorder?.(String(active.id), String(over.id));
+    }
+  };
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
+        <ThinScroll
+          role="list"
+          aria-label="Pinned rows list"
+          className="overscroll-none"
+          style={{ maxHeight: `${maxHeight}px` }}
+        >
+          {items.map(item => (
+            <PinnedRow
+              key={item.id}
+              id={item.id}
+              isSortable={onReorder !== undefined}
+              minHeight={rowMinHeight}
+              paddingLeft={rowPaddingLeft}
+            >
+              {renderRow(item)}
+            </PinnedRow>
+          ))}
+        </ThinScroll>
+      </SortableContext>
+    </DndContext>
+  );
+}

@@ -439,7 +439,8 @@ export function DeepLinkBoundary({
     if (expandedRowIds.length > 0) {
       resources.expandedRowIds = expandedRowIds;
     }
-    const pinnedRowIds = [...store.get(pinnedIdsAtom)].sort();
+    // Keep the order the user arranged the pins in.
+    const pinnedRowIds = [...store.get(pinnedIdsAtom)];
     if (pinnedRowIds.length > 0) {
       resources.pinnedRowIds = pinnedRowIds;
     }

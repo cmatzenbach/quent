@@ -402,7 +402,7 @@ describe('deep-link pinned rows', () => {
     resources: { pinnedRowIds },
   });
 
-  it('round-trips pinned row ids in sorted order', () => {
+  it('round-trips pinned row ids in the order they were arranged', () => {
     const encoded = encodeDeepLinkState(withPins([RESOURCE_B_ID, RESOURCE_A_ID]));
     expect(encoded.ok).toBe(true);
     if (!encoded.ok) {
@@ -411,16 +411,16 @@ describe('deep-link pinned rows', () => {
 
     expect(decodeDeepLinkState(encoded.value)).toEqual({
       ok: true,
-      value: { version: 'v3', data: withPins([RESOURCE_A_ID, RESOURCE_B_ID]) },
+      value: { version: 'v3', data: withPins([RESOURCE_B_ID, RESOURCE_A_ID]) },
     });
   });
 
-  it('drops repeated pinned row ids', () => {
+  it('drops repeated pinned row ids, keeping the first of each', () => {
     const parsed = DeepLinkStateV3Schema.parse(
       withPins([RESOURCE_B_ID, RESOURCE_A_ID, RESOURCE_B_ID])
     );
 
-    expect(parsed.resources?.pinnedRowIds).toEqual([RESOURCE_A_ID, RESOURCE_B_ID]);
+    expect(parsed.resources?.pinnedRowIds).toEqual([RESOURCE_B_ID, RESOURCE_A_ID]);
   });
 
   it('accepts the ids of Entities and Operators rows', () => {
@@ -429,7 +429,7 @@ describe('deep-link pinned rows', () => {
 
     const parsed = DeepLinkStateV3Schema.parse(withPins([operatorsId, laneId]));
 
-    expect(parsed.resources?.pinnedRowIds).toEqual([laneId, operatorsId].sort());
+    expect(parsed.resources?.pinnedRowIds).toEqual([operatorsId, laneId]);
   });
 
   it('allows the maximum number of pins and rejects more', () => {

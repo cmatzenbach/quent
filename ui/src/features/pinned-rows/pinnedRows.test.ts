@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from 'vitest';
-import { buildPinnedWorkerLabels, findAncestorIds, resolvePinnedRows } from './pinnedRows';
+import { buildPinnedWorkerLabels, reorderPinnedIds, resolvePinnedRows } from './pinnedRows';
 
 interface Node {
   id: string;
@@ -39,14 +39,14 @@ describe('resolvePinnedRows', () => {
     expect(result.hiddenCount).toBe(0);
   });
 
-  it('orders shown rows by position in the tree, not by pin order', () => {
+  it('orders shown rows by pin order, not by position in the tree', () => {
     const result = resolvePinnedRows(
       new Set(['gpu-2', 'gpu-0', 'worker-1']),
       fullTree(),
       fullTree()
     );
 
-    expect(ids(result.shownItems)).toEqual(['worker-1', 'gpu-0', 'gpu-2']);
+    expect(ids(result.shownItems)).toEqual(['gpu-2', 'gpu-0', 'worker-1']);
   });
 
   it('finds pinned rows regardless of which ancestors are expanded', () => {
@@ -103,34 +103,6 @@ describe('resolvePinnedRows', () => {
     expect([...pinned]).toEqual(['gpu-0']);
     expect(JSON.stringify(full)).toBe(fullSnapshot);
     expect(JSON.stringify(displayed)).toBe(displayedSnapshot);
-  });
-});
-
-describe('findAncestorIds', () => {
-  const tree = () => [
-    group(
-      'root',
-      group('worker-1', leaf('gpu-0'), leaf('gpu-1')),
-      group('worker-2', leaf('gpu-2'))
-    ),
-  ];
-
-  it('lists the ancestors from the top of the tree down to the direct parent', () => {
-    expect(findAncestorIds(tree(), 'gpu-2')).toEqual(['root', 'worker-2']);
-  });
-
-  it('gives a top-level row no ancestors', () => {
-    expect(findAncestorIds(tree(), 'root')).toEqual([]);
-  });
-
-  it('returns undefined for a row that is not in the tree', () => {
-    expect(findAncestorIds(tree(), 'missing')).toBeUndefined();
-  });
-
-  it('searches every top-level tree', () => {
-    const roots = [group('a', leaf('a-1')), group('b', leaf('b-1'))];
-
-    expect(findAncestorIds(roots, 'b-1')).toEqual(['b']);
   });
 });
 
@@ -215,5 +187,47 @@ describe('buildPinnedWorkerLabels', () => {
     roots[0]!.children![0]!.children![2]!.parent = 'missing';
 
     expect(labels(roots).get('ent:gpu-0')).toBe('worker-0');
+  });
+});
+
+describe('reorderPinnedIds', () => {
+  it('moves a pin down to the position of the row it was dropped on', () => {
+    const result = reorderPinnedIds(new Set(['a', 'b', 'c', 'd']), 'a', 'c');
+
+    expect([...result]).toEqual(['b', 'c', 'a', 'd']);
+  });
+
+  it('moves a pin up to the position of the row it was dropped on', () => {
+    const result = reorderPinnedIds(new Set(['a', 'b', 'c', 'd']), 'd', 'b');
+
+    expect([...result]).toEqual(['a', 'd', 'b', 'c']);
+  });
+
+  it('keeps pins that a filter hides in their place relative to each other', () => {
+    // 'x' is hidden by a filter, so the user only sees a, b, c.
+    const result = reorderPinnedIds(new Set(['a', 'x', 'b', 'c']), 'c', 'a');
+
+    expect([...result]).toEqual(['c', 'a', 'x', 'b']);
+  });
+
+  it('returns the same set when the row is dropped on itself', () => {
+    const pins = new Set(['a', 'b']);
+
+    expect(reorderPinnedIds(pins, 'a', 'a')).toBe(pins);
+  });
+
+  it('returns the same set when either id is not pinned', () => {
+    const pins = new Set(['a', 'b']);
+
+    expect(reorderPinnedIds(pins, 'a', 'zzz')).toBe(pins);
+    expect(reorderPinnedIds(pins, 'zzz', 'a')).toBe(pins);
+  });
+
+  it('does not modify the set it was given', () => {
+    const pins = new Set(['a', 'b', 'c']);
+
+    reorderPinnedIds(pins, 'a', 'c');
+
+    expect([...pins]).toEqual(['a', 'b', 'c']);
   });
 });

@@ -68,8 +68,8 @@ export interface TimelineTreeControls {
   isPinnedCollapsed?: boolean;
   onTogglePinnedCollapsed?: () => void;
   // A request to select a row and scroll the tree to it; handled once per token.
-  revealItem?: { id: string; token: number };
-  onRevealPinned?: (itemId: string) => void;
+  // Moves a pinned row to where another pinned row sits, when the user drags it there.
+  onReorderPinned?: (activeId: string, overId: string) => void;
 }
 
 interface TimelineTreeTableProps {
@@ -221,8 +221,7 @@ export function TimelineTreeTable({
             hiddenPinnedCount={controls.hiddenPinnedCount}
             isPinnedCollapsed={controls.isPinnedCollapsed}
             onTogglePinnedCollapsed={controls.onTogglePinnedCollapsed}
-            revealItem={controls.revealItem}
-            onRevealPinned={controls.onRevealPinned}
+            onReorderPinned={controls.onReorderPinned}
             highlightedItemIds={controls.highlightedItemIds}
             indicatorItemIds={controls.indicatorItemIds}
             controlledExpandedIds={controls.expandedIds}
