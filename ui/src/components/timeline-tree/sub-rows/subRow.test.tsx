@@ -4,7 +4,13 @@
 import { describe, expect, it } from 'vitest';
 import type { TreeTableItem } from '@quent/components';
 import { EntityTypeKey } from '@quent/utils';
-import { createSyntheticSubRow, createTimelineSubRow, mapTreeItems } from './subRow';
+import { render, screen } from '@testing-library/react';
+import {
+  createSyntheticSubRow,
+  createTimelineSubRow,
+  mapTreeItems,
+  TimelineSubRowLabel,
+} from './subRow';
 
 function item(id: string, type: string, children?: TreeTableItem[]): TreeTableItem {
   return { id, type, entity: {} as TreeTableItem['entity'], children };
@@ -62,5 +68,38 @@ describe('createTimelineSubRow', () => {
     });
 
     expect(subRow.label).toBe('Demo');
+  });
+});
+
+describe('TimelineSubRowLabel', () => {
+  it('shows only the label by default', () => {
+    render(<TimelineSubRowLabel>Entities</TimelineSubRowLabel>);
+
+    expect(screen.getByText('Entities')).toBeInTheDocument();
+    expect(screen.queryByText('Worker:')).not.toBeInTheDocument();
+  });
+
+  it('shows the worker in the same column as the label', () => {
+    render(<TimelineSubRowLabel workerName="worker-0">Entities</TimelineSubRowLabel>);
+
+    expect(screen.getByText('worker-0')).toBeInTheDocument();
+    expect(screen.getByText('Worker:').closest('span')?.parentElement).toBe(
+      screen.getByText('Entities').parentElement
+    );
+  });
+
+  it('passes the worker from the row context to the label', () => {
+    const subRow = createTimelineSubRow({
+      id: 'demo',
+      rowType: 'demo-row',
+      label: 'Demo',
+      injectRows: root => root,
+      parentId: () => undefined,
+      renderTimeline: () => null,
+    });
+
+    render(<>{subRow.renderLabel(item('demo:1', 'demo-row'), { workerName: 'worker-2' })}</>);
+
+    expect(screen.getByText('worker-2')).toBeInTheDocument();
   });
 });

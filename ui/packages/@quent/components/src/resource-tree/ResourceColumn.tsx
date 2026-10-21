@@ -5,6 +5,7 @@ import { ResourceGroup, Resource, cn, type FsmTypeSelection } from '@quent/utils
 import { TreeTableItem } from './types';
 import { ResourceGroupRow } from './ResourceGroupRow';
 import { ResourceRow } from './ResourceRow';
+import { DataText } from '../ui/data-text';
 
 type ResourceColumnProps = {
   item: TreeTableItem;
@@ -15,6 +16,8 @@ type ResourceColumnProps = {
   onFsmChange?: (itemId: string, fsmType: string | null) => void;
   className?: string;
   verbose?: boolean;
+  /** Worker the row belongs to; shown under the name and type when given. */
+  workerName?: string;
 };
 
 /** Tree table column cell showing either a ResourceGroupRow or ResourceRow. */
@@ -26,6 +29,7 @@ export function ResourceColumn({
   selectedFsmType,
   onFsmChange,
   className,
+  workerName,
 }: ResourceColumnProps): React.ReactNode {
   return (
     <div className={cn('text-foreground flex truncate items-center', className)}>
@@ -44,6 +48,11 @@ export function ResourceColumn({
           />
         ) : (
           <ResourceRow resource={item.entity as Resource} />
+        )}
+        {workerName && (
+          <p className="mt-0.5 text-[11px] font-normal leading-none text-muted-foreground">
+            Worker: <DataText className="text-foreground">{workerName}</DataText>
+          </p>
         )}
       </div>
     </div>

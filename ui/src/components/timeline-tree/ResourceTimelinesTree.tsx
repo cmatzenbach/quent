@@ -27,6 +27,7 @@ import {
   unpackEntityRef,
   resolveResourceFsmType,
   resourceFsmChoices,
+  workerDisplayName,
 } from '@quent/utils';
 import {
   resourceFilterAtom,
@@ -35,7 +36,7 @@ import {
   selectedTypesAtom,
 } from '@/atoms/resourceTree';
 import {
-  buildPinnedPathLabels,
+  buildPinnedWorkerLabels,
   findAncestorIds,
   resolvePinnedRows,
 } from '@/features/pinned-rows/pinnedRows';
@@ -49,6 +50,7 @@ import {
   useTimelineTreeSetup,
   type TimelineTreeControls,
   type TimelineTreeItem,
+  type RowLabelContext,
   type TimelineTreeModel,
 } from './TimelineTreeTable';
 
@@ -186,14 +188,21 @@ export function useResourceTimelinesTreeModel({
     () => resolvePinnedRows(pinnedIds, [fullTree], trees),
     [fullTree, pinnedIds, trees]
   );
-  const pathLabels = useMemo(
+  // Pinned rows name their worker, since the same resource names repeat across workers.
+  const workerLabels = useMemo(
     () =>
-      buildPinnedPathLabels([fullTree], getEntityName, row =>
-        subRows
-          .find(subRow => subRow.matches(row as TimelineTreeItem))
-          ?.parentId(row as TimelineTreeItem)
+      buildPinnedWorkerLabels(
+        [fullTree],
+        row => {
+          const worker = entities.workers[row.id];
+          return worker ? workerDisplayName(worker) : undefined;
+        },
+        row =>
+          subRows
+            .find(subRow => subRow.matches(row as TimelineTreeItem))
+            ?.parentId(row as TimelineTreeItem)
       ),
-    [fullTree, subRows]
+    [entities.workers, fullTree, subRows]
   );
   // The root group is already summarized by the overview bar, so it has no pin button.
   const isPinnable = useCallback(
@@ -312,10 +321,10 @@ export function useResourceTimelinesTreeModel({
   });
 
   const renderLabel = useCallback(
-    (item: TimelineTreeItem) => {
+    (item: TimelineTreeItem, context?: RowLabelContext) => {
       const subRow = subRows.find(candidate => candidate.matches(item));
       if (subRow) {
-        return subRow.renderLabel(item);
+        return subRow.renderLabel(item, context);
       }
 
       const selectedType = selectedTypes.get(item.id) || item.availableResourceTypes?.[0] || '';
@@ -330,6 +339,7 @@ export function useResourceTimelinesTreeModel({
       return (
         <ResourceColumn
           item={item as TreeTableItem}
+          workerName={context?.workerName}
           selectedType={selectedType}
           onTypeChange={(itemId, newType) => {
             setSelectedTypes(previous => new Map(previous).set(itemId, newType));
@@ -403,7 +413,7 @@ export function useResourceTimelinesTreeModel({
     pinnedItems: pinnedItems as TimelineTreeItem[],
     hiddenPinnedCount,
     pinnedIds,
-    pathLabels,
+    workerLabels,
     isAtPinLimit,
     isPinnedCollapsed,
     onTogglePinnedCollapsed: togglePinnedCollapsed,
