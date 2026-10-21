@@ -166,7 +166,7 @@ function SeedPinnedRows({ ids }: { ids: string[] }) {
 
 function PinnedRowsProbe() {
   const pinnedIds = useAtomValue(pinnedIdsAtom);
-  return <output data-testid="pinned-rows">{JSON.stringify([...pinnedIds].sort())}</output>;
+  return <output data-testid="pinned-rows">{JSON.stringify([...pinnedIds])}</output>;
 }
 
 function SeedEmptyDataFlowDimensions() {
@@ -777,7 +777,7 @@ describe('DeepLinkBoundary pinned rows', () => {
     );
 
     expect(screen.getByTestId('pinned-rows')).toHaveTextContent(
-      JSON.stringify([LANE_ID, RESOURCE_B_ID].sort())
+      JSON.stringify([RESOURCE_B_ID, LANE_ID])
     );
   });
 
@@ -813,7 +813,7 @@ describe('DeepLinkBoundary pinned rows', () => {
     const encoded = new URL(writeText.mock.calls[0][0] as string).searchParams.get('s');
     expect(decodeDeepLinkState(encoded!)).toMatchObject({
       ok: true,
-      value: { data: { resources: { pinnedRowIds: [RESOURCE_A_ID, RESOURCE_B_ID] } } },
+      value: { data: { resources: { pinnedRowIds: [RESOURCE_B_ID, RESOURCE_A_ID] } } },
     });
   });
 

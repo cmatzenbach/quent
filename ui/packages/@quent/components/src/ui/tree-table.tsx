@@ -8,7 +8,7 @@ import { ChevronRight } from 'lucide-react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@quent/utils';
 import { Button } from './button';
-import { ThinScroll } from './thin-scroll';
+import { PinnedRowList } from './pinned-row-list';
 
 // Tree-table specific styling variants
 const treeVariants = cva(
@@ -493,12 +493,6 @@ type TreeViewProps = React.HTMLAttributes<HTMLDivElement> & {
    * when `virtualized` is true.
    */
   overscanRows?: number;
-  /**
-   * Ask the tree to select a row and scroll it to the top of the list. Each request needs a new
-   * `token`; the tree acts once per token. If the row is not visible yet (a parent is still
-   * collapsed) it waits until the row appears.
-   */
-  revealItem?: { id: string; token: number };
 };
 
 // Timeline rows render at ~75px; keep virtualization estimate aligned with actual row height.
@@ -506,10 +500,6 @@ const DEFAULT_TREE_ROW_HEIGHT = 75;
 const DEFAULT_TREE_OVERSCAN_ROWS = 4;
 // Pinned rows beyond this many scroll inside their own section instead of growing it.
 const MAX_VISIBLE_PINNED_ROWS = 6;
-// Clicks on these inside a pinned row use the control; they do not reveal the row. Dropdown
-// lists render in a portal but their clicks still bubble through React, so match them too.
-const PINNED_ROW_CONTROL_SELECTOR =
-  'button, a, input, select, textarea, [role="button"], [role="combobox"], [role="listbox"], [role="option"], [role="menuitem"], [data-radix-popper-content-wrapper]';
 
 function normalizeTreeData(data: TreeTableDataItem[] | TreeTableDataItem): TreeTableDataItem[] {
   return data instanceof Array ? data : [data];
@@ -590,7 +580,6 @@ const VirtualizedTreeView = React.forwardRef<HTMLDivElement, TreeViewProps>(
       virtualized: _virtualized,
       rowHeight = DEFAULT_TREE_ROW_HEIGHT,
       overscanRows = DEFAULT_TREE_OVERSCAN_ROWS,
-      revealItem,
       ...props
     },
     ref
@@ -638,27 +627,6 @@ const VirtualizedTreeView = React.forwardRef<HTMLDivElement, TreeViewProps>(
     });
 
     const virtualItems = rowVirtualizer.getVirtualItems();
-
-    // Act on each reveal request once, as soon as the virtualizer can scroll and the row is in the
-    // visible list. This runs after every render, so it also picks up a request that arrived
-    // before the virtualizer was ready; handled requests return immediately.
-    const lastRevealToken = useRef<number | undefined>(undefined);
-    useEffect(() => {
-      if (!revealItem || lastRevealToken.current === revealItem.token) {
-        return;
-      }
-      // The virtualizer only learns its scroll element after the first render.
-      if (!rowVirtualizer.scrollElement) {
-        return;
-      }
-      const index = visibleRows.findIndex(row => row.item.id === revealItem.id);
-      if (index < 0) {
-        return;
-      }
-      lastRevealToken.current = revealItem.token;
-      handleSelectChange(visibleRows[index]!.item);
-      rowVirtualizer.scrollToIndex(index, { align: 'start' });
-    });
 
     return (
       <div className={cn('overflow-hidden relative bg-transparent w-full min-w-0', className)}>
@@ -779,7 +747,6 @@ const RecursiveTreeView = React.forwardRef<HTMLDivElement, TreeViewProps>(
       virtualized: _virtualized,
       rowHeight: _rowHeight,
       overscanRows: _overscanRows,
-      revealItem: _revealItem,
       ...props
     },
     ref
@@ -870,7 +837,7 @@ export function TreeTable<I extends TreeTableDataItem>({
   hiddenPinnedCount = 0,
   isPinnedCollapsed = false,
   onTogglePinnedCollapsed,
-  onRevealPinned,
+  onReorderPinned,
   ...treeViewProps
 }: {
   data: I[];
@@ -882,8 +849,8 @@ export function TreeTable<I extends TreeTableDataItem>({
   hiddenPinnedCount?: number;
   isPinnedCollapsed?: boolean;
   onTogglePinnedCollapsed?: () => void;
-  /** Called with the row id when a pinned row is clicked, to show it in the tree. */
-  onRevealPinned?: (id: string) => void;
+  /** Called when a pinned row is dragged onto another, with the dragged id then the target id. */
+  onReorderPinned?: (activeId: string, overId: string) => void;
 } & TreeViewProps) {
   const [currentColumnWidths, setCurrentColumnWidths] = useState<ColumnWidth[]>(columnWidths);
   const [hasUserResized, setHasUserResized] = useState(false);
@@ -1188,36 +1155,14 @@ export function TreeTable<I extends TreeTableDataItem>({
                     )}
                   </Button>
                   {!isPinnedCollapsed && pinnedCount > 0 && (
-                    <ThinScroll
-                      role="list"
-                      aria-label="Pinned rows list"
-                      className="overscroll-none"
-                      style={{ maxHeight: `${MAX_VISIBLE_PINNED_ROWS * pinnedRowHeight}px` }}
-                    >
-                      {pinnedItems?.map(item => (
-                        <div
-                          key={item.id}
-                          role="listitem"
-                          className={cn(
-                            'flex items-center text-foreground',
-                            onRevealPinned && 'cursor-pointer hover:bg-secondary/10'
-                          )}
-                          onClick={event => {
-                            const target = event.target as HTMLElement;
-                            if (!onRevealPinned || target.closest(PINNED_ROW_CONTROL_SELECTOR)) {
-                              return;
-                            }
-                            onRevealPinned(item.id);
-                          }}
-                          style={{
-                            minHeight: `${pinnedRowHeight}px`,
-                            paddingLeft: `${totalLeftSpacing}px`,
-                          }}
-                        >
-                          {renderRow(item, 0, false, true)}
-                        </div>
-                      ))}
-                    </ThinScroll>
+                    <PinnedRowList
+                      items={pinnedItems ?? []}
+                      maxHeight={MAX_VISIBLE_PINNED_ROWS * pinnedRowHeight}
+                      rowMinHeight={pinnedRowHeight}
+                      rowPaddingLeft={totalLeftSpacing}
+                      renderRow={item => renderRow(item, 0, false, true)}
+                      onReorder={onReorderPinned}
+                    />
                   )}
                 </section>
               )}

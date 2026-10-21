@@ -170,7 +170,7 @@ const ResourceTreeSchema = z
     pinnedRowIds: z
       .array(IdSchema)
       .max(MAX_PINNED_ROWS, limitMessage('pinned rows', MAX_PINNED_ROWS))
-      .transform(uniqueSorted)
+      .transform(uniqueInOrder)
       .optional(),
     rootResourceType: NameSchema.optional(),
     resourceFilter: ResourceFilterSchema.optional(),

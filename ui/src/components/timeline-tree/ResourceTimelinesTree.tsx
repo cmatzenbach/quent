@@ -3,7 +3,7 @@
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo } from 'react';
 import { fetchSingleTimeline, DEFAULT_STALE_TIME } from '@quent/client';
 import {
   ResourceColumn,
@@ -35,11 +35,7 @@ import {
   selectedFsmTypesAtom,
   selectedTypesAtom,
 } from '@/atoms/resourceTree';
-import {
-  buildPinnedWorkerLabels,
-  findAncestorIds,
-  resolvePinnedRows,
-} from '@/features/pinned-rows/pinnedRows';
+import { buildPinnedWorkerLabels, resolvePinnedRows } from '@/features/pinned-rows/pinnedRows';
 import { ResourceFilterSearch } from '@/features/resource-filter/ResourceFilterSearch';
 import { filterResourceTree } from '@/features/resource-filter/resourceFilter';
 import { useAutoExpandMatchingAncestors, useExpandedIds } from '@/hooks/useExpandedIds';
@@ -181,7 +177,7 @@ export function useResourceTimelinesTreeModel({
     rootItem,
   ]);
 
-  const { pinnedIds, togglePin, isAtPinLimit } = usePinnedIds();
+  const { pinnedIds, togglePin, movePin, isAtPinLimit } = usePinnedIds();
   const { isPinnedCollapsed, togglePinnedCollapsed } = usePinnedCollapsed();
   // A pin whose row a filter has removed is hidden, not forgotten; clearing the filter restores it.
   const { shownItems: pinnedItems, hiddenCount: hiddenPinnedCount } = useMemo(
@@ -264,24 +260,6 @@ export function useResourceTimelinesTreeModel({
       handleExpand(itemId, isExpanded);
     },
     [handleExpandChange, handleExpand]
-  );
-
-  // Show a pinned row in the tree: open the rows above it, then ask the tree to scroll to it.
-  const [revealItem, setRevealItem] = useState<{ id: string; token: number }>();
-  const onRevealPinned = useCallback(
-    (itemId: string) => {
-      const ancestorIds = findAncestorIds(trees, itemId);
-      if (!ancestorIds) {
-        return;
-      }
-      for (const ancestorId of ancestorIds) {
-        if (!expandedIds.has(ancestorId)) {
-          onExpandChange(ancestorId, true);
-        }
-      }
-      setRevealItem(previous => ({ id: itemId, token: (previous?.token ?? 0) + 1 }));
-    },
-    [expandedIds, onExpandChange, trees]
   );
 
   const rootResourceGroupId = useMemo(() => getRootResourceGroupId(resourceTree), [resourceTree]);
@@ -420,8 +398,7 @@ export function useResourceTimelinesTreeModel({
     isPinnable,
     getRowName,
     onTogglePin: togglePin,
-    revealItem,
-    onRevealPinned,
+    onReorderPinned: movePin,
     emptyMessage: 'No resources match this filter.',
     filters: (
       <ResourceFilterSearch

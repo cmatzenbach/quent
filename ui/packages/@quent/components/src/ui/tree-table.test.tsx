@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TreeTable, type Column } from './tree-table';
@@ -30,7 +30,7 @@ const columns: Column<Row>[] = [
 ];
 
 interface PinnedProps {
-  onRevealPinned?: (id: string) => void;
+  onReorderPinned?: (activeId: string, overId: string) => void;
   pinnedItems?: Row[];
   hiddenPinnedCount?: number;
   isPinnedCollapsed?: boolean;
@@ -143,7 +143,7 @@ describe('TreeTable pinned section', () => {
   });
 });
 
-describe('TreeTable pinned row clicks', () => {
+describe('TreeTable pinned row reordering', () => {
   const controlColumns: Column<Row>[] = [
     {
       key: 'name',
@@ -153,143 +153,125 @@ describe('TreeTable pinned row clicks', () => {
       render: ({ item }) => (
         <>
           <span>{item.name}</span>
-          <button type="button">Pin {item.name}</button>
-          <div role="combobox" aria-expanded="false" aria-label={`Type for ${item.name}`}>
-            GPU
-          </div>
+          <button type="button" onClick={() => onPinClick(item.id)}>
+            Pin {item.name}
+          </button>
         </>
       ),
     },
   ];
+  const onPinClick = vi.fn();
+  const ROW_STEP = 40;
+  let restoreRect: () => void;
 
-  it('asks to reveal the row when the pinned row is clicked', async () => {
-    const onRevealPinned = vi.fn();
-    renderTable({ pinnedItems: [row('x')], onRevealPinned });
+  // jsdom has no layout, so give each pinned row its own slot for the drag to measure.
+  beforeEach(() => {
+    onPinClick.mockClear();
+    const original = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function rect(this: Element) {
+      const index =
+        this.getAttribute('role') === 'listitem'
+          ? Array.from(this.parentElement?.children ?? []).indexOf(this)
+          : 0;
+      const top = index * ROW_STEP;
+      // The list is as tall as all of its rows, so rows can be dragged anywhere inside it.
+      const isList = this.getAttribute('role') === 'list';
+      const height = isList ? this.children.length * ROW_STEP : ROW_STEP;
+      return {
+        x: 0,
+        y: top,
+        top,
+        left: 0,
+        width: 200,
+        height,
+        right: 200,
+        bottom: top + height,
+        toJSON: () => ({}),
+      };
+    };
+    restoreRect = () => {
+      Element.prototype.getBoundingClientRect = original;
+    };
+  });
+  afterEach(() => restoreRect());
 
-    await userEvent.click(screen.getByText('Row x'));
+  // The drag measures the rows after it starts, so give it a moment before the next key.
+  const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 50)));
 
-    expect(onRevealPinned).toHaveBeenCalledWith('x');
+  const pinnedRow = (name: string) =>
+    within(screen.getByRole('region', { name: 'Pinned rows' }))
+      .getByText(name)
+      .closest('[role="listitem"]') as HTMLElement;
+
+  it('lets each pinned row be picked up with the keyboard', () => {
+    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned: vi.fn() });
+
+    expect(pinnedRow('Row x')).toHaveAttribute('tabindex', '0');
+    expect(pinnedRow('Row x')).toHaveAttribute('aria-roledescription', 'sortable');
   });
 
-  it('does not reveal the row when a button inside it is clicked', async () => {
-    const onRevealPinned = vi.fn();
-    renderTable({ pinnedItems: [row('x')], onRevealPinned }, controlColumns);
+  it('reports the row that was dropped and the row it took the place of', async () => {
+    const onReorderPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x'), row('y'), row('z')], onReorderPinned });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Pin Row x' }));
+    pinnedRow('Row x').focus();
+    await userEvent.keyboard(' ');
+    await settle();
+    await userEvent.keyboard('{ArrowDown}');
+    await settle();
+    await userEvent.keyboard(' ');
 
-    expect(onRevealPinned).not.toHaveBeenCalled();
+    expect(onReorderPinned).toHaveBeenCalledTimes(1);
+    expect(onReorderPinned).toHaveBeenCalledWith('x', 'y');
   });
 
-  it('does not reveal the row when a dropdown inside it is clicked', async () => {
-    const onRevealPinned = vi.fn();
-    renderTable({ pinnedItems: [row('x')], onRevealPinned }, controlColumns);
+  it('does not report a reorder when the row is dropped where it started', async () => {
+    const onReorderPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned });
 
-    await userEvent.click(screen.getByRole('combobox', { name: 'Type for Row x' }));
+    pinnedRow('Row x').focus();
+    await userEvent.keyboard(' ');
+    await userEvent.keyboard(' ');
 
-    expect(onRevealPinned).not.toHaveBeenCalled();
+    expect(onReorderPinned).not.toHaveBeenCalled();
   });
 
-  it('ignores clicks when no reveal handler is given', async () => {
+  it('does not report a reorder when the drag is cancelled', async () => {
+    const onReorderPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned });
+
+    pinnedRow('Row x').focus();
+    await userEvent.keyboard(' ');
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Escape}');
+
+    expect(onReorderPinned).not.toHaveBeenCalled();
+  });
+
+  it('still lets the controls inside a pinned row be clicked', async () => {
+    renderTable({ pinnedItems: [row('x')], onReorderPinned: vi.fn() }, controlColumns);
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Pin Row x' })[0]);
+
+    expect(onPinClick).toHaveBeenCalledWith('x');
+  });
+
+  it('does not start a drag from the keyboard while a control inside the row has focus', async () => {
+    const onReorderPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned }, controlColumns);
+
+    const control = within(pinnedRow('Row x')).getByRole('button', { name: 'Pin Row x' });
+    control.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard(' ');
+
+    expect(onPinClick).toHaveBeenCalledWith('x');
+    expect(onReorderPinned).not.toHaveBeenCalled();
+  });
+
+  it('renders the rows without a handler', () => {
     renderTable({ pinnedItems: [row('x')] });
 
-    await userEvent.click(screen.getByText('Row x'));
-
-    expect(screen.getByText('Row x')).toBeInTheDocument();
-  });
-});
-
-describe('TreeTable revealItem', () => {
-  const tree: Row[] = [
-    {
-      id: 'root',
-      name: 'Root',
-      children: [{ id: 'worker', name: 'Worker', children: [row('gpu')] }],
-    },
-  ];
-  const scrollTo = vi.fn();
-  const originalScrollTo = Element.prototype.scrollTo;
-
-  // The virtualizer scrolls to 0 on mount; a reveal is the call that asks for `behavior: 'auto'`.
-  const revealCalls = () =>
-    scrollTo.mock.calls.filter(([options]) => (options as ScrollToOptions).behavior === 'auto');
-
-  beforeEach(() => {
-    scrollTo.mockClear();
-    Element.prototype.scrollTo = scrollTo as unknown as typeof Element.prototype.scrollTo;
-    // jsdom has no layout, and the virtualizer clamps offsets to the scroll height.
-    Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
-      configurable: true,
-      get: () => 1000,
-    });
-  });
-
-  afterEach(() => {
-    Element.prototype.scrollTo = originalScrollTo;
-    delete (HTMLElement.prototype as { scrollHeight?: number }).scrollHeight;
-  });
-
-  function table(props: {
-    expanded: string[];
-    revealItem?: { id: string; token: number };
-    onSelectChange?: (item: Row | undefined) => void;
-  }) {
-    return (
-      <TreeTable<Row>
-        data={tree}
-        columns={columns}
-        virtualized
-        rowHeight={ROW_HEIGHT}
-        controlledExpandedIds={new Set(props.expanded)}
-        revealItem={props.revealItem}
-        onSelectChange={props.onSelectChange as never}
-      />
-    );
-  }
-
-  it('scrolls a visible row to the top of the tree', () => {
-    render(table({ expanded: ['root', 'worker'], revealItem: { id: 'gpu', token: 1 } }));
-
-    expect(revealCalls()).toEqual([[expect.objectContaining({ top: 2 * ROW_HEIGHT })]]);
-  });
-
-  it('selects the row it reveals', () => {
-    const onSelectChange = vi.fn();
-    render(
-      table({
-        expanded: ['root', 'worker'],
-        revealItem: { id: 'gpu', token: 1 },
-        onSelectChange,
-      })
-    );
-
-    expect(onSelectChange).toHaveBeenCalledWith(expect.objectContaining({ id: 'gpu' }));
-  });
-
-  it('waits for a collapsed parent to be expanded before scrolling', () => {
-    const revealItem = { id: 'gpu', token: 1 };
-    const { rerender } = render(table({ expanded: ['root'], revealItem }));
-    expect(revealCalls()).toHaveLength(0);
-
-    rerender(table({ expanded: ['root', 'worker'], revealItem }));
-
-    expect(revealCalls()).toEqual([[expect.objectContaining({ top: 2 * ROW_HEIGHT })]]);
-  });
-
-  it('reveals once per request, and again for a new request', () => {
-    const first = { id: 'gpu', token: 1 };
-    const { rerender } = render(table({ expanded: ['root', 'worker'], revealItem: first }));
-    expect(revealCalls()).toHaveLength(1);
-
-    rerender(table({ expanded: ['root', 'worker', 'extra'], revealItem: first }));
-    expect(revealCalls()).toHaveLength(1);
-
-    rerender(table({ expanded: ['root', 'worker'], revealItem: { id: 'gpu', token: 2 } }));
-    expect(revealCalls()).toHaveLength(2);
-  });
-
-  it('does nothing for a row that is not in the tree', () => {
-    render(table({ expanded: ['root', 'worker'], revealItem: { id: 'missing', token: 1 } }));
-
-    expect(revealCalls()).toHaveLength(0);
+    expect(pinnedRow('Row x')).toBeInTheDocument();
   });
 });

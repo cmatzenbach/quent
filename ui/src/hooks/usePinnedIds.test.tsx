@@ -72,6 +72,41 @@ describe('usePinnedIds', () => {
   });
 });
 
+describe('usePinnedIds reordering', () => {
+  it('keeps pins in the order they were added', () => {
+    const { result } = renderPinnedHook();
+
+    act(() => result.current.togglePin('b'));
+    act(() => result.current.togglePin('a'));
+
+    expect([...result.current.pinnedIds]).toEqual(['b', 'a']);
+  });
+
+  it('moves a pin to where another pin sits', () => {
+    const { result } = renderPinnedHook();
+    for (const id of ['a', 'b', 'c']) {
+      act(() => result.current.togglePin(id));
+    }
+
+    act(() => result.current.movePin('a', 'c'));
+
+    expect([...result.current.pinnedIds]).toEqual(['b', 'c', 'a']);
+  });
+
+  it('returns a new set after a move instead of mutating the old one', () => {
+    const { result } = renderPinnedHook();
+    for (const id of ['a', 'b']) {
+      act(() => result.current.togglePin(id));
+    }
+    const before = result.current.pinnedIds;
+
+    act(() => result.current.movePin('a', 'b'));
+
+    expect(result.current.pinnedIds).not.toBe(before);
+    expect([...before]).toEqual(['a', 'b']);
+  });
+});
+
 describe('usePinnedCollapsed', () => {
   function renderCollapsedHook() {
     const store = createStore();

@@ -20,7 +20,7 @@ function walkRows<T extends TreeNode<T>>(roots: readonly T[], visit: (row: T) =>
 }
 
 export interface PinnedRowsResult<T> {
-  // Pinned rows that are in the displayed tree, in tree order.
+  // Pinned rows that are in the displayed tree, in the order the user arranged them.
   shownItems: T[];
   // Pinned rows that exist but a filter has removed from the displayed tree.
   hiddenCount: number;
@@ -42,19 +42,25 @@ export function resolvePinnedRows<T extends TreeNode<T>>(
     return { shownItems: [], hiddenCount: 0 };
   }
 
-  const shownItems: T[] = [];
-  const shownIds = new Set<string>();
+  const shownById = new Map<string, T>();
   walkRows(displayedRoots, row => {
-    if (pinnedIds.has(row.id) && !shownIds.has(row.id)) {
-      shownIds.add(row.id);
-      shownItems.push(row);
+    if (pinnedIds.has(row.id) && !shownById.has(row.id)) {
+      shownById.set(row.id, row);
     }
   });
+  // The set remembers the order pins were added or dragged into.
+  const shownItems: T[] = [];
+  for (const id of pinnedIds) {
+    const row = shownById.get(id);
+    if (row) {
+      shownItems.push(row);
+    }
+  }
 
   let hiddenCount = 0;
   const countedIds = new Set<string>();
   walkRows(fullRoots, row => {
-    if (pinnedIds.has(row.id) && !shownIds.has(row.id) && !countedIds.has(row.id)) {
+    if (pinnedIds.has(row.id) && !shownById.has(row.id) && !countedIds.has(row.id)) {
       countedIds.add(row.id);
       hiddenCount += 1;
     }
@@ -64,37 +70,24 @@ export function resolvePinnedRows<T extends TreeNode<T>>(
 }
 
 /**
- * Ids of the rows above `id`, from the top of the tree down to its direct parent, or undefined
- * when the row is not in the tree. Used to expand the path to a row before scrolling to it.
+ * Move a pinned row to the position of the row it was dropped on, returning a new set. Pins
+ * that a filter hides stay in the set, so they keep their place when the filter clears. If
+ * either id is not pinned, or they are the same, the original set comes back unchanged.
  */
-export function findAncestorIds<T extends TreeNode<T>>(
-  roots: readonly T[],
-  id: string
-): string[] | undefined {
-  for (const root of roots) {
-    const path = pathTo(root, id, []);
-    if (path) {
-      return path;
-    }
+export function reorderPinnedIds(
+  pinnedIds: Set<string>,
+  activeId: string,
+  overId: string
+): Set<string> {
+  if (activeId === overId || !pinnedIds.has(activeId) || !pinnedIds.has(overId)) {
+    return pinnedIds;
   }
-  return undefined;
-}
-
-function pathTo<T extends TreeNode<T>>(
-  row: T,
-  id: string,
-  ancestors: string[]
-): string[] | undefined {
-  if (row.id === id) {
-    return ancestors;
-  }
-  for (const child of row.children ?? []) {
-    const path = pathTo(child, id, [...ancestors, row.id]);
-    if (path) {
-      return path;
-    }
-  }
-  return undefined;
+  const order = [...pinnedIds];
+  const from = order.indexOf(activeId);
+  const to = order.indexOf(overId);
+  order.splice(from, 1);
+  order.splice(to, 0, activeId);
+  return new Set(order);
 }
 
 /**

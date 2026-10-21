@@ -4,7 +4,7 @@
 import { useCallback } from 'react';
 import { useAtomValueRawSync, useSetAtom } from 'jotai';
 import { pinnedCollapsedAtom, pinnedIdsAtom } from '@/atoms/resourceTree';
-import { MAX_PINNED_ROWS } from '@/features/pinned-rows/pinnedRows';
+import { MAX_PINNED_ROWS, reorderPinnedIds } from '@/features/pinned-rows/pinnedRows';
 
 /* getter/setter for the ids of pinned timeline rows */
 export function usePinnedIds() {
@@ -29,7 +29,19 @@ export function usePinnedIds() {
     [setPinnedIds]
   );
 
-  return { pinnedIds, togglePin, isAtPinLimit: pinnedIds.size >= MAX_PINNED_ROWS } as const;
+  // Drop a pinned row onto another one to take its place in the list.
+  const movePin = useCallback(
+    (activeId: string, overId: string) =>
+      setPinnedIds(prev => reorderPinnedIds(prev, activeId, overId)),
+    [setPinnedIds]
+  );
+
+  return {
+    pinnedIds,
+    togglePin,
+    movePin,
+    isAtPinLimit: pinnedIds.size >= MAX_PINNED_ROWS,
+  } as const;
 }
 
 /* getter/setter for whether the pinned section is collapsed to just its header */
