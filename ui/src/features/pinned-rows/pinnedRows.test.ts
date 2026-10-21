@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from 'vitest';
-import { buildPinnedPathLabels, findAncestorIds, resolvePinnedRows } from './pinnedRows';
+import {
+  buildPinnedPathLabels,
+  buildPinnedWorkerLabels,
+  findAncestorIds,
+  resolvePinnedRows,
+} from './pinnedRows';
 
 interface Node {
   id: string;
@@ -203,5 +208,89 @@ describe('findAncestorIds', () => {
     const roots = [group('a', leaf('a-1')), group('b', leaf('b-1'))];
 
     expect(findAncestorIds(roots, 'b-1')).toEqual(['b']);
+  });
+});
+
+describe('buildPinnedWorkerLabels', () => {
+  interface WorkerNode {
+    id: string;
+    worker?: string;
+    parent?: string;
+    children?: WorkerNode[];
+  }
+
+  // engine
+  //  ├─ worker-0 (a worker)
+  //  │   ├─ gpu-0
+  //  │   │   └─ (Entities lane for gpu-0, a sibling of gpu-0)
+  //  │   └─ (Operators lane, a child of worker-0)
+  //  └─ network (no worker above it)
+  //      └─ channel
+  const tree = (): WorkerNode[] => [
+    {
+      id: 'engine',
+      children: [
+        {
+          id: 'worker-0',
+          worker: 'worker-0',
+          children: [
+            { id: 'ops:worker-0', parent: 'worker-0' },
+            { id: 'gpu-0' },
+            { id: 'ent:gpu-0', parent: 'gpu-0' },
+          ],
+        },
+        { id: 'network', children: [{ id: 'channel' }] },
+      ],
+    },
+  ];
+  const labels = (roots = tree()) =>
+    buildPinnedWorkerLabels(
+      roots,
+      row => row.worker,
+      row => row.parent
+    );
+
+  it('names the worker a row sits under', () => {
+    expect(labels().get('gpu-0')).toBe('worker-0');
+  });
+
+  it('gives a worker row no label of its own', () => {
+    expect(labels().has('worker-0')).toBe(false);
+  });
+
+  it('gives rows with no worker above them no label', () => {
+    const result = labels();
+
+    expect(result.has('engine')).toBe(false);
+    expect(result.has('network')).toBe(false);
+    expect(result.has('channel')).toBe(false);
+  });
+
+  it('names the worker of the resource an Entities lane belongs to', () => {
+    expect(labels().get('ent:gpu-0')).toBe('worker-0');
+  });
+
+  it('names the worker an Operators lane belongs to', () => {
+    expect(labels().get('ops:worker-0')).toBe('worker-0');
+  });
+
+  it('uses the nearest worker when workers are nested', () => {
+    const roots: WorkerNode[] = [
+      {
+        id: 'outer',
+        worker: 'outer',
+        children: [{ id: 'inner', worker: 'inner', children: [{ id: 'leaf' }] }],
+      },
+    ];
+
+    expect(labels(roots).get('leaf')).toBe('inner');
+    expect(labels(roots).get('inner')).toBe('outer');
+  });
+
+  it('falls back to the tree when the named parent is not in the tree', () => {
+    const roots = tree();
+    roots[0]!.children![0]!.children![2]!.parent = 'missing';
+
+    expect(labels(roots).get('ent:gpu-0')).toBe('worker-0');
   });
 });
