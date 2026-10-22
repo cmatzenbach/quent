@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode, Ref } from 'react';
 import {
   closestCenter,
   DndContext,
@@ -30,19 +30,35 @@ const ROW_CONTROL_SELECTOR =
 // How far the pointer must move before a press becomes a drag, so plain clicks stay clicks.
 const DRAG_START_DISTANCE_PX = 5;
 
-// The normal pointer sensor, except a press that lands on a control inside the row is left alone.
+// The normal pointer sensor, except a press that lands on a control inside the drag area is left
+// alone. The drag area itself is marked as a button, so it does not count as one of those.
 class RowPointerSensor extends PointerSensor {
   static activators = [
     {
       eventName: 'onPointerDown' as const,
-      handler: ({ nativeEvent }: ReactPointerEvent) =>
-        nativeEvent.isPrimary &&
-        nativeEvent.button === 0 &&
-        !(
-          nativeEvent.target instanceof Element && nativeEvent.target.closest(ROW_CONTROL_SELECTOR)
-        ),
+      handler: ({ nativeEvent, currentTarget }: ReactPointerEvent) => {
+        if (!nativeEvent.isPrimary || nativeEvent.button !== 0) {
+          return false;
+        }
+        const control =
+          nativeEvent.target instanceof Element
+            ? nativeEvent.target.closest(ROW_CONTROL_SELECTOR)
+            : null;
+        return control === null || control === currentTarget;
+      },
     },
   ];
+}
+
+/**
+ * What a row's info cell needs to act as the drag area: spread `attributes` and `listeners` on
+ * it, attach `ref`, and use `isDragging` to pick the cursor.
+ */
+export interface PinnedRowDragArea {
+  ref: Ref<HTMLElement>;
+  attributes: ReturnType<typeof useSortable>['attributes'];
+  listeners: ReturnType<typeof useSortable>['listeners'];
+  isDragging: boolean;
 }
 
 interface PinnedRowProps {
@@ -50,7 +66,7 @@ interface PinnedRowProps {
   isSortable: boolean;
   minHeight: number;
   paddingLeft: number;
-  children: ReactNode;
+  children: (dragArea: PinnedRowDragArea | undefined) => ReactNode;
 }
 
 function PinnedRow({ id, isSortable, minHeight, paddingLeft, children }: PinnedRowProps) {
@@ -71,23 +87,19 @@ function PinnedRow({ id, isSortable, minHeight, paddingLeft, children }: PinnedR
   };
   return (
     <div
-      ref={node => {
-        setNodeRef(node);
-        // Only keys pressed on the row itself pick it up, not Space on a button inside it.
-        setActivatorNodeRef(node);
-      }}
-      {...(isSortable ? attributes : {})}
-      {...(isSortable ? listeners : {})}
-      // Keep the list item role; the drag attributes would otherwise call the row a button.
+      ref={setNodeRef}
       role="listitem"
       className={cn(
         'relative flex items-center text-foreground',
-        isSortable && 'cursor-grab touch-manipulation hover:bg-secondary/10',
-        isDragging && 'z-10 cursor-grabbing bg-background shadow-md'
+        isSortable && 'hover:bg-secondary/10',
+        isDragging && 'z-10 bg-background shadow-md'
       )}
       style={style}
     >
-      {children}
+      {/* Only the info cell picks the row up, so the timelines keep their normal cursor. */}
+      {children(
+        isSortable ? { ref: setActivatorNodeRef, attributes, listeners, isDragging } : undefined
+      )}
     </div>
   );
 }
@@ -97,14 +109,14 @@ interface PinnedRowListProps<T extends { id: string }> {
   maxHeight: number;
   rowMinHeight: number;
   rowPaddingLeft: number;
-  renderRow: (item: T) => ReactNode;
+  renderRow: (item: T, dragArea: PinnedRowDragArea | undefined) => ReactNode;
   /** Called when a row is dropped on another; without it the rows cannot be dragged. */
   onReorder?: (activeId: string, overId: string) => void;
 }
 
 /**
- * The pinned rows as a scrolling list the user can rearrange by dragging a row, or with the
- * keyboard: focus a row, press Space, use the arrow keys, then press Space again.
+ * The pinned rows as a scrolling list the user can rearrange by dragging the info cell (name and
+ * type), or with the keyboard: focus that cell, press Space, use the arrow keys, then press Space again.
  */
 export function PinnedRowList<T extends { id: string }>({
   items,
@@ -147,7 +159,7 @@ export function PinnedRowList<T extends { id: string }>({
               minHeight={rowMinHeight}
               paddingLeft={rowPaddingLeft}
             >
-              {renderRow(item)}
+              {dragArea => renderRow(item, dragArea)}
             </PinnedRow>
           ))}
         </ThinScroll>

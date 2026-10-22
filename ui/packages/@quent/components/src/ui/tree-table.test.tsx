@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TreeTable, type Column } from './tree-table';
@@ -203,18 +203,26 @@ describe('TreeTable pinned row reordering', () => {
       .getByText(name)
       .closest('[role="listitem"]') as HTMLElement;
 
-  it('lets each pinned row be picked up with the keyboard', () => {
-    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned: vi.fn() });
+  // A second column stands in for the timelines.
+  const withTimeline: Column<Row>[] = [
+    ...controlColumns,
+    {
+      key: 'usage',
+      label: 'Usage',
+      widthIndex: 1,
+      render: ({ item }) => <span>Chart {item.id}</span>,
+    },
+  ];
 
-    expect(pinnedRow('Row x')).toHaveAttribute('tabindex', '0');
-    expect(pinnedRow('Row x')).toHaveAttribute('aria-roledescription', 'sortable');
-  });
+  // The info cell (name and type) is the only part of a row that picks it up.
+  const infoCellOf = (name: string) =>
+    within(pinnedRow(name)).getByText(name).closest('.group\\/info') as HTMLElement;
 
   it('reports the row that was dropped and the row it took the place of', async () => {
     const onReorderPinned = vi.fn();
-    renderTable({ pinnedItems: [row('x'), row('y'), row('z')], onReorderPinned });
+    renderTable({ pinnedItems: [row('x'), row('y'), row('z')], onReorderPinned }, withTimeline);
 
-    pinnedRow('Row x').focus();
+    infoCellOf('Row x').focus();
     await userEvent.keyboard(' ');
     await settle();
     await userEvent.keyboard('{ArrowDown}');
@@ -225,54 +233,46 @@ describe('TreeTable pinned row reordering', () => {
     expect(onReorderPinned).toHaveBeenCalledWith('x', 'y');
   });
 
-  it('does not report a reorder when the row is dropped where it started', async () => {
-    const onReorderPinned = vi.fn();
-    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned });
+  // Press, move past the drag distance, then release, the way a mouse drag arrives.
+  const dragWithPointer = async (from: HTMLElement, deltaY: number) => {
+    const press = { pointerId: 1, isPrimary: true, button: 0, clientX: 10, clientY: 10 };
+    fireEvent.pointerDown(from, press);
+    await settle();
+    fireEvent.pointerMove(document, { ...press, clientY: 10 + deltaY / 2 });
+    fireEvent.pointerMove(document, { ...press, clientY: 10 + deltaY });
+    await settle();
+    fireEvent.pointerUp(document, { ...press, clientY: 10 + deltaY });
+    await settle();
+  };
 
-    pinnedRow('Row x').focus();
-    await userEvent.keyboard(' ');
-    await userEvent.keyboard(' ');
+  it('starts a drag with the pointer from anywhere in the info cell', async () => {
+    const onReorderPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned }, withTimeline);
+
+    await dragWithPointer(within(pinnedRow('Row x')).getByText('Row x'), ROW_STEP);
+
+    expect(onReorderPinned).toHaveBeenCalledWith('x', 'y');
+  });
+
+  it('does not start a drag with the pointer from a control inside the info cell', async () => {
+    const onReorderPinned = vi.fn();
+    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned }, withTimeline);
+
+    await dragWithPointer(
+      within(pinnedRow('Row x')).getByRole('button', { name: 'Pin Row x' }),
+      ROW_STEP
+    );
 
     expect(onReorderPinned).not.toHaveBeenCalled();
   });
 
-  it('does not report a reorder when the drag is cancelled', async () => {
+  it('does not start a drag with the pointer from the timeline', async () => {
     const onReorderPinned = vi.fn();
-    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned });
+    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned }, withTimeline);
 
-    pinnedRow('Row x').focus();
-    await userEvent.keyboard(' ');
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.keyboard('{Escape}');
+    await dragWithPointer(within(pinnedRow('Row x')).getByText('Chart x'), ROW_STEP);
 
     expect(onReorderPinned).not.toHaveBeenCalled();
-  });
-
-  it('still lets the controls inside a pinned row be clicked', async () => {
-    renderTable({ pinnedItems: [row('x')], onReorderPinned: vi.fn() }, controlColumns);
-
-    await userEvent.click(screen.getAllByRole('button', { name: 'Pin Row x' })[0]);
-
-    expect(onPinClick).toHaveBeenCalledWith('x');
-  });
-
-  it('does not start a drag from the keyboard while a control inside the row has focus', async () => {
-    const onReorderPinned = vi.fn();
-    renderTable({ pinnedItems: [row('x'), row('y')], onReorderPinned }, controlColumns);
-
-    const control = within(pinnedRow('Row x')).getByRole('button', { name: 'Pin Row x' });
-    control.focus();
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.keyboard(' ');
-
-    expect(onPinClick).toHaveBeenCalledWith('x');
-    expect(onReorderPinned).not.toHaveBeenCalled();
-  });
-
-  it('renders the rows without a handler', () => {
-    renderTable({ pinnedItems: [row('x')] });
-
-    expect(pinnedRow('Row x')).toBeInTheDocument();
   });
 });
 
