@@ -150,10 +150,9 @@ export function EntityResults({
           {!isError && !isLoading && !hasValidationErrors && rows.length === 0 && (
             <div className="p-4 text-sm text-muted-foreground">No entities match the filters.</div>
           )}
-          {isLoading && <div className="p-4 text-sm text-muted-foreground">Loading…</div>}
         </div>
 
-        {requestPending && rows.length > 0 && <LoadingOverlay />}
+        {requestPending && <LoadingOverlay label={isLoading ? 'Loading…' : 'Updating…'} />}
       </div>
 
       <div className="shrink-0 border-t bg-card p-2 flex items-center justify-between text-xs text-muted-foreground">
