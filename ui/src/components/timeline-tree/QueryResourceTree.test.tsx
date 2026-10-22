@@ -157,12 +157,7 @@ vi.mock('@quent/components', async importOriginal => {
       capturedInlineSelectors.push(props);
       return <div data-testid={props.id} />;
     },
-    ResourceColumn: (props: { workerName?: string }) =>
-      props.workerName ? (
-        <span>
-          Worker: <span>{props.workerName}</span>
-        </span>
-      ) : null,
+    ResourceColumn: (props: { description?: React.ReactNode }) => props.description ?? null,
     UsageColumn: () => null,
     TimelineToolbar: ({ filters }: { filters?: React.ReactNode }) => filters,
   };
@@ -286,7 +281,6 @@ const customSubRow: ResourceTimelineSubRow = {
     ],
   }),
   matches: item => item.type === CUSTOM_SUB_ROW_TYPE,
-  parentId: () => undefined,
   renderLabel: () => null,
   renderTimeline: () => null,
 };
@@ -1111,6 +1105,20 @@ describe('QueryResourceTree — pin buttons', () => {
     expect(within(pinnedRow!).getByText('Entities')).toBeInTheDocument();
     expect(within(pinnedRow!).getByText('worker-0')).toBeInTheDocument();
     expect(within(pinnedRow!).getByRole('button', { name: 'Unpin Entities' })).toBeInTheDocument();
+  });
+
+  it('does not label a pinned worker as belonging to itself', async () => {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set(['worker-id-1']));
+    const { findAllByTestId } = renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={makeWorkerBundle()} />
+      </JotaiProvider>
+    );
+
+    const [pinnedRow] = await findAllByTestId('pinned-row');
+
+    expect(within(pinnedRow!).queryByText('Worker:')).not.toBeInTheDocument();
   });
 
   it('shows no worker line for a pinned row that has no worker', async () => {

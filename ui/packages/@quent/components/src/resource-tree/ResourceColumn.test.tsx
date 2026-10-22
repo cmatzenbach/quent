@@ -20,43 +20,41 @@ const groupItem = {
   children: [resourceItem],
 } as unknown as TreeTableItem;
 
-function renderColumn(item: TreeTableItem, workerName?: string) {
+function renderColumn(item: TreeTableItem, description?: React.ReactNode) {
   render(
     <ResourceColumn
       item={item}
       selectedType="storage"
       onTypeChange={vi.fn()}
-      workerName={workerName}
+      description={description}
     />
   );
 }
 
-describe('ResourceColumn worker line', () => {
-  it('shows no worker line by default', () => {
+describe('ResourceColumn description', () => {
+  it('shows no description by default', () => {
     renderColumn(resourceItem);
 
-    expect(screen.queryByText('Worker:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Worker: worker-0')).not.toBeInTheDocument();
   });
 
-  it('shows the worker under a resource', () => {
-    renderColumn(resourceItem, 'worker-0');
+  it('shows the description under a resource', () => {
+    renderColumn(resourceItem, 'Worker: worker-0');
 
-    expect(screen.getByText('Worker:')).toBeInTheDocument();
-    expect(screen.getByText('worker-0')).toBeInTheDocument();
+    expect(screen.getByText('Worker: worker-0')).toBeInTheDocument();
   });
 
-  it('puts the worker in the same column as the name and type so the text lines up', () => {
-    renderColumn(resourceItem, 'worker-0');
+  it('puts the description in the same column as the name and type so the text lines up', () => {
+    renderColumn(resourceItem, 'Worker: worker-0');
 
     const nameColumn = screen.getByText('Storage').closest('div')?.parentElement;
-    expect(nameColumn).toContainElement(screen.getByText('Worker:'));
-    expect(screen.getByText('Worker:').closest('div')).toBe(nameColumn);
+    expect(nameColumn).toContainElement(screen.getByText('Worker: worker-0'));
+    expect(screen.getByText('Worker: worker-0').parentElement).toBe(nameColumn);
   });
 
-  it('shows the worker under a resource group', () => {
-    renderColumn(groupItem, 'worker-1');
+  it('shows the description under a resource group', () => {
+    renderColumn(groupItem, 'Worker: worker-1');
 
-    expect(screen.getByText('Worker:')).toBeInTheDocument();
-    expect(screen.getByText('worker-1')).toBeInTheDocument();
+    expect(screen.getByText('Worker: worker-1')).toBeInTheDocument();
   });
 });

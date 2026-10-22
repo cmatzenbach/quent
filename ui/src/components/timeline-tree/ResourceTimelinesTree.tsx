@@ -4,8 +4,10 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
 import { useCallback, useDeferredValue, useEffect, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { fetchSingleTimeline, DEFAULT_STALE_TIME } from '@quent/client';
 import {
+  DataText,
   ResourceColumn,
   UsageColumn,
   buildBulkParamsForItem,
@@ -35,7 +37,7 @@ import {
   selectedFsmTypesAtom,
   selectedTypesAtom,
 } from '@/atoms/resourceTree';
-import { buildPinnedWorkerLabels, resolvePinnedRows } from '@/features/pinned-rows/pinnedRows';
+import { resolvePinnedRows } from '@/features/pinned-rows/pinnedRows';
 import { ResourceFilterSearch } from '@/features/resource-filter/ResourceFilterSearch';
 import { filterResourceTree } from '@/features/resource-filter/resourceFilter';
 import { useAutoExpandMatchingAncestors, useExpandedIds } from '@/hooks/useExpandedIds';
@@ -46,7 +48,6 @@ import {
   useTimelineTreeSetup,
   type TimelineTreeControls,
   type TimelineTreeItem,
-  type RowLabelContext,
   type TimelineTreeModel,
 } from './TimelineTreeTable';
 
@@ -184,21 +185,34 @@ export function useResourceTimelinesTreeModel({
     () => resolvePinnedRows(pinnedIds, [fullTree], trees),
     [fullTree, pinnedIds, trees]
   );
-  // Pinned rows name their worker, since the same resource names repeat across workers.
-  const workerLabels = useMemo(
-    () =>
-      buildPinnedWorkerLabels(
-        [fullTree],
-        row => {
-          const worker = entities.workers[row.id];
-          return worker ? workerDisplayName(worker) : undefined;
-        },
-        row =>
-          subRows
-            .find(subRow => subRow.matches(row as TimelineTreeItem))
-            ?.parentId(row as TimelineTreeItem)
-      ),
-    [entities.workers, fullTree, subRows]
+  const getPinnedRowDescription = useCallback(
+    (item: TimelineTreeItem) => {
+      const findWorkerName = (
+        row: TimelineTreeItem,
+        workerAbove?: string
+      ): string | null | undefined => {
+        if (row.id === item.id) {
+          return workerAbove;
+        }
+        const worker = entities.workers[row.id];
+        const workerAtOrAbove = worker ? workerDisplayName(worker) : workerAbove;
+        for (const child of row.children ?? []) {
+          const name = findWorkerName(child, workerAtOrAbove);
+          if (name !== null) {
+            return name;
+          }
+        }
+        return null;
+      };
+
+      const workerName = findWorkerName(fullTree as TimelineTreeItem);
+      return workerName ? (
+        <>
+          Worker: <DataText className="text-foreground">{workerName}</DataText>
+        </>
+      ) : undefined;
+    },
+    [entities.workers, fullTree]
   );
   // The root group is already summarized by the overview bar, so it has no pin button.
   const isPinnable = useCallback(
@@ -299,10 +313,10 @@ export function useResourceTimelinesTreeModel({
   });
 
   const renderLabel = useCallback(
-    (item: TimelineTreeItem, context?: RowLabelContext) => {
+    (item: TimelineTreeItem, description?: ReactNode) => {
       const subRow = subRows.find(candidate => candidate.matches(item));
       if (subRow) {
-        return subRow.renderLabel(item, context);
+        return subRow.renderLabel(item, description);
       }
 
       const selectedType = selectedTypes.get(item.id) || item.availableResourceTypes?.[0] || '';
@@ -317,7 +331,7 @@ export function useResourceTimelinesTreeModel({
       return (
         <ResourceColumn
           item={item as TreeTableItem}
-          workerName={context?.workerName}
+          description={description}
           selectedType={selectedType}
           onTypeChange={(itemId, newType) => {
             setSelectedTypes(previous => new Map(previous).set(itemId, newType));
@@ -391,10 +405,10 @@ export function useResourceTimelinesTreeModel({
     pinnedItems: pinnedItems as TimelineTreeItem[],
     hiddenPinnedCount,
     pinnedIds,
-    workerLabels,
     isAtPinLimit,
     isPinnedCollapsed,
     onTogglePinnedCollapsed: togglePinnedCollapsed,
+    getPinnedRowDescription,
     isPinnable,
     getRowName,
     onTogglePin: togglePin,
