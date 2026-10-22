@@ -7,7 +7,7 @@ import { useAtomValue, useStore } from 'jotai';
 import { fetchBulkTimelines, DEFAULT_STALE_TIME } from '@quent/client';
 import type { QueryEntities, TimelineRequest, OperatorFilter, ZoomRange } from '@quent/utils';
 import { MAX_TIMELINE_BINS } from '@quent/utils';
-import { getResourceTypeName, getFsmTypeName, mergeExtraBulkEntries } from './timeline.utils';
+import { getResourceTypeName, getFsmTypeName } from './timeline.utils';
 import {
   timelineCacheKey,
   timelineDataMapAtom,
@@ -66,7 +66,8 @@ export function useBulkTimelines<T extends TreeNode>({
     selectedTypes: Map<string, string>,
     entities: QueryEntities,
     config: { num_bins: number; start: number; end: number },
-    groupFsmFilters?: Map<string, string | null>
+    groupFsmFilters?: Map<string, string | null>,
+    extraItems?: readonly T[]
   ) => Record<string, TimelineRequest<OperatorFilter>>;
   buildBulkParamsFn: (
     item: T,
@@ -105,19 +106,15 @@ export function useBulkTimelines<T extends TreeNode>({
 
   const baseVisibleEntries = useMemo(
     () =>
-      mergeExtraBulkEntries(
-        collectVisibleEntriesFn(
-          [rootItem],
-          expandedIds,
-          selectedTypes,
-          entities,
-          bulkConfig,
-          groupFsmFilters
-        ),
-        extraItems,
-        item => buildBulkParamsFn(item, selectedTypes, entities, bulkConfig, groupFsmFilters)
+      collectVisibleEntriesFn(
+        [rootItem],
+        expandedIds,
+        selectedTypes,
+        entities,
+        bulkConfig,
+        groupFsmFilters,
+        extraItems
       ),
-
     [
       rootItem,
       expandedIds,
@@ -126,7 +123,6 @@ export function useBulkTimelines<T extends TreeNode>({
       bulkConfig,
       groupFsmFilters,
       collectVisibleEntriesFn,
-      buildBulkParamsFn,
       extraItems,
     ]
   );
