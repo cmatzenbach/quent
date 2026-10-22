@@ -8,7 +8,7 @@ import { ChevronRight } from 'lucide-react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@quent/utils';
 import { Button } from './button';
-import { PinnedRowList } from './pinned-row-list';
+import { PinnedRowList, type PinnedRowDragArea } from './pinned-row-list';
 
 // Tree-table specific styling variants
 const treeVariants = cva(
@@ -970,7 +970,8 @@ export function TreeTable<I extends TreeTableDataItem>({
     item: TreeTableDataItem,
     level: number,
     isSelected: boolean,
-    isPinned = false
+    isPinned = false,
+    dragArea?: PinnedRowDragArea
   ) => {
     const extended = item as I;
     const indentWidth = Math.max(
@@ -986,7 +987,15 @@ export function TreeTable<I extends TreeTableDataItem>({
             return (
               <div
                 key={column.key}
-                className="group/info flex min-w-0 items-center overflow-hidden pr-1"
+                ref={dragArea?.ref as React.Ref<HTMLDivElement> | undefined}
+                {...dragArea?.attributes}
+                {...dragArea?.listeners}
+                className={cn(
+                  'group/info flex min-w-0 items-center overflow-hidden pr-1',
+                  // Dragging starts here, so show the grab cursor; elsewhere nothing is clickable.
+                  !dragArea && 'cursor-default',
+                  dragArea && (dragArea.isDragging ? 'cursor-grabbing' : 'cursor-grab')
+                )}
                 style={{
                   paddingLeft: `${firstCellPaddingLeft}px`,
                   paddingRight: '6px',
@@ -1160,7 +1169,7 @@ export function TreeTable<I extends TreeTableDataItem>({
                       maxHeight={MAX_VISIBLE_PINNED_ROWS * pinnedRowHeight}
                       rowMinHeight={pinnedRowHeight}
                       rowPaddingLeft={totalLeftSpacing}
-                      renderRow={item => renderRow(item, 0, false, true)}
+                      renderRow={(item, dragArea) => renderRow(item, 0, false, true, dragArea)}
                       onReorder={onReorderPinned}
                     />
                   )}
