@@ -782,10 +782,13 @@ describe('DeepLinkBoundary pinned rows', () => {
   });
 
   it('replaces pins already in the session with the ones in the link', () => {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set([RESOURCE_A_ID]));
+    expect([...store.get(pinnedIdsAtom)]).toEqual([RESOURCE_A_ID]);
+
     render(
-      <JotaiProvider>
+      <JotaiProvider store={store}>
         <DeepLinkBoundary {...BOUNDARY_PROPS} encodedState={encodeState()}>
-          <SeedPinnedRows ids={[RESOURCE_A_ID]} />
           <PinnedRowsProbe />
         </DeepLinkBoundary>
       </JotaiProvider>
