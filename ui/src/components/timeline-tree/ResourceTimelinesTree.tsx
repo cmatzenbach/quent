@@ -49,6 +49,8 @@ import {
   type TimelineTreeControls,
   type TimelineTreeItem,
   type TimelineTreeModel,
+  type PinningControls,
+  type RowPinning,
 } from './TimelineTreeTable';
 
 function getRootResourceGroupId(resourceTree: ResourceTree<EntityRef>): string | null {
@@ -226,6 +228,32 @@ export function useResourceTimelinesTreeModel({
       item.id,
     [subRows]
   );
+  const rowPinning = useMemo<RowPinning>(
+    () => ({ isPinnable, getName: getRowName, getDescription: getPinnedRowDescription }),
+    [getPinnedRowDescription, getRowName, isPinnable]
+  );
+  const pinning = useMemo<PinningControls>(
+    () => ({
+      items: pinnedItems as TimelineTreeItem[],
+      hiddenCount: hiddenPinnedCount,
+      ids: pinnedIds,
+      isAtLimit: isAtPinLimit,
+      onToggle: togglePin,
+      isCollapsed: isPinnedCollapsed,
+      onToggleCollapsed: togglePinnedCollapsed,
+      onReorder: movePin,
+    }),
+    [
+      hiddenPinnedCount,
+      isAtPinLimit,
+      isPinnedCollapsed,
+      movePin,
+      pinnedIds,
+      pinnedItems,
+      togglePin,
+      togglePinnedCollapsed,
+    ]
+  );
   // Only real resources and groups have bulk timeline data; sub-rows load their own.
   const pinnedBulkItems = useMemo(
     () =>
@@ -402,17 +430,8 @@ export function useResourceTimelinesTreeModel({
     rootItem,
     showOthers: resourceFilter.showOthers,
     trees: trees as TimelineTreeItem[],
-    pinnedItems: pinnedItems as TimelineTreeItem[],
-    hiddenPinnedCount,
-    pinnedIds,
-    isAtPinLimit,
-    isPinnedCollapsed,
-    onTogglePinnedCollapsed: togglePinnedCollapsed,
-    getPinnedRowDescription,
-    isPinnable,
-    getRowName,
-    onTogglePin: togglePin,
-    onReorderPinned: movePin,
+    pinning,
+    rowPinning,
     emptyMessage: 'No resources match this filter.',
     filters: (
       <ResourceFilterSearch
