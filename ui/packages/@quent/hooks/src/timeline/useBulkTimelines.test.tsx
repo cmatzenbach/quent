@@ -34,10 +34,11 @@ const gpu: TreeNode = { id: 'gpu-0' };
 const worker: TreeNode = { id: 'worker-1', children: [gpu] };
 const root: TreeNode = { id: 'root', children: [worker] };
 
-// Only walks into expanded rows, like the real collectVisibleEntries.
+// Only walks into expanded rows, then adds extra items, like the real collectVisibleEntries.
 function collectVisible(
   items: TreeNode[],
-  expandedIds: Set<string>
+  expandedIds: Set<string>,
+  extraItems: readonly TreeNode[] = []
 ): Record<string, TimelineRequest<OperatorFilter>> {
   const result: Record<string, TimelineRequest<OperatorFilter>> = {};
   const walk = (item: TreeNode) => {
@@ -47,6 +48,7 @@ function collectVisible(
     }
   };
   items.forEach(walk);
+  extraItems.forEach(item => (result[item.id] ??= request(item.id)));
   return result;
 }
 
@@ -67,7 +69,8 @@ function renderBulk(extraItems?: TreeNode[]) {
         expandedIds: new Set(['root']),
         selectedTypes: new Map(),
         entities: {} as QueryEntities,
-        collectVisibleEntriesFn: items => collectVisible(items, new Set(['root'])),
+        collectVisibleEntriesFn: (items, _expanded, _types, _entities, _config, _filters, extra) =>
+          collectVisible(items, new Set(['root']), extra),
         buildBulkParamsFn: item => request(item.id),
         findItemByIdFn: () => undefined,
         extraItems,

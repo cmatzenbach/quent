@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type { OperatorFilter, ResourceTimeline, TimelineRequest } from '@quent/utils';
 import {
   getResourceTypeName,
@@ -9,7 +9,6 @@ import {
   bulkEntryId,
   setOperatorOnEntry,
   isTimelineUtilizationAllZero,
-  mergeExtraBulkEntries,
 } from './timeline.utils';
 
 function makeResourceRequest(
@@ -196,52 +195,5 @@ describe('setOperatorOnEntry', () => {
       (entry as { ResourceGroup: { app_params: OperatorFilter } }).ResourceGroup.app_params
         .operator_ids
     ).toEqual(original);
-  });
-});
-
-describe('mergeExtraBulkEntries', () => {
-  const buildParams = (item: { id: string }) => makeResourceRequest(item.id);
-
-  it('adds entries for extra items that are not already requested', () => {
-    const base = { 'gpu-0': makeResourceRequest('gpu-0') };
-
-    const merged = mergeExtraBulkEntries(base, [{ id: 'gpu-7' }], buildParams);
-
-    expect(Object.keys(merged).sort()).toEqual(['gpu-0', 'gpu-7']);
-    expect(merged['gpu-7']).toEqual(makeResourceRequest('gpu-7'));
-  });
-
-  it('keeps the existing entry and skips building one when the id is already requested', () => {
-    const existing = makeResourceRequest('gpu-0', 'Existing');
-    const build = vi.fn(buildParams);
-
-    const merged = mergeExtraBulkEntries({ 'gpu-0': existing }, [{ id: 'gpu-0' }], build);
-
-    expect(merged['gpu-0']).toBe(existing);
-    expect(build).not.toHaveBeenCalled();
-  });
-
-  it('returns the same object when nothing needs to be added', () => {
-    const base = { 'gpu-0': makeResourceRequest('gpu-0') };
-
-    expect(mergeExtraBulkEntries(base, [], buildParams)).toBe(base);
-    expect(mergeExtraBulkEntries(base, [{ id: 'gpu-0' }], buildParams)).toBe(base);
-  });
-
-  it('does not mutate the base entries', () => {
-    const base = { 'gpu-0': makeResourceRequest('gpu-0') };
-
-    mergeExtraBulkEntries(base, [{ id: 'gpu-7' }], buildParams);
-
-    expect(Object.keys(base)).toEqual(['gpu-0']);
-  });
-
-  it('adds a repeated extra id only once', () => {
-    const build = vi.fn(buildParams);
-
-    const merged = mergeExtraBulkEntries({}, [{ id: 'gpu-7' }, { id: 'gpu-7' }], build);
-
-    expect(Object.keys(merged)).toEqual(['gpu-7']);
-    expect(build).toHaveBeenCalledTimes(1);
   });
 });
