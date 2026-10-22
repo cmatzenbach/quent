@@ -29,16 +29,13 @@ import { PinnableRowLabel } from './PinnableRowLabel';
 
 export type TimelineTreeItem = TreeTableItem<EntityTypeValue | NvtxTreeEntity>;
 
-// Extra information a row label can show.
-export interface RowLabelContext {
-  // The worker the row belongs to; given for rows in the pinned section.
-  workerName?: string;
-}
-
 export interface TimelineTreeModel {
   trees: TimelineTreeItem[];
-  renderLabel: (item: TimelineTreeItem, context?: RowLabelContext) => ReactNode;
+  // The description is extra context for the row, given only for rows in the pinned section.
+  renderLabel: (item: TimelineTreeItem, description?: ReactNode) => ReactNode;
   renderTimeline: (item: TimelineTreeItem) => ReactNode;
+  // Extra context shown only on the pinned copy of a row.
+  getPinnedRowDescription?: (item: TimelineTreeItem) => ReactNode;
   // Rows a user can pin. Trees that leave these out have no pin buttons.
   isPinnable?: (item: TimelineTreeItem) => boolean;
   // Plain-text name of a row, used to label its pin button.
@@ -60,8 +57,6 @@ export interface TimelineTreeControls {
   // Pinned rows that a filter currently hides.
   hiddenPinnedCount?: number;
   pinnedIds?: ReadonlySet<string>;
-  // Name of the worker each row belongs to, keyed by row id.
-  workerLabels?: ReadonlyMap<string, string>;
   isAtPinLimit?: boolean;
   onTogglePin?: (itemId: string) => void;
   // Whether the pinned section shows only its header.
@@ -134,7 +129,7 @@ export function TimelineTreeTable({
     }
     return { data, modelsByItemId };
   }, [trees]);
-  const { isAtPinLimit, onTogglePin, pinnedIds, workerLabels } = controls;
+  const { isAtPinLimit, onTogglePin, pinnedIds } = controls;
   const columns = useMemo(
     () =>
       [
@@ -153,9 +148,10 @@ export function TimelineTreeTable({
             return (
               <PinnableRowLabel
                 label={
-                  model?.renderLabel(item, {
-                    workerName: isPinned ? workerLabels?.get(item.id) : undefined,
-                  }) ?? null
+                  model?.renderLabel(
+                    item,
+                    isPinned ? model.getPinnedRowDescription?.(item) : undefined
+                  ) ?? null
                 }
                 name={model?.getRowName?.(item) ?? item.id}
                 isPinnable={onTogglePin != null && (model?.isPinnable?.(item) ?? false)}
@@ -194,7 +190,6 @@ export function TimelineTreeTable({
       modelsByItemId,
       onTogglePin,
       pinnedIds,
-      workerLabels,
     ]
   );
 

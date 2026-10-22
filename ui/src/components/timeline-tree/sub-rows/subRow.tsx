@@ -3,8 +3,7 @@
 
 import type { ReactNode } from 'react';
 import type { TreeTableItem } from '@quent/components';
-import { DataText } from '@quent/components';
-import type { RowLabelContext, TimelineTreeItem } from '../TimelineTreeTable';
+import type { TimelineTreeItem } from '../TimelineTreeTable';
 
 export interface ResourceTimelineSubRow {
   id: string;
@@ -12,27 +11,25 @@ export interface ResourceTimelineSubRow {
   label: string;
   injectRows: (rootItem: TreeTableItem) => TreeTableItem;
   matches: (item: TimelineTreeItem) => boolean;
-  /** Id of the resource or group this row belongs to, if the row is one of this sub-row's. */
-  parentId: (item: TimelineTreeItem) => string | undefined;
-  renderLabel: (item: TimelineTreeItem, context?: RowLabelContext) => ReactNode;
+  renderLabel: (item: TimelineTreeItem, description?: ReactNode) => ReactNode;
   renderTimeline: (item: TimelineTreeItem) => ReactNode;
 }
 
 export function TimelineSubRowLabel({
   children,
-  workerName,
+  description,
 }: {
   children: string;
-  workerName?: string;
+  description?: ReactNode;
 }) {
   return (
     <span className="flex items-center">
       <span aria-hidden className="mr-4 h-4 w-4 shrink-0" />
       <span className="flex flex-col gap-1">
         <span className="text-xs leading-none text-muted-foreground">{children}</span>
-        {workerName && (
-          <span className="text-[11px] leading-none text-muted-foreground">
-            Worker: <DataText className="text-foreground">{workerName}</DataText>
+        {description != null && (
+          <span className="text-[11px] font-normal leading-none text-muted-foreground">
+            {description}
           </span>
         )}
       </span>
@@ -59,14 +56,12 @@ export function createTimelineSubRow({
   rowType,
   injectRows,
   label,
-  parentId,
   renderTimeline,
 }: {
   id: string;
   rowType: string;
   injectRows: ResourceTimelineSubRow['injectRows'];
   label: string;
-  parentId: ResourceTimelineSubRow['parentId'];
   renderTimeline: ResourceTimelineSubRow['renderTimeline'];
 }): ResourceTimelineSubRow {
   return {
@@ -74,9 +69,8 @@ export function createTimelineSubRow({
     label,
     injectRows,
     matches: item => item.type === rowType,
-    parentId,
-    renderLabel: (_item, context) => (
-      <TimelineSubRowLabel workerName={context?.workerName}>{label}</TimelineSubRowLabel>
+    renderLabel: (_item, description) => (
+      <TimelineSubRowLabel description={description}>{label}</TimelineSubRowLabel>
     ),
     renderTimeline,
   };

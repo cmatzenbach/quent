@@ -44,26 +44,12 @@ describe('mapTreeItems', () => {
 });
 
 describe('createTimelineSubRow', () => {
-  it('reports the row a sub-row belongs to through parentId', () => {
-    const subRow = createTimelineSubRow({
-      id: 'demo',
-      rowType: 'demo-row',
-      label: 'Demo',
-      injectRows: root => root,
-      parentId: row => row.id.replace('demo:', ''),
-      renderTimeline: () => null,
-    });
-
-    expect(subRow.parentId(item('demo:res-1', 'demo-row'))).toBe('res-1');
-  });
-
   it('keeps its label as plain text', () => {
     const subRow = createTimelineSubRow({
       id: 'demo',
       rowType: 'demo-row',
       label: 'Demo',
       injectRows: root => root,
-      parentId: () => undefined,
       renderTimeline: () => null,
     });
 
@@ -76,30 +62,14 @@ describe('TimelineSubRowLabel', () => {
     render(<TimelineSubRowLabel>Entities</TimelineSubRowLabel>);
 
     expect(screen.getByText('Entities')).toBeInTheDocument();
-    expect(screen.queryByText('Worker:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Worker: worker-0')).not.toBeInTheDocument();
   });
 
-  it('shows the worker in the same column as the label', () => {
-    render(<TimelineSubRowLabel workerName="worker-0">Entities</TimelineSubRowLabel>);
+  it('shows the description in the same column as the label', () => {
+    render(<TimelineSubRowLabel description="Worker: worker-0">Entities</TimelineSubRowLabel>);
 
-    expect(screen.getByText('worker-0')).toBeInTheDocument();
-    expect(screen.getByText('Worker:').closest('span')?.parentElement).toBe(
+    expect(screen.getByText('Worker: worker-0').parentElement).toBe(
       screen.getByText('Entities').parentElement
     );
-  });
-
-  it('passes the worker from the row context to the label', () => {
-    const subRow = createTimelineSubRow({
-      id: 'demo',
-      rowType: 'demo-row',
-      label: 'Demo',
-      injectRows: root => root,
-      parentId: () => undefined,
-      renderTimeline: () => null,
-    });
-
-    render(<>{subRow.renderLabel(item('demo:1', 'demo-row'), { workerName: 'worker-2' })}</>);
-
-    expect(screen.getByText('worker-2')).toBeInTheDocument();
   });
 });
