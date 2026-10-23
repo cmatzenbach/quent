@@ -341,7 +341,7 @@ export function useResourceTimelinesTreeModel({
   });
 
   const renderLabel = useCallback(
-    (item: TimelineTreeItem, description?: ReactNode) => {
+    (item: TimelineTreeItem, description?: ReactNode, isPinned?: boolean) => {
       const subRow = subRows.find(candidate => candidate.matches(item));
       if (subRow) {
         return subRow.renderLabel(item, description);
@@ -360,6 +360,7 @@ export function useResourceTimelinesTreeModel({
         <ResourceColumn
           item={item as TreeTableItem}
           description={description}
+          className={isPinned ? undefined : 'cursor-pointer'}
           selectedType={selectedType}
           onTypeChange={(itemId, newType) => {
             setSelectedTypes(previous => new Map(previous).set(itemId, newType));
