@@ -8,7 +8,7 @@ import { useQueryPlanVisualization } from '@/hooks/useQueryPlanVisualization';
 import {
   Badge,
   getSelectedOperatorCountsByPlan,
-  LoadingStatus,
+  LoadingStatusOverlay,
   TreeSelect,
 } from '@quent/components';
 import { thinScrollbarClass, type QueryPlanDataItem } from '@quent/components';
@@ -131,10 +131,8 @@ export function QueryPlan({ queryId, engineId }: { queryId: string; engineId: st
   // handle loading and error states
   if (queryBundleLoading) {
     return (
-      <div className="w-full flex flex-col h-full">
-        <div className="flex justify-center items-center h-full">
-          <LoadingStatus label="Loading query plan…" />
-        </div>
+      <div className="relative h-full w-full">
+        <LoadingStatusOverlay label="Loading query plan…" />
       </div>
     );
   }
@@ -269,8 +267,8 @@ export function QueryPlan({ queryId, engineId }: { queryId: string; engineId: st
             <div className="flex-1 min-h-0">
               <Suspense
                 fallback={
-                  <div className="flex items-center justify-center h-full">
-                    <LoadingStatus label="Loading visualization…" />
+                  <div className="relative h-full">
+                    <LoadingStatusOverlay />
                   </div>
                 }
               >
