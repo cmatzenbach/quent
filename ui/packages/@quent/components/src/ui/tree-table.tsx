@@ -1150,7 +1150,7 @@ export function TreeTable<I extends TreeTableDataItem>({
                   <Button
                     variant="ghost"
                     size="xs"
-                    className="h-7 w-full justify-start rounded-none px-2 font-semibold text-muted-foreground"
+                    className="h-7 w-full justify-start rounded-none px-2 font-semibold text-muted-foreground hover:bg-transparent"
                     aria-expanded={!isPinnedCollapsed}
                     onClick={onTogglePinnedCollapsed}
                   >
