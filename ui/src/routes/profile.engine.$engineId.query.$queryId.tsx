@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react';
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
 import { queryBundleQueryOptions } from '@quent/client';
-import { LoadingStatusOverlay } from '@quent/components';
+import { LoadingOverlay } from '@quent/components';
 import { queryClient } from '@/lib/queryClient';
 import type { QueryBundle, EntityRef } from '@quent/utils';
 import { cn } from '@quent/utils';
@@ -17,7 +17,7 @@ export const Route = createFileRoute('/profile/engine/$engineId/query/$queryId')
   errorComponent: RouteError,
   pendingComponent: () => (
     <div className="relative h-full min-h-[calc(100vh-4rem)]">
-      <LoadingStatusOverlay label="Loading query…" />
+      <LoadingOverlay label="Loading query…" />
     </div>
   ),
   pendingMs: 200,

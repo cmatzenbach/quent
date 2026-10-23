@@ -5,31 +5,7 @@ import { useEffect, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { cn } from '@quent/utils';
 
-export interface LoadingStatusProps {
-  label?: string;
-  className?: string;
-}
-
-/** Shows a loading spinner with an optional visible status label. */
-export function LoadingStatus({ label, className }: LoadingStatusProps) {
-  return (
-    <span
-      role="status"
-      aria-live="polite"
-      aria-label={label ? undefined : 'Loading'}
-      className={cn(
-        'flex items-center rounded-lg border bg-card text-sm font-medium text-foreground shadow-lg',
-        label ? 'gap-2 px-4 py-2.5' : 'p-2.5',
-        className
-      )}
-    >
-      <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" />
-      {label}
-    </span>
-  );
-}
-
-export interface LoadingStatusOverlayProps {
+export interface LoadingOverlayProps {
   label?: string;
   className?: string;
   delayMs?: number;
@@ -39,7 +15,7 @@ export interface LoadingStatusOverlayProps {
  * Dims the nearest positioned (`relative`) parent and shows a centered loading status.
  * Clicks pass through to the content underneath.
  */
-export function LoadingStatusOverlay({ label, className, delayMs = 0 }: LoadingStatusOverlayProps) {
+export function LoadingOverlay({ label, className, delayMs = 0 }: LoadingOverlayProps) {
   const [delayElapsed, setDelayElapsed] = useState(false);
 
   useEffect(() => {
@@ -61,7 +37,18 @@ export function LoadingStatusOverlay({ label, className, delayMs = 0 }: LoadingS
         className
       )}
     >
-      <LoadingStatus label={label} />
+      <span
+        role="status"
+        aria-live="polite"
+        aria-label={label ? undefined : 'Loading'}
+        className={cn(
+          'flex items-center rounded-lg border bg-card text-sm font-medium text-foreground shadow-lg',
+          label ? 'gap-2 px-4 py-2.5' : 'p-2.5'
+        )}
+      >
+        <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" />
+        {label}
+      </span>
     </div>
   );
 }
