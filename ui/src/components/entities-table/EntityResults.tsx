@@ -6,7 +6,7 @@ import { ChevronDown, ChevronFirst, ChevronLast, ChevronUp } from 'lucide-react'
 import {
   DataText,
   Input,
-  LoadingOverlay,
+  LoadingStatusOverlay,
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -152,7 +152,7 @@ export function EntityResults({
           )}
         </div>
 
-        {requestPending && <LoadingOverlay label={isLoading ? 'Loading…' : 'Updating…'} />}
+        {requestPending && <LoadingStatusOverlay label={isLoading ? 'Loading…' : 'Updating…'} />}
       </div>
 
       <div className="shrink-0 border-t bg-card p-2 flex items-center justify-between text-xs text-muted-foreground">
