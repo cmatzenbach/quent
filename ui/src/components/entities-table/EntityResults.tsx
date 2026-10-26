@@ -115,13 +115,16 @@ export function EntityResults({
   return (
     <>
       <div className="relative flex-1 min-h-0">
-        <div aria-busy={requestPending} className={cn('h-full overflow-auto', thinScrollbarClass)}>
+        <div
+          aria-busy={requestPending}
+          className={cn('flex h-full flex-col overflow-auto', thinScrollbarClass)}
+        >
           {isError ? (
             <div className="p-4 text-sm text-destructive">
               Failed to load entities: {error instanceof Error ? error.message : 'unknown error'}
             </div>
           ) : (
-            <Table containerClassName="relative w-full overflow-x-visible">
+            <Table containerClassName="relative w-full shrink-0 overflow-x-visible">
               <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow>
                   <TableHead>Instance</TableHead>
@@ -155,6 +158,7 @@ export function EntityResults({
           )}
           {!isError && !isLoading && !hasValidationErrors && rows.length === 0 && (
             <EmptyState
+              className="h-auto min-h-0 flex-1"
               title="No entities found"
               description="No entities match the current filters."
               action={
