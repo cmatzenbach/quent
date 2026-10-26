@@ -173,7 +173,9 @@ export function EntityResults({
           )}
         </div>
 
-        {requestPending && <LoadingOverlay label={isLoading ? 'Loading…' : 'Updating…'} />}
+        {requestPending && (
+          <LoadingOverlay label={isLoading ? 'Loading…' : 'Updating…'} delayMs={200} />
+        )}
       </div>
 
       <div className="shrink-0 border-t bg-card p-2 flex items-center justify-between text-xs text-muted-foreground">
