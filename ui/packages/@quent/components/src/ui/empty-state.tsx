@@ -6,13 +6,10 @@ import { SearchX } from 'lucide-react';
 import { cn } from '@quent/utils';
 
 export interface EmptyStateProps {
-  /** Short headline, e.g. "No data". */
   title: ReactNode;
-  /** Optional supporting text that explains why it is empty or what to do next. */
   description?: ReactNode;
-  /** Icon shown above the title. Defaults to a "search" icon. */
   icon?: ComponentType<{ className?: string }>;
-  /** Optional call to action, usually a `Button`. */
+  /** Optional action, usually a `Button`. */
   action?: ReactNode;
   /** `compact` is for short containers like chart rows; it drops the icon tile. */
   size?: 'default' | 'compact';
