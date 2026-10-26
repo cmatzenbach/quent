@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from 'vitest';
-import { reorderPinnedIds, resolvePinnedRows } from './pinnedRows';
+import { findAncestorNames, reorderPinnedIds, resolvePinnedRows } from './pinnedRows';
 
 interface Node {
   id: string;
@@ -145,5 +145,28 @@ describe('reorderPinnedIds', () => {
     reorderPinnedIds(pins, 'a', 'c');
 
     expect([...pins]).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('findAncestorNames', () => {
+  const name = (row: Node) => row.id;
+
+  it('leaves out the root when there is only one', () => {
+    expect(findAncestorNames(fullTree(), 'gpu-2', name)).toEqual(['worker-2']);
+  });
+
+  it('gives an empty path for a row directly under the only root', () => {
+    expect(findAncestorNames(fullTree(), 'worker-1', name)).toEqual([]);
+  });
+
+  it('keeps each root when there is more than one', () => {
+    const roots = [...fullTree(), group('root-b', group('worker-3', leaf('gpu-3')))];
+
+    expect(findAncestorNames(roots, 'gpu-2', name)).toEqual(['root', 'worker-2']);
+    expect(findAncestorNames(roots, 'gpu-3', name)).toEqual(['root-b', 'worker-3']);
+  });
+
+  it('returns null for a row that is not in the tree', () => {
+    expect(findAncestorNames(fullTree(), 'missing', name)).toBeNull();
   });
 });

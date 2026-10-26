@@ -89,3 +89,38 @@ export function reorderPinnedIds(
   order.splice(to, 0, activeId);
   return new Set(order);
 }
+
+/**
+ * Names of the rows above `targetId`, outermost first, or null if the row is not in the tree.
+ * With a single root, the root is left out; with more than one root, each root is kept so
+ * the path tells them apart.
+ */
+export function findAncestorNames<T extends TreeNode<T>>(
+  roots: readonly T[],
+  targetId: string,
+  getName: (row: T) => string
+): string[] | null {
+  const keepRoots = roots.length > 1;
+
+  const search = (row: T, above: readonly string[], isRoot: boolean): string[] | null => {
+    if (row.id === targetId) {
+      return [...above];
+    }
+    const next = isRoot && !keepRoots ? above : [...above, getName(row)];
+    for (const child of row.children ?? []) {
+      const found = search(child, next, false);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  };
+
+  for (const root of roots) {
+    const found = search(root, [], true);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}

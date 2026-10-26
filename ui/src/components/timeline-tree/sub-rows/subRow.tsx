@@ -23,9 +23,9 @@ export function TimelineSubRowLabel({
   description?: ReactNode;
 }) {
   return (
-    <span className="flex items-center">
+    <span className="flex min-w-0 items-center">
       <span aria-hidden className="mr-4 h-4 w-4 shrink-0" />
-      <span className="flex flex-col gap-1">
+      <span className="flex min-w-0 flex-col gap-1">
         <span className="text-xs leading-none text-muted-foreground">{children}</span>
         {description != null && (
           <span className="text-[11px] font-normal leading-none text-muted-foreground">

@@ -1086,7 +1086,7 @@ describe('QueryResourceTree — pin buttons', () => {
 
     const [pinnedRow] = await findAllByTestId('pinned-row');
 
-    expect(within(pinnedRow!).getByText('Worker:')).toBeInTheDocument();
+    expect(within(pinnedRow!).getByTestId('pinned-row-path')).toHaveAttribute('title', 'worker-0');
     expect(within(pinnedRow!).getByText('worker-0')).toBeInTheDocument();
     expect(within(pinnedRow!).queryByText(/holodeck/)).not.toBeInTheDocument();
   });
@@ -1118,7 +1118,7 @@ describe('QueryResourceTree — pin buttons', () => {
 
     const [pinnedRow] = await findAllByTestId('pinned-row');
 
-    expect(within(pinnedRow!).queryByText('Worker:')).not.toBeInTheDocument();
+    expect(within(pinnedRow!).queryByTestId('pinned-row-path')).not.toBeInTheDocument();
   });
 
   it('shows no worker line for a pinned row that has no worker', async () => {
@@ -1132,13 +1132,13 @@ describe('QueryResourceTree — pin buttons', () => {
 
     const [pinnedRow] = await findAllByTestId('pinned-row');
 
-    expect(within(pinnedRow!).queryByText('Worker:')).not.toBeInTheDocument();
+    expect(within(pinnedRow!).queryByTestId('pinned-row-path')).not.toBeInTheDocument();
   });
 
   it('does not show the worker line on rows in the tree', async () => {
     const store = createStore();
     store.set(pinnedIdsAtom, new Set([RESOURCE_ID]));
-    const { findAllByTestId, queryAllByText } = renderWithQuery(
+    const { findAllByTestId, queryAllByTestId } = renderWithQuery(
       <JotaiProvider store={store}>
         <QueryResourceTree engineId="engine-1" queryBundle={makeWorkerBundle()} />
       </JotaiProvider>
@@ -1147,7 +1147,7 @@ describe('QueryResourceTree — pin buttons', () => {
     await findAllByTestId('pinned-row');
 
     // The one pinned row shows it; the tree rows do not.
-    expect(queryAllByText('Worker:')).toHaveLength(1);
+    expect(queryAllByTestId('pinned-row-path')).toHaveLength(1);
   });
 });
 

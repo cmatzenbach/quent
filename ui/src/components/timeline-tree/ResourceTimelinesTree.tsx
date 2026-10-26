@@ -7,7 +7,6 @@ import { useCallback, useDeferredValue, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { fetchSingleTimeline, DEFAULT_STALE_TIME } from '@quent/client';
 import {
-  DataText,
   ResourceColumn,
   UsageColumn,
   buildBulkParamsForItem,
@@ -37,11 +36,12 @@ import {
   selectedFsmTypesAtom,
   selectedTypesAtom,
 } from '@/atoms/resourceTree';
-import { resolvePinnedRows } from '@/features/pinned-rows/pinnedRows';
+import { findAncestorNames, resolvePinnedRows } from '@/features/pinned-rows/pinnedRows';
 import { ResourceFilterSearch } from '@/features/resource-filter/ResourceFilterSearch';
 import { filterResourceTree } from '@/features/resource-filter/resourceFilter';
 import { useAutoExpandMatchingAncestors, useExpandedIds } from '@/hooks/useExpandedIds';
 import { usePinnedCollapsed, usePinnedIds } from '@/hooks/usePinnedIds';
+import { PinnedRowPath } from './PinnedRowPath';
 import type { ResourceTimelineSubRow } from './sub-rows';
 import {
   TimelineTreeTable,
@@ -189,30 +189,11 @@ export function useResourceTimelinesTreeModel({
   );
   const getPinnedRowDescription = useCallback(
     (item: TimelineTreeItem) => {
-      const findWorkerName = (
-        row: TimelineTreeItem,
-        workerAbove?: string
-      ): string | null | undefined => {
-        if (row.id === item.id) {
-          return workerAbove;
-        }
+      const names = findAncestorNames([fullTree as TimelineTreeItem], item.id, row => {
         const worker = entities.workers[row.id];
-        const workerAtOrAbove = worker ? workerDisplayName(worker) : workerAbove;
-        for (const child of row.children ?? []) {
-          const name = findWorkerName(child, workerAtOrAbove);
-          if (name !== null) {
-            return name;
-          }
-        }
-        return null;
-      };
-
-      const workerName = findWorkerName(fullTree as TimelineTreeItem);
-      return workerName ? (
-        <>
-          Worker: <DataText className="text-foreground">{workerName}</DataText>
-        </>
-      ) : undefined;
+        return worker ? workerDisplayName(worker) : (getEntityName(row as TreeTableItem) ?? row.id);
+      });
+      return names?.length ? <PinnedRowPath names={names} /> : undefined;
     },
     [entities.workers, fullTree]
   );

@@ -32,8 +32,8 @@ export function ResourceColumn({
 }: ResourceColumnProps): React.ReactNode {
   return (
     <div className={cn('text-foreground flex truncate items-center', className)}>
-      <div>{item.icon && <item.icon className="h-4 w-4 shrink-0 mr-4" />}</div>
-      <div>
+      <div className="shrink-0">{item.icon && <item.icon className="h-4 w-4 shrink-0 mr-4" />}</div>
+      <div className="min-w-0">
         {item?.children?.length ? (
           <ResourceGroupRow
             group={item.entity as ResourceGroup}
