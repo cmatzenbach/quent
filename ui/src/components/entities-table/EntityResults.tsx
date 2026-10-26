@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState, type KeyboardEvent, type MouseEvent } from 'react';
-import { ChevronDown, ChevronFirst, ChevronLast, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronFirst, ChevronLast, ChevronUp, RotateCcw } from 'lucide-react';
 import {
+  Button,
   DataText,
+  EmptyState,
   Input,
   LoadingOverlay,
   Pagination,
@@ -34,6 +36,7 @@ interface EntityResultsProps {
   error: unknown;
   requestPending: boolean;
   hasValidationErrors: boolean;
+  hasNonDefaultSettings: boolean;
   page: number;
   pageCount: number;
   pageSize: number | null;
@@ -47,6 +50,7 @@ interface EntityResultsProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number | null) => void;
   onSortChange: (dir: SortDir) => void;
+  onResetFilters: () => void;
 }
 
 /**
@@ -85,6 +89,7 @@ export function EntityResults({
   error,
   requestPending,
   hasValidationErrors,
+  hasNonDefaultSettings,
   page,
   pageCount,
   pageSize,
@@ -98,6 +103,7 @@ export function EntityResults({
   onPageChange,
   onPageSizeChange,
   onSortChange,
+  onResetFilters,
 }: EntityResultsProps) {
   function handleUsageHeaderClick() {
     onSortChange(sortDir === SORT_ASC ? SORT_DESC : SORT_ASC);
@@ -148,7 +154,18 @@ export function EntityResults({
             </Table>
           )}
           {!isError && !isLoading && !hasValidationErrors && rows.length === 0 && (
-            <div className="p-4 text-sm text-muted-foreground">No entities match the filters.</div>
+            <EmptyState
+              title="No entities found"
+              description="No entities match the current filters."
+              action={
+                hasNonDefaultSettings && (
+                  <Button variant="outline" size="sm" onClick={onResetFilters}>
+                    <RotateCcw />
+                    Reset filters
+                  </Button>
+                )
+              }
+            />
           )}
         </div>
 

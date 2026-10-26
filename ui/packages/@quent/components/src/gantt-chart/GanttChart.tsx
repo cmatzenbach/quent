@@ -228,9 +228,7 @@ export function GanttChart<T extends GanttDatum>({
           autoResize={false}
         />
         {data.length === 0 && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-            {emptyMessage}
-          </div>
+          <div className="pointer-events-none absolute inset-0">{emptyMessage}</div>
         )}
       </HiddenScroll>
       {showPlayhead && <PlayheadLine instance={chartInstance} draggable />}

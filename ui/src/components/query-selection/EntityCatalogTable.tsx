@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useMemo, useState, type ReactNode } from 'react';
-import { RotateCcw, Search } from 'lucide-react';
+import { RotateCcw, Search, type LucideIcon } from 'lucide-react';
 import {
   Button,
   DataText,
+  EmptyState,
   Input,
   Select,
   SelectContent,
@@ -49,6 +50,8 @@ export interface EntityCatalogTableProps<T extends CatalogEntity> {
   isLoading: boolean;
   error: Error | null;
   emptyMessage: string;
+  /** Icon for the "nothing to list" state; the search no-match state keeps its own. */
+  emptyIcon?: LucideIcon;
   onRetry: () => void;
   renderItemLink: (item: T, children: ReactNode, primary: boolean) => ReactNode;
 }
@@ -62,6 +65,7 @@ export function EntityCatalogTable<T extends CatalogEntity>({
   isLoading,
   error,
   emptyMessage,
+  emptyIcon,
   onRetry,
   renderItemLink,
 }: EntityCatalogTableProps<T>) {
@@ -123,7 +127,7 @@ export function EntityCatalogTable<T extends CatalogEntity>({
         ) : error ? (
           <CatalogError error={error} onRetry={onRetry} />
         ) : items.length === 0 ? (
-          <CatalogMessage>{emptyMessage}</CatalogMessage>
+          <CatalogMessage icon={emptyIcon}>{emptyMessage}</CatalogMessage>
         ) : filteredItems.length === 0 ? (
           <CatalogMessage>No matches for “{search}”.</CatalogMessage>
         ) : (
@@ -221,10 +225,6 @@ function CatalogError({ error, onRetry }: { error: Error; onRetry: () => void })
   );
 }
 
-function CatalogMessage({ children }: { children: ReactNode }) {
-  return (
-    <p className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground">
-      {children}
-    </p>
-  );
+function CatalogMessage({ children, icon }: { children: ReactNode; icon?: LucideIcon }) {
+  return <EmptyState title={children} icon={icon} className="flex-1" />;
 }

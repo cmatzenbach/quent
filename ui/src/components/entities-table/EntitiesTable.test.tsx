@@ -392,7 +392,8 @@ describe('EntitiesTable', () => {
 
     renderTable(<EntitiesTable engineId="engine-1" queryId="query-1" queryBundle={queryBundle} />);
 
-    expect(screen.getByText('No entities match the filters.')).toBeInTheDocument();
+    expect(screen.getByText('No entities found')).toBeInTheDocument();
+    expect(screen.getByText('No entities match the current filters.')).toBeInTheDocument();
   });
 
   it('shows error state when the query fails', () => {

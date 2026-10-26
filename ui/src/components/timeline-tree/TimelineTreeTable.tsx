@@ -3,8 +3,10 @@
 
 import { useMemo, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { Activity } from 'lucide-react';
 import {
   DEFAULT_TIMELINE_HEIGHT,
+  EmptyState,
   TimelineActions,
   TimelineController,
   TimelineRuler,
@@ -171,10 +173,10 @@ export function TimelineTreeTable({
             virtualized
             rowHeight={DEFAULT_TIMELINE_HEIGHT}
           />
+        ) : controls.emptyMessage ? (
+          <EmptyState title={controls.emptyMessage} />
         ) : (
-          <div className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">
-            {controls.emptyMessage ?? 'No timeline data available.'}
-          </div>
+          <EmptyState icon={Activity} title="No timeline data available." />
         )}
       </div>
       {children}

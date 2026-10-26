@@ -103,6 +103,8 @@ export type {
   RequiredMultiSelectFieldProps,
   RequiredMultiSelectOption,
 } from './ui/required-multi-select-field';
+export { EmptyState } from './ui/empty-state';
+export type { EmptyStateProps } from './ui/empty-state';
 export { Skeleton } from './ui/skeleton';
 export { LoadingOverlay } from './ui/loading-overlay';
 export type { LoadingOverlayProps } from './ui/loading-overlay';
