@@ -247,7 +247,7 @@ export function OperatorGanttChart({
         isDark={isDark}
         seriesName="operator-span"
         renderItem={renderItem}
-        emptyMessage={<EmptyState size="compact" title="No operator active spans" />}
+        emptyState={<EmptyState size="compact" title="No operator active spans" />}
         cursor="pointer"
         onEvents={handleClick}
         renderTooltip={renderTooltip}

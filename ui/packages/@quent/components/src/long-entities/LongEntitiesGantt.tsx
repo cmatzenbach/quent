@@ -219,7 +219,7 @@ export function LongEntitiesGantt({
       expandable
       expandLabel="Expand entities chart"
       collapseLabel="Collapse entities chart"
-      emptyMessage={
+      emptyState={
         noUsagesInRange ? (
           <EmptyState size="compact" title="No entities in the selected time range" />
         ) : (
