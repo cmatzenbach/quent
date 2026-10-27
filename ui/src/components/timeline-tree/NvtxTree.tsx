@@ -345,7 +345,7 @@ export function useNvtxTreeModel({
   );
 
   const renderLabel = useCallback(
-    (item: TimelineTreeItem, description?: ReactNode) => {
+    (item: TimelineTreeItem, description?: ReactNode, isPinned?: boolean) => {
       if (item.type === NVTX_SECTION_ROW_TYPE) {
         return catalog ? (
           <NvtxSectionLabel
@@ -389,13 +389,17 @@ export function useNvtxTreeModel({
       if (item.type === NVTX_LANE_ROW_TYPE) {
         const label = isNvtxTreeEntity(item.entity) ? nvtxLaneLabel(item.entity) : '';
         return (
-          <span className="flex min-w-0 flex-col gap-1">
-            <span className="truncate text-xs leading-none text-muted-foreground">{label}</span>
-            {description != null && (
-              <span className="text-[11px] font-normal leading-none text-muted-foreground">
-                {description}
-              </span>
-            )}
+          <span className="flex min-w-0 items-center">
+            {/* Pinned rows have an icon column; leave the same gap so the names line up. */}
+            {isPinned && <span aria-hidden className="mr-4 h-4 w-4 shrink-0" />}
+            <span className="flex min-w-0 flex-col gap-1">
+              <span className="truncate text-xs leading-none text-muted-foreground">{label}</span>
+              {description != null && (
+                <span className="text-[11px] font-normal leading-none text-muted-foreground">
+                  {description}
+                </span>
+              )}
+            </span>
           </span>
         );
       }
