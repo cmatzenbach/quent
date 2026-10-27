@@ -27,13 +27,13 @@ vi.mock('../timeline/timelineEchartsTheme', () => ({
 vi.mock('../gantt-chart/GanttChart', () => ({
   GanttChart: (props: {
     collapseLabel: string;
-    emptyMessage: ReactNode;
+    emptyState: ReactNode;
     expandable: boolean;
     expandLabel: string;
     maxHeight: number;
   }) => {
     mocks.ganttChart(props);
-    return <div>{props.emptyMessage}</div>;
+    return <div>{props.emptyState}</div>;
   },
 }));
 
