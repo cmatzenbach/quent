@@ -3,7 +3,7 @@
 
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { ChartGantt } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useNvtxStream, type NvtxCategoryFilter } from '@quent/client';
 import {
   DEFAULT_TIMELINE_HEIGHT,
@@ -29,10 +29,15 @@ import {
   selectedNvtxCategoriesAtom,
   selectedNvtxDomainAtom,
 } from '@/atoms/resourceTree';
+import { resolvePinnedRows } from '@/features/pinned-rows/pinnedRows';
 import { useAutoExpandMatchingAncestors, useExpandedIds } from '@/hooks/useExpandedIds';
+import { usePinnedCollapsed, usePinnedIds } from '@/hooks/usePinnedIds';
+import { PinnedRowPath } from './PinnedRowPath';
 import {
   TimelineTreeTable,
   useTimelineTreeSetup,
+  type PinningControls,
+  type RowPinning,
   type TimelineTreeControls,
   type TimelineTreeItem,
   type TimelineTreeModel,
@@ -41,6 +46,7 @@ import {
 const NVTX_ALL_DOMAINS = '__all__';
 const NVTX_ALL_CATEGORIES = '__all__';
 const NVTX_UNCATEGORIZED = '__uncategorized__';
+const NVTX_PATH_ROOT_NAME = 'NVTX';
 
 function nvtxDomainDisplayName(
   domain: NvtxCatalog['domains'][number],
@@ -288,6 +294,48 @@ export function useNvtxTreeModel({
         : new Set<string>(),
     [filterResult, resourceFilter.showOthers]
   );
+  const { pinnedIds, togglePin, movePin, isAtPinLimit } = usePinnedIds();
+  const { isPinnedCollapsed, togglePinnedCollapsed } = usePinnedCollapsed();
+  // A pin whose row a filter or the domain selector has removed is hidden, not forgotten.
+  const { shownItems: pinnedItems, hiddenCount: hiddenPinnedCount } = useMemo(
+    () => resolvePinnedRows(pinnedIds, unfilteredTree ? [unfilteredTree] : [], tree ? [tree] : []),
+    [pinnedIds, tree, unfilteredTree]
+  );
+  // Only lane rows have a timeline of their own; the section and domain rows are headers.
+  const rowPinning = useMemo<RowPinning>(
+    () => ({
+      isPinnable: item => item.type === NVTX_LANE_ROW_TYPE,
+      getName: item =>
+        isNvtxTreeEntity(item.entity) ? nvtxLaneLabel(item.entity, true) || item.id : item.id,
+      getDescription: item =>
+        isNvtxTreeEntity(item.entity) && item.entity.nvtxKind !== 'section' ? (
+          <PinnedRowPath names={[NVTX_PATH_ROOT_NAME, item.entity.domain.name]} />
+        ) : undefined,
+    }),
+    []
+  );
+  const pinning = useMemo<PinningControls>(
+    () => ({
+      items: pinnedItems as TimelineTreeItem[],
+      hiddenCount: hiddenPinnedCount,
+      ids: pinnedIds,
+      isAtLimit: isAtPinLimit,
+      onToggle: togglePin,
+      isCollapsed: isPinnedCollapsed,
+      onToggleCollapsed: togglePinnedCollapsed,
+      onReorder: movePin,
+    }),
+    [
+      hiddenPinnedCount,
+      isAtPinLimit,
+      isPinnedCollapsed,
+      movePin,
+      pinnedIds,
+      pinnedItems,
+      togglePin,
+      togglePinnedCollapsed,
+    ]
+  );
   const onZoomChange = useCallback(
     (range: { start: number; end: number }) => {
       setZoomRange(range);
@@ -297,7 +345,7 @@ export function useNvtxTreeModel({
   );
 
   const renderLabel = useCallback(
-    (item: TimelineTreeItem) => {
+    (item: TimelineTreeItem, description?: ReactNode) => {
       if (item.type === NVTX_SECTION_ROW_TYPE) {
         return catalog ? (
           <NvtxSectionLabel
@@ -340,7 +388,16 @@ export function useNvtxTreeModel({
       }
       if (item.type === NVTX_LANE_ROW_TYPE) {
         const label = isNvtxTreeEntity(item.entity) ? nvtxLaneLabel(item.entity) : '';
-        return <span className="truncate text-xs leading-none text-muted-foreground">{label}</span>;
+        return (
+          <span className="flex min-w-0 flex-col gap-1">
+            <span className="truncate text-xs leading-none text-muted-foreground">{label}</span>
+            {description != null && (
+              <span className="text-[11px] font-normal leading-none text-muted-foreground">
+                {description}
+              </span>
+            )}
+          </span>
+        );
       }
       return null;
     },
@@ -384,6 +441,8 @@ export function useNvtxTreeModel({
     onZoomChange,
     renderLabel,
     renderTimeline,
+    pinning,
+    rowPinning,
   };
 }
 
