@@ -180,7 +180,7 @@ export function NvtxGantt({
         expandable
         expandLabel="Expand NVTX chart"
         collapseLabel="Collapse NVTX chart"
-        emptyState={<EmptyState size="compact" title="No NVTX ranges" />}
+        emptyState={<EmptyState size="compact" dimmed title="No NVTX ranges" />}
         showPlayhead
         renderTooltip={renderTooltip}
       />

@@ -221,10 +221,11 @@ export function LongEntitiesGantt({
       collapseLabel="Collapse entities chart"
       emptyState={
         noUsagesInRange ? (
-          <EmptyState size="compact" title="No entities in the selected time range" />
+          <EmptyState size="compact" dimmed title="No entities in the selected time range" />
         ) : (
           <EmptyState
             size="compact"
+            dimmed
             title="No matching entities"
             description={`Showing entities longer than ${formatDuration(minUsageSeconds * 1_000, 1)}. Zoom to see more.`}
           />

@@ -13,6 +13,8 @@ export interface EmptyStateProps {
   action?: ReactNode;
   /** `compact` is for short containers like chart rows; it drops the icon tile. */
   size?: 'default' | 'compact';
+  /** Fades the whole state so it doesn't compete with nearby data, e.g. in charts. */
+  dimmed?: boolean;
   className?: string;
 }
 
@@ -26,6 +28,7 @@ export function EmptyState({
   icon: Icon = SearchX,
   action,
   size = 'default',
+  dimmed = false,
   className,
 }: EmptyStateProps) {
   const compact = size === 'compact';
@@ -34,6 +37,7 @@ export function EmptyState({
       className={cn(
         'flex h-full w-full flex-col items-center justify-center text-center',
         compact ? 'gap-0.5 px-4 py-2' : 'gap-1 p-6',
+        dimmed && 'opacity-50',
         className
       )}
     >
