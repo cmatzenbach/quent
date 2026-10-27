@@ -13,18 +13,21 @@ interface PinnedRowPathProps {
 }
 
 // Where a pinned row sits in the tree, like "worker > resource group". When the column is too
-// narrow the text is cut off with an ellipsis, and the full path shows on hover.
+// narrow, each name is cut off with its own ellipsis so every part of the path stays visible,
+// and the full path shows on hover.
 export function PinnedRowPath({ names }: PinnedRowPathProps) {
   return (
     <span
-      className="block max-w-full truncate"
+      className="flex max-w-full items-center"
       title={names.join(PATH_SEPARATOR)}
       data-testid="pinned-row-path"
     >
       {names.map((name, index) => (
         <Fragment key={index}>
-          {index > 0 && <ChevronRight aria-hidden className="mx-0.5 inline h-3 w-3 align-middle" />}
-          <DataText className="text-foreground">{name}</DataText>
+          {index > 0 && (
+            <ChevronRight aria-hidden className="mx-0.5 h-3 w-3 shrink-0 -translate-y-px" />
+          )}
+          <DataText className="min-w-0 truncate text-foreground">{name}</DataText>
         </Fragment>
       ))}
     </span>
