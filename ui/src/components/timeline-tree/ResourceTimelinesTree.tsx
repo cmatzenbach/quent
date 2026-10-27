@@ -13,6 +13,10 @@ import {
   collectVisibleEntries,
   findItemById,
   getAdaptiveNumBins,
+  LONG_ENTITIES_ROW_TYPE,
+  OPERATOR_TIMELINE_ROW_TYPE,
+  resourceIdFromLongEntitiesRowId,
+  workerIdFromOperatorTimelineRowId,
   transformResourceTree,
   type TreeTableItem,
 } from '@quent/components';
@@ -189,10 +193,27 @@ export function useResourceTimelinesTreeModel({
   );
   const getPinnedRowDescription = useCallback(
     (item: TimelineTreeItem) => {
-      const names = findAncestorNames([fullTree as TimelineTreeItem], item.id, row => {
+      const getName = (row: TimelineTreeItem) => {
         const worker = entities.workers[row.id];
         return worker ? workerDisplayName(worker) : (getEntityName(row as TreeTableItem) ?? row.id);
-      });
+      };
+      const roots = [fullTree as TimelineTreeItem];
+      // Entities and Operators rows belong to a resource or worker, so that owner is part of
+      // the path even when the tree puts it beside the row (Entities) or leaves it out as the
+      // only root (Operators).
+      const ownerId =
+        item.type === LONG_ENTITIES_ROW_TYPE
+          ? resourceIdFromLongEntitiesRowId(item.id)
+          : item.type === OPERATOR_TIMELINE_ROW_TYPE
+            ? workerIdFromOperatorTimelineRowId(item.id)
+            : null;
+      const owner = ownerId != null ? findItemById(fullTree, ownerId) : undefined;
+      if (owner) {
+        const aboveOwner = findAncestorNames(roots, owner.id, getName);
+        const path = aboveOwner ? [...aboveOwner, getName(owner as TimelineTreeItem)] : null;
+        return path ? <PinnedRowPath names={path} /> : undefined;
+      }
+      const names = findAncestorNames(roots, item.id, getName);
       return names?.length ? <PinnedRowPath names={names} /> : undefined;
     },
     [entities.workers, fullTree]

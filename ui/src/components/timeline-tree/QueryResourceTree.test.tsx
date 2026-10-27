@@ -24,6 +24,7 @@ import {
   OPERATOR_TIMELINE_ROW_TYPE,
   type TreeTableItem,
 } from '@quent/components';
+import { operatorTimelineRowId } from '@quent/components';
 import { pinnedIdsAtom, resourceFilterAtom } from '@/atoms/resourceTree';
 import { EMPTY_RESOURCE_FILTER } from '@/features/resource-filter/resourceFilter';
 import type { ResourceTimelineSubRow } from './sub-rows';
@@ -880,6 +881,12 @@ const makeTwoResourceBundle = (): QueryBundle<EntityRef> => {
 };
 
 /** Engine > worker-0 > GPU 0, with an engine name that must not show up on pinned rows. */
+const withPlanWorker = (bundle: QueryBundle<EntityRef>): QueryBundle<EntityRef> =>
+  ({
+    ...bundle,
+    plan_tree: { id: 'plan-1', worker: 'worker-id-1', children: [] },
+  }) as unknown as QueryBundle<EntityRef>;
+
 const makeWorkerBundle = (): QueryBundle<EntityRef> => {
   const bundle = makeBundle();
   const workerId = 'worker-id-1';
@@ -1104,7 +1111,55 @@ describe('QueryResourceTree — pin buttons', () => {
 
     expect(within(pinnedRow!).getByText('Entities')).toBeInTheDocument();
     expect(within(pinnedRow!).getByText('worker-0')).toBeInTheDocument();
+    // The Entities row belongs to the resource beside it, so that resource is in the path.
+    expect(within(pinnedRow!).getByTestId('pinned-row-path')).toHaveAttribute(
+      'title',
+      'worker-0 > GPU 0'
+    );
     expect(within(pinnedRow!).getByRole('button', { name: 'Unpin Entities' })).toBeInTheDocument();
+  });
+
+  it('shows the worker on a pinned Operators row', async () => {
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set([operatorTimelineRowId('worker-id-1')]));
+    const { findAllByTestId } = renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree engineId="engine-1" queryBundle={withPlanWorker(makeWorkerBundle())} />
+      </JotaiProvider>
+    );
+
+    const [pinnedRow] = await findAllByTestId('pinned-row');
+
+    expect(within(pinnedRow!).getByText('Operators')).toBeInTheDocument();
+    expect(within(pinnedRow!).getByTestId('pinned-row-path')).toHaveAttribute('title', 'worker-0');
+  });
+
+  it('shows the worker on a pinned Operators row when the worker is the only root', async () => {
+    const bundle = makeWorkerBundle();
+    const store = createStore();
+    store.set(pinnedIdsAtom, new Set([operatorTimelineRowId('worker-id-1')]));
+    const { findAllByTestId } = renderWithQuery(
+      <JotaiProvider store={store}>
+        <QueryResourceTree
+          engineId="engine-1"
+          queryBundle={
+            {
+              ...withPlanWorker(bundle),
+              resource_tree: {
+                ResourceGroup: {
+                  id: { Worker: 'worker-id-1' },
+                  children: [{ Resource: { Resource: RESOURCE_ID } }],
+                },
+              },
+            } as unknown as QueryBundle<EntityRef>
+          }
+        />
+      </JotaiProvider>
+    );
+
+    const [pinnedRow] = await findAllByTestId('pinned-row');
+
+    expect(within(pinnedRow!).getByTestId('pinned-row-path')).toHaveAttribute('title', 'worker-0');
   });
 
   it('does not label a pinned worker as belonging to itself', async () => {
