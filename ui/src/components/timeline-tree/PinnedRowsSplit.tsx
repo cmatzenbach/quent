@@ -147,7 +147,7 @@ export function PinnedRowsSplit({
           onKeyDown={markUserSized}
         />
       )}
-      <ResizablePanel key="main" id="timeline-tree" minSize="20%" className="min-h-0">
+      <ResizablePanel key="main" id="timeline-tree" minSize="10%" className="min-h-0">
         <div className={`h-full ${STABLE_GUTTER} ${hasPinned ? 'pt-4' : ''}`}>{children}</div>
       </ResizablePanel>
     </ResizablePanelGroup>
