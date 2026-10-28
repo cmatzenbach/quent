@@ -22,7 +22,7 @@ import {
   nvtxLaneLabel,
 } from '@quent/components';
 import { useDebouncedZoomRange, useSetDebouncedZoomRange, useSetZoomRange } from '@quent/hooks';
-import type { EntityRef, NvtxCatalog, QueryBundle } from '@quent/utils';
+import { cn, type EntityRef, type NvtxCatalog, type QueryBundle } from '@quent/utils';
 import {
   expandedIdsAtom,
   resourceFilterAtom,
@@ -390,10 +390,19 @@ export function useNvtxTreeModel({
         const label = isNvtxTreeEntity(item.entity) ? nvtxLaneLabel(item.entity) : '';
         return (
           <span className="flex min-w-0 items-center">
-            {/* Pinned rows have an icon column; leave the same gap so the names line up. */}
-            {isPinned && <span aria-hidden className="mr-4 h-4 w-4 shrink-0" />}
+            {/* Pinned rows get an icon like resource rows, so the names line up. */}
+            {isPinned && (
+              <ChartGantt aria-hidden className="mr-4 h-4 w-4 shrink-0 text-foreground" />
+            )}
             <span className="flex min-w-0 flex-col gap-1">
-              <span className="truncate text-xs leading-none text-muted-foreground">{label}</span>
+              <span
+                className={cn(
+                  'truncate text-xs leading-none',
+                  isPinned ? 'font-bold text-foreground' : 'text-muted-foreground'
+                )}
+              >
+                {label}
+              </span>
               {description != null && (
                 <span className="text-[11px] font-normal leading-none text-muted-foreground">
                   {description}
@@ -415,7 +424,7 @@ export function useNvtxTreeModel({
   );
 
   const renderTimeline = useCallback(
-    (item: TimelineTreeItem) => {
+    (item: TimelineTreeItem, isPinned?: boolean) => {
       if (item.type === NVTX_SECTION_ROW_TYPE || item.type === NVTX_DOMAIN_ROW_TYPE) {
         return <div style={{ minHeight: DEFAULT_TIMELINE_HEIGHT }} />;
       }
@@ -424,7 +433,8 @@ export function useNvtxTreeModel({
           <NvtxGantt
             lanes={lanesByRowId.get(item.id) ?? []}
             durationSeconds={durationSeconds}
-            height={NVTX_GANTT_HEIGHT}
+            // Pinned next to resource rows, keep the same height; the expand control shows more.
+            height={isPinned ? DEFAULT_TIMELINE_HEIGHT : NVTX_GANTT_HEIGHT}
             isDark={isDark}
           />
         );

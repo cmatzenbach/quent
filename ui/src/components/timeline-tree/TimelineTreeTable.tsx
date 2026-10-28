@@ -34,7 +34,7 @@ export interface TimelineTreeModel {
   trees: TimelineTreeItem[];
   // The description is extra context for the row, given only for rows in the pinned section.
   renderLabel: (item: TimelineTreeItem, description?: ReactNode, isPinned?: boolean) => ReactNode;
-  renderTimeline: (item: TimelineTreeItem) => ReactNode;
+  renderTimeline: (item: TimelineTreeItem, isPinned?: boolean) => ReactNode;
   // Which of this tree's rows can be pinned. Trees that leave it out have no pin buttons.
   rowPinning?: RowPinning;
 }
@@ -188,8 +188,8 @@ export function TimelineTreeTable({
             </div>
           ),
           subHeaderContent: <TimelineRuler isDark={isDark} />,
-          render: ({ item }: { item: TimelineTreeItem }) =>
-            modelsByItemId.get(item.id)?.renderTimeline(item) ?? null,
+          render: ({ item, isPinned }: { item: TimelineTreeItem; isPinned?: boolean }) =>
+            modelsByItemId.get(item.id)?.renderTimeline(item, isPinned) ?? null,
         },
       ] satisfies Column<TimelineTreeItem>[],
     [controls.onZoomChange, controls.timelineData, durationSeconds, isDark, modelsByItemId, pinning]
