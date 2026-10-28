@@ -242,7 +242,6 @@ export function TimelineTreeTable({
               ) : undefined
             }
             pinnedCount={pinning?.items.length ?? 0}
-            rowHeight={DEFAULT_TIMELINE_HEIGHT}
             isCollapsed={pinning?.isCollapsed ?? false}
           >
             <TreeTable<TimelineTreeItem>

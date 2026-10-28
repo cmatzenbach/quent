@@ -40,15 +40,19 @@ interface PinnedRowsSplitProps {
   // The pinned rows table. Leave out when nothing is pinned.
   pinned?: ReactNode;
   pinnedCount: number;
-  rowHeight: number;
   isCollapsed: boolean;
   children: ReactNode;
 }
 
-// How tall the pinned table's content is, headers included.
 function contentHeight(panelContent: HTMLElement | null): number | undefined {
   const scroller = panelContent?.querySelector<HTMLElement>('.overflow-y-auto');
   return (scroller?.firstElementChild as HTMLElement | null)?.offsetHeight;
+}
+
+function pinnedRowHeights(panelContent: HTMLElement | null): number[] {
+  return Array.from(panelContent?.querySelectorAll<HTMLElement>('[role="listitem"]') ?? []).map(
+    row => row.offsetHeight
+  );
 }
 
 /**
@@ -58,7 +62,6 @@ function contentHeight(panelContent: HTMLElement | null): number | undefined {
 export function PinnedRowsSplit({
   pinned,
   pinnedCount,
-  rowHeight,
   isCollapsed,
   children,
 }: PinnedRowsSplitProps) {
@@ -83,9 +86,12 @@ export function PinnedRowsSplit({
     if (total === undefined || total === 0) {
       return;
     }
-    // The rows are already counted in the total unless the section starts collapsed.
-    const chrome = Math.max(total - (isCollapsed ? 0 : pinnedCount * rowHeight), 0);
-    const initial = chrome + Math.min(pinnedCount, INITIAL_VISIBLE_PINNED_ROWS) * rowHeight;
+    // Everything that is not a row (headers and the "Pinned" button), then the rows to show.
+    const rowHeights = pinnedRowHeights(contentRef.current);
+    const sum = (heights: number[]) => heights.reduce((acc, height) => acc + height, 0);
+    const chrome = Math.max(total - sum(rowHeights), 0);
+    const shownRows = sum(rowHeights.slice(0, INITIAL_VISIBLE_PINNED_ROWS));
+    const initial = chrome + shownRows;
     openHeightRef.current = initial;
     return whenPanelReady(() => panelRef.current?.resize(isCollapsed ? total : initial));
     // eslint-disable-next-line react-hooks/exhaustive-deps
