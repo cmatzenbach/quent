@@ -108,17 +108,21 @@ vi.mock('@quent/components', async importOriginal => {
       onTogglePinnedCollapsed?: () => void;
       onReorderPinned?: (activeId: string, overId: string) => void;
     }) => {
-      capturedTreeData = props.data;
-      capturedPinnedItems = props.pinnedItems ?? [];
-      capturedHiddenPinnedCount = props.hiddenPinnedCount ?? 0;
-      capturedPinnedCollapse = {
-        isCollapsed: props.isPinnedCollapsed ?? false,
-        toggle: props.onTogglePinnedCollapsed,
-      };
-      capturedReorderPinned = props.onReorderPinned;
-      capturedHighlightedIds = props.highlightedItemIds ?? new Set();
-      capturedExpandedIds = props.controlledExpandedIds ?? new Set();
-      capturedOnExpandChange = props.onExpandChange;
+      // The pinned rows get a table of their own, above the main one.
+      if (props.pinnedItems !== undefined) {
+        capturedPinnedItems = props.pinnedItems;
+        capturedHiddenPinnedCount = props.hiddenPinnedCount ?? 0;
+        capturedPinnedCollapse = {
+          isCollapsed: props.isPinnedCollapsed ?? false,
+          toggle: props.onTogglePinnedCollapsed,
+        };
+        capturedReorderPinned = props.onReorderPinned;
+      } else {
+        capturedTreeData = props.data;
+        capturedHighlightedIds = props.highlightedItemIds ?? new Set();
+        capturedExpandedIds = props.controlledExpandedIds ?? new Set();
+        capturedOnExpandChange = props.onExpandChange;
+      }
       const longEntityElement = props.columns[1]?.render?.({
         item: {
           id: actual.longEntitiesRowId(RESOURCE_ID),

@@ -27,6 +27,7 @@ import type {
 import { useTheme, THEME_DARK } from '@/contexts/ThemeContext';
 import { useTabActionSlots } from '@/components/TabActionSlots';
 import { PinnableRowLabel } from './PinnableRowLabel';
+import { PinnedRowsSplit } from './PinnedRowsSplit';
 
 export type TimelineTreeItem = TreeTableItem<EntityTypeValue | NvtxTreeEntity>;
 
@@ -195,6 +196,21 @@ export function TimelineTreeTable({
     [controls.onZoomChange, controls.timelineData, durationSeconds, isDark, modelsByItemId, pinning]
   );
 
+  const hasPinnedSection = pinning != null && (pinning.items.length > 0 || pinning.hiddenCount > 0);
+
+  // With a pinned panel above, the headers show there once and the main table drops its own.
+  const mainColumns = useMemo(
+    () =>
+      hasPinnedSection
+        ? columns.map(column => ({
+            ...column,
+            headerContent: undefined,
+            subHeaderContent: undefined,
+          }))
+        : columns,
+    [columns, hasPinnedSection]
+  );
+
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
       {slots ? (
@@ -208,23 +224,40 @@ export function TimelineTreeTable({
       )}
       <div className="min-h-0 min-w-0 flex-1">
         {data.length > 0 ? (
-          <TreeTable<TimelineTreeItem>
-            data={data}
-            columns={columns}
-            initialSelectedItemId={controls.initialSelectedItemId}
-            columnWidths={[275, 'auto']}
-            onExpandChange={controls.onExpandChange}
-            pinnedItems={pinning?.items}
-            hiddenPinnedCount={pinning?.hiddenCount}
-            isPinnedCollapsed={pinning?.isCollapsed}
-            onTogglePinnedCollapsed={pinning?.onToggleCollapsed}
-            onReorderPinned={pinning?.onReorder}
-            highlightedItemIds={controls.highlightedItemIds}
-            indicatorItemIds={controls.indicatorItemIds}
-            controlledExpandedIds={controls.expandedIds}
-            virtualized
+          <PinnedRowsSplit
+            pinned={
+              hasPinnedSection ? (
+                <TreeTable<TimelineTreeItem>
+                  data={[]}
+                  columns={columns}
+                  columnWidths={[275, 'auto']}
+                  pinnedItems={pinning.items}
+                  hiddenPinnedCount={pinning.hiddenCount}
+                  isPinnedCollapsed={pinning.isCollapsed}
+                  onTogglePinnedCollapsed={pinning.onToggleCollapsed}
+                  onReorderPinned={pinning.onReorder}
+                  virtualized
+                  rowHeight={DEFAULT_TIMELINE_HEIGHT}
+                />
+              ) : undefined
+            }
+            pinnedCount={pinning?.items.length ?? 0}
             rowHeight={DEFAULT_TIMELINE_HEIGHT}
-          />
+            isCollapsed={pinning?.isCollapsed ?? false}
+          >
+            <TreeTable<TimelineTreeItem>
+              data={data}
+              columns={mainColumns}
+              initialSelectedItemId={controls.initialSelectedItemId}
+              columnWidths={[275, 'auto']}
+              onExpandChange={controls.onExpandChange}
+              highlightedItemIds={controls.highlightedItemIds}
+              indicatorItemIds={controls.indicatorItemIds}
+              controlledExpandedIds={controls.expandedIds}
+              virtualized
+              rowHeight={DEFAULT_TIMELINE_HEIGHT}
+            />
+          </PinnedRowsSplit>
         ) : (
           <EmptyState
             size="compact"

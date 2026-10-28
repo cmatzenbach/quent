@@ -498,8 +498,6 @@ type TreeViewProps = React.HTMLAttributes<HTMLDivElement> & {
 // Timeline rows render at ~75px; keep virtualization estimate aligned with actual row height.
 const DEFAULT_TREE_ROW_HEIGHT = 75;
 const DEFAULT_TREE_OVERSCAN_ROWS = 4;
-// Pinned rows beyond this many scroll inside their own section instead of growing it.
-const MAX_VISIBLE_PINNED_ROWS = 6;
 
 function normalizeTreeData(data: TreeTableDataItem[] | TreeTableDataItem): TreeTableDataItem[] {
   return data instanceof Array ? data : [data];
@@ -1146,7 +1144,7 @@ export function TreeTable<I extends TreeTableDataItem>({
                 </div>
               )}
               {showPinnedSection && (
-                <section aria-label="Pinned rows" className="border-b border-border pb-4">
+                <section aria-label="Pinned rows" className="pb-4">
                   <Button
                     variant="ghost"
                     size="xs"
@@ -1166,7 +1164,6 @@ export function TreeTable<I extends TreeTableDataItem>({
                   {!isPinnedCollapsed && pinnedCount > 0 && (
                     <PinnedRowList
                       items={pinnedItems ?? []}
-                      maxHeight={MAX_VISIBLE_PINNED_ROWS * pinnedRowHeight}
                       rowMinHeight={pinnedRowHeight}
                       rowPaddingLeft={totalLeftSpacing}
                       renderRow={(item, dragArea) => renderRow(item, 0, false, true, dragArea)}
@@ -1175,7 +1172,6 @@ export function TreeTable<I extends TreeTableDataItem>({
                   )}
                 </section>
               )}
-              {showPinnedSection && <div aria-hidden="true" className="h-4" />}
             </div>
             <div style={{ width: `${effectiveWidth}px`, minWidth: `${effectiveWidth}px` }}>
               <TreeView
