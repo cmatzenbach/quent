@@ -45,7 +45,7 @@ interface PinnedRowsSplitProps {
 }
 
 function contentHeight(panelContent: HTMLElement | null): number | undefined {
-  const scroller = panelContent?.querySelector<HTMLElement>('.overflow-y-auto');
+  const scroller = panelContent?.querySelector<HTMLElement>('.overflow-auto');
   return (scroller?.firstElementChild as HTMLElement | null)?.offsetHeight;
 }
 

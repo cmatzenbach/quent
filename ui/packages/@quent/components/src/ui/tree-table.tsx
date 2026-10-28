@@ -8,6 +8,7 @@ import { ChevronRight } from 'lucide-react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@quent/utils';
 import { Button } from './button';
+import { ThinScroll } from './thin-scroll';
 import { PinnedRowList, type PinnedRowDragArea } from './pinned-row-list';
 
 // Tree-table specific styling variants
@@ -1069,9 +1070,10 @@ export function TreeTable<I extends TreeTableDataItem>({
           isLayoutReady ? 'opacity-100' : 'opacity-0'
         )}
       >
-        <div
+        <ThinScroll
           ref={scrollContainerRef}
-          className="w-full min-w-0 max-h-full overflow-x-auto overflow-y-auto overscroll-none"
+          orientation="both"
+          className="w-full min-w-0 max-h-full overscroll-none"
         >
           <div style={{ minWidth: `${effectiveWidth}px` }}>
             {/* Sticky header container */}
@@ -1182,7 +1184,7 @@ export function TreeTable<I extends TreeTableDataItem>({
               />
             </div>
           </div>
-        </div>
+        </ThinScroll>
       </div>
     </div>
   );
