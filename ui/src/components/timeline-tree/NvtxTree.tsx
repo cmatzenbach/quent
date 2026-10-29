@@ -296,12 +296,10 @@ export function useNvtxTreeModel({
   );
   const { pinnedIds, togglePin, movePin, isAtPinLimit } = usePinnedIds();
   const { isPinnedCollapsed, togglePinnedCollapsed } = usePinnedCollapsed();
-  // A pin whose row a filter or the domain selector has removed is hidden, not forgotten.
   const { shownItems: pinnedItems, hiddenCount: hiddenPinnedCount } = useMemo(
     () => resolvePinnedRows(pinnedIds, unfilteredTree ? [unfilteredTree] : [], tree ? [tree] : []),
     [pinnedIds, tree, unfilteredTree]
   );
-  // Only lane rows have a timeline of their own; the section and domain rows are headers.
   const rowPinning = useMemo<RowPinning>(
     () => ({
       isPinnable: item => item.type === NVTX_LANE_ROW_TYPE,
@@ -424,7 +422,7 @@ export function useNvtxTreeModel({
   );
 
   const renderTimeline = useCallback(
-    (item: TimelineTreeItem, isPinned?: boolean) => {
+    (item: TimelineTreeItem) => {
       if (item.type === NVTX_SECTION_ROW_TYPE || item.type === NVTX_DOMAIN_ROW_TYPE) {
         return <div style={{ minHeight: DEFAULT_TIMELINE_HEIGHT }} />;
       }
@@ -433,8 +431,7 @@ export function useNvtxTreeModel({
           <NvtxGantt
             lanes={lanesByRowId.get(item.id) ?? []}
             durationSeconds={durationSeconds}
-            // Pinned next to resource rows, keep the same height; the expand control shows more.
-            height={isPinned ? DEFAULT_TIMELINE_HEIGHT : NVTX_GANTT_HEIGHT}
+            height={NVTX_GANTT_HEIGHT}
             isDark={isDark}
           />
         );

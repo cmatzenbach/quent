@@ -113,7 +113,7 @@ interface PinnedRowListProps<T extends { id: string }> {
 }
 
 /**
- * The pinned rows as a list, as tall as the rows need (the parent decides how much is visible) the user can rearrange by dragging the info cell (name and
+ * The pinned rows as a list, which the user can rearrange by dragging the info cell (name and
  * type), or with the keyboard: focus that cell, press Space, use the arrow keys, then press Space again.
  */
 export function PinnedRowList<T extends { id: string }>({
