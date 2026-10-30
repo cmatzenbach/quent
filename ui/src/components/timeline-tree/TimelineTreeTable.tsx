@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   DEFAULT_TIMELINE_HEIGHT,
@@ -28,6 +28,7 @@ import { useTheme, THEME_DARK } from '@/contexts/ThemeContext';
 import { useTabActionSlots } from '@/components/TabActionSlots';
 import { PinnableRowLabel } from './PinnableRowLabel';
 import { PinnedRowsSplit, STABLE_GUTTER } from './PinnedRowsSplit';
+import { useSyncedHorizontalScroll } from './useSyncedHorizontalScroll';
 
 type TimelineColumnWidths = (number | 'auto')[];
 const DEFAULT_COLUMN_WIDTHS: TimelineColumnWidths = [275, 'auto'];
@@ -216,6 +217,10 @@ export function TimelineTreeTable({
   // The header table and the two body tables are separate, so they share one set of widths.
   const [columnWidths, setColumnWidths] = useState<TimelineColumnWidths>(DEFAULT_COLUMN_WIDTHS);
 
+  // Likewise, each table scrolls horizontally on its own, so keep them at the same offset.
+  const tablesRef = useRef<HTMLDivElement>(null);
+  useSyncedHorizontalScroll(tablesRef, data.length > 0);
+
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
       {slots ? (
@@ -227,7 +232,7 @@ export function TimelineTreeTable({
       ) : (
         <TimelineToolbar durationSeconds={durationSeconds} filters={controls.filters} />
       )}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div ref={tablesRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
         {data.length > 0 && (
           <div className={`shrink-0 ${STABLE_GUTTER}`}>
             <TreeTable<TimelineTreeItem>
