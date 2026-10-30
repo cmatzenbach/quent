@@ -837,11 +837,18 @@ export function TreeTable<I extends TreeTableDataItem>({
   isPinnedCollapsed = false,
   onTogglePinnedCollapsed,
   onReorderPinned,
+  onColumnWidthsChange,
   ...treeViewProps
 }: {
   data: I[];
   columns: Column<I>[];
+  /**
+   * Column widths. Read as the starting widths, and again whenever the array changes, so
+   * several tables can share one set of widths.
+   */
   columnWidths?: ColumnWidth[];
+  /** Called when the user drags a column edge, so the widths can be shared with other tables. */
+  onColumnWidthsChange?: (widths: ColumnWidth[]) => void;
   /** Rows to show in a sticky section above the tree, in the order given. */
   pinnedItems?: I[];
   /** Pinned rows a filter has hidden; only used to explain why they are missing. */
@@ -851,8 +858,26 @@ export function TreeTable<I extends TreeTableDataItem>({
   /** Called when a pinned row is dragged onto another, with the dragged id then the target id. */
   onReorderPinned?: (activeId: string, overId: string) => void;
 } & TreeViewProps) {
-  const [currentColumnWidths, setCurrentColumnWidths] = useState<ColumnWidth[]>(columnWidths);
+  const [currentColumnWidths, setCurrentColumnWidthsState] = useState<ColumnWidth[]>(columnWidths);
   const [hasUserResized, setHasUserResized] = useState(false);
+
+  // Follow width changes made elsewhere (e.g. a sibling table sharing these widths).
+  // Compared by value, since callers often pass a fresh array literal each render.
+  const columnWidthsKey = columnWidths.join(',');
+  const isFirstWidthSync = useRef(true);
+  useEffect(() => {
+    if (isFirstWidthSync.current) {
+      isFirstWidthSync.current = false;
+      return;
+    }
+    setCurrentColumnWidthsState(columnWidths);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnWidthsKey]);
+
+  const setCurrentColumnWidths = (next: ColumnWidth[]) => {
+    setCurrentColumnWidthsState(next);
+    onColumnWidthsChange?.(next);
+  };
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);

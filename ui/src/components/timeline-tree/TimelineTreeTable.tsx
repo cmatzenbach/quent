@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   DEFAULT_TIMELINE_HEIGHT,
@@ -27,7 +27,10 @@ import type {
 import { useTheme, THEME_DARK } from '@/contexts/ThemeContext';
 import { useTabActionSlots } from '@/components/TabActionSlots';
 import { PinnableRowLabel } from './PinnableRowLabel';
-import { PinnedRowsSplit } from './PinnedRowsSplit';
+import { PinnedRowsSplit, STABLE_GUTTER } from './PinnedRowsSplit';
+
+type TimelineColumnWidths = (number | 'auto')[];
+const DEFAULT_COLUMN_WIDTHS: TimelineColumnWidths = [275, 'auto'];
 
 export type TimelineTreeItem = TreeTableItem<EntityTypeValue | NvtxTreeEntity>;
 
@@ -198,18 +201,20 @@ export function TimelineTreeTable({
 
   const hasPinnedSection = pinning != null && (pinning.items.length > 0 || pinning.hiddenCount > 0);
 
-  // With a pinned panel above, the headers show there once and the main table drops its own.
-  const mainColumns = useMemo(
+  // The headers live in their own table above the resizable split so they never scroll away.
+  // The tables below drop theirs.
+  const bodyColumns = useMemo(
     () =>
-      hasPinnedSection
-        ? columns.map(column => ({
-            ...column,
-            headerContent: undefined,
-            subHeaderContent: undefined,
-          }))
-        : columns,
-    [columns, hasPinnedSection]
+      columns.map(column => ({
+        ...column,
+        headerContent: undefined,
+        subHeaderContent: undefined,
+      })),
+    [columns]
   );
+
+  // The header table and the two body tables are separate, so they share one set of widths.
+  const [columnWidths, setColumnWidths] = useState<TimelineColumnWidths>(DEFAULT_COLUMN_WIDTHS);
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
@@ -222,15 +227,26 @@ export function TimelineTreeTable({
       ) : (
         <TimelineToolbar durationSeconds={durationSeconds} filters={controls.filters} />
       )}
-      <div className="min-h-0 min-w-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {data.length > 0 && (
+          <div className={`shrink-0 ${STABLE_GUTTER}`}>
+            <TreeTable<TimelineTreeItem>
+              data={[]}
+              columns={columns}
+              columnWidths={columnWidths}
+              onColumnWidthsChange={setColumnWidths}
+            />
+          </div>
+        )}
         {data.length > 0 ? (
           <PinnedRowsSplit
             pinned={
               hasPinnedSection ? (
                 <TreeTable<TimelineTreeItem>
                   data={[]}
-                  columns={columns}
-                  columnWidths={[275, 'auto']}
+                  columns={bodyColumns}
+                  columnWidths={columnWidths}
+                  onColumnWidthsChange={setColumnWidths}
                   pinnedItems={pinning.items}
                   hiddenPinnedCount={pinning.hiddenCount}
                   isPinnedCollapsed={pinning.isCollapsed}
@@ -246,9 +262,10 @@ export function TimelineTreeTable({
           >
             <TreeTable<TimelineTreeItem>
               data={data}
-              columns={mainColumns}
+              columns={bodyColumns}
               initialSelectedItemId={controls.initialSelectedItemId}
-              columnWidths={[275, 'auto']}
+              columnWidths={columnWidths}
+              onColumnWidthsChange={setColumnWidths}
               onExpandChange={controls.onExpandChange}
               highlightedItemIds={controls.highlightedItemIds}
               indicatorItemIds={controls.indicatorItemIds}

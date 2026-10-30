@@ -13,7 +13,7 @@ const FALLBACK_MIN_HEIGHT = 64;
 
 // Keeps the space for a scrollbar on both tables, so their columns line up whether or not
 // either one is currently scrolling.
-const STABLE_GUTTER = '[&>div>div>div]:[scrollbar-gutter:stable]';
+export const STABLE_GUTTER = '[&>div>div>div]:[scrollbar-gutter:stable]';
 
 // A new panel can't be resized until the group has measured it, and resizing sooner throws.
 // Try again each frame until that has happened. Returns a function that stops trying.
