@@ -86,7 +86,6 @@ export function PinnedRowsSplit({
     if (total === undefined || total === 0) {
       return;
     }
-    // Everything that is not a row (headers and the "Pinned" button), then the rows to show.
     const rowHeights = pinnedRowHeights(contentRef.current);
     const sum = (heights: number[]) => heights.reduce((acc, height) => acc + height, 0);
     const chrome = Math.max(total - sum(rowHeights), 0);
