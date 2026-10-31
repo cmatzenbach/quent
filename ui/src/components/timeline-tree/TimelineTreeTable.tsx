@@ -10,6 +10,7 @@ import {
   TimelineController,
   TimelineRuler,
   TimelineToolbar,
+  PinnedSectionToggle,
   TreeTable,
   nanosToMs,
   type Column,
@@ -253,12 +254,22 @@ export function TimelineTreeTable({
                   columnWidths={columnWidths}
                   onColumnWidthsChange={setColumnWidths}
                   pinnedItems={pinning.items}
-                  hiddenPinnedCount={pinning.hiddenCount}
                   isPinnedCollapsed={pinning.isCollapsed}
-                  onTogglePinnedCollapsed={pinning.onToggleCollapsed}
+                  hiddenPinnedCount={pinning.hiddenCount}
+                  hidePinnedToggle
                   onReorderPinned={pinning.onReorder}
                   virtualized
                   rowHeight={DEFAULT_TIMELINE_HEIGHT}
+                />
+              ) : undefined
+            }
+            pinnedHeader={
+              hasPinnedSection ? (
+                <PinnedSectionToggle
+                  pinnedCount={pinning.items.length}
+                  hiddenCount={pinning.hiddenCount}
+                  isCollapsed={pinning.isCollapsed}
+                  onToggle={pinning.onToggleCollapsed}
                 />
               ) : undefined
             }

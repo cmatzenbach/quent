@@ -39,6 +39,7 @@ function whenPanelReady(apply: () => void): () => void {
 interface PinnedRowsSplitProps {
   // The pinned rows table. Leave out when nothing is pinned.
   pinned?: ReactNode;
+  pinnedHeader?: ReactNode;
   pinnedCount: number;
   isCollapsed: boolean;
   children: ReactNode;
@@ -46,7 +47,12 @@ interface PinnedRowsSplitProps {
 
 function contentHeight(panelContent: HTMLElement | null): number | undefined {
   const scroller = panelContent?.querySelector<HTMLElement>('.overflow-auto');
-  return (scroller?.firstElementChild as HTMLElement | null)?.offsetHeight;
+  const scrolled = (scroller?.firstElementChild as HTMLElement | null)?.offsetHeight;
+  if (scrolled === undefined) {
+    return undefined;
+  }
+  const header = panelContent?.querySelector<HTMLElement>('[data-pinned-header]');
+  return scrolled + (header?.offsetHeight ?? 0);
 }
 
 function pinnedRowHeights(panelContent: HTMLElement | null): number[] {
@@ -61,6 +67,7 @@ function pinnedRowHeights(panelContent: HTMLElement | null): number[] {
  */
 export function PinnedRowsSplit({
   pinned,
+  pinnedHeader,
   pinnedCount,
   isCollapsed,
   children,
@@ -132,8 +139,13 @@ export function PinnedRowsSplit({
           groupResizeBehavior="preserve-pixel-size"
           className="min-h-0"
         >
-          <div ref={contentRef} className={`h-full ${STABLE_GUTTER}`}>
-            {pinned}
+          <div ref={contentRef} className="flex h-full flex-col">
+            {pinnedHeader != null && (
+              <div data-pinned-header className="shrink-0">
+                {pinnedHeader}
+              </div>
+            )}
+            <div className={`min-h-0 flex-1 ${STABLE_GUTTER}`}>{pinned}</div>
           </div>
         </ResizablePanel>
       )}

@@ -88,6 +88,10 @@ vi.mock('@quent/components', async importOriginal => {
       capturedTimelineData = props.timelineData;
       return null;
     },
+    PinnedSectionToggle: (props: { isCollapsed: boolean; onToggle?: () => void }) => {
+      capturedPinnedCollapse = { isCollapsed: props.isCollapsed, toggle: props.onToggle };
+      return null;
+    },
     TreeTable: (props: {
       columns: Array<{
         headerContent?: React.ReactNode;
@@ -104,18 +108,12 @@ vi.mock('@quent/components', async importOriginal => {
       onExpandChange?: (itemId: string, isExpanded: boolean) => void;
       pinnedItems?: TreeTableItem[];
       hiddenPinnedCount?: number;
-      isPinnedCollapsed?: boolean;
-      onTogglePinnedCollapsed?: () => void;
       onReorderPinned?: (activeId: string, overId: string) => void;
     }) => {
       // The pinned rows get a table of their own, above the main one.
       if (props.pinnedItems !== undefined) {
         capturedPinnedItems = props.pinnedItems;
         capturedHiddenPinnedCount = props.hiddenPinnedCount ?? 0;
-        capturedPinnedCollapse = {
-          isCollapsed: props.isPinnedCollapsed ?? false,
-          toggle: props.onTogglePinnedCollapsed,
-        };
         capturedReorderPinned = props.onReorderPinned;
       } else {
         capturedTreeData = props.data;

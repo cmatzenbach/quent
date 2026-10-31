@@ -827,6 +827,37 @@ const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffec
 type ColumnWidth = number | 'auto';
 const DEFAULT_COLUMN_WIDTHS: ColumnWidth[] = [280, 500];
 
+export interface PinnedSectionToggleProps {
+  pinnedCount: number;
+  hiddenCount?: number;
+  isCollapsed: boolean;
+  onToggle?: () => void;
+}
+
+export function PinnedSectionToggle({
+  pinnedCount,
+  hiddenCount = 0,
+  isCollapsed,
+  onToggle,
+}: PinnedSectionToggleProps) {
+  return (
+    <Button
+      variant="ghost"
+      size="xs"
+      className="h-7 w-full justify-start rounded-none px-2 font-semibold text-muted-foreground hover:bg-transparent"
+      aria-expanded={!isCollapsed}
+      onClick={onToggle}
+    >
+      <ChevronRight
+        aria-hidden="true"
+        className={cn('transition-transform', !isCollapsed && 'rotate-90')}
+      />
+      <span>Pinned ({pinnedCount})</span>
+      {hiddenCount > 0 && <span className="font-normal">{hiddenCount} hidden by filter</span>}
+    </Button>
+  );
+}
+
 /** Resizable tree table with sticky headers, column drag-to-resize, and custom row rendering. */
 export function TreeTable<I extends TreeTableDataItem>({
   data,
@@ -836,6 +867,7 @@ export function TreeTable<I extends TreeTableDataItem>({
   hiddenPinnedCount = 0,
   isPinnedCollapsed = false,
   onTogglePinnedCollapsed,
+  hidePinnedToggle = false,
   onReorderPinned,
   onColumnWidthsChange,
   ...treeViewProps
@@ -855,6 +887,7 @@ export function TreeTable<I extends TreeTableDataItem>({
   hiddenPinnedCount?: number;
   isPinnedCollapsed?: boolean;
   onTogglePinnedCollapsed?: () => void;
+  hidePinnedToggle?: boolean;
   /** Called when a pinned row is dragged onto another, with the dragged id then the target id. */
   onReorderPinned?: (activeId: string, overId: string) => void;
 } & TreeViewProps) {
@@ -1172,22 +1205,14 @@ export function TreeTable<I extends TreeTableDataItem>({
               )}
               {showPinnedSection && (
                 <section aria-label="Pinned rows" className="pb-4">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="h-7 w-full justify-start rounded-none px-2 font-semibold text-muted-foreground hover:bg-transparent"
-                    aria-expanded={!isPinnedCollapsed}
-                    onClick={onTogglePinnedCollapsed}
-                  >
-                    <ChevronRight
-                      aria-hidden="true"
-                      className={cn('transition-transform', !isPinnedCollapsed && 'rotate-90')}
+                  {!hidePinnedToggle && (
+                    <PinnedSectionToggle
+                      pinnedCount={pinnedCount}
+                      hiddenCount={hiddenPinnedCount}
+                      isCollapsed={isPinnedCollapsed}
+                      onToggle={onTogglePinnedCollapsed}
                     />
-                    <span>Pinned ({pinnedCount})</span>
-                    {hiddenPinnedCount > 0 && (
-                      <span className="font-normal">{hiddenPinnedCount} hidden by filter</span>
-                    )}
-                  </Button>
+                  )}
                   {!isPinnedCollapsed && pinnedCount > 0 && (
                     <PinnedRowList
                       items={pinnedItems ?? []}
