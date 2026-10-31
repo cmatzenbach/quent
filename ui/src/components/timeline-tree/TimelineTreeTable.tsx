@@ -28,11 +28,15 @@ import type {
 import { useTheme, THEME_DARK } from '@/contexts/ThemeContext';
 import { useTabActionSlots } from '@/components/TabActionSlots';
 import { PinnableRowLabel } from './PinnableRowLabel';
-import { PinnedRowsSplit, STABLE_GUTTER } from './PinnedRowsSplit';
+import { PinnedRowsSplit } from './PinnedRowsSplit';
 import { useSyncedHorizontalScroll } from './useSyncedHorizontalScroll';
 
 type TimelineColumnWidths = (number | 'auto')[];
 const DEFAULT_COLUMN_WIDTHS: TimelineColumnWidths = [275, 'auto'];
+
+// Keeps the space for a scrollbar on every table, so their columns line up whether or not
+// any of them is currently scrolling.
+const STABLE_GUTTER = '[&_[data-tree-table-scroller]]:[scrollbar-gutter:stable]';
 
 export type TimelineTreeItem = TreeTableItem<EntityTypeValue | NvtxTreeEntity>;
 
@@ -233,9 +237,9 @@ export function TimelineTreeTable({
       ) : (
         <TimelineToolbar durationSeconds={durationSeconds} filters={controls.filters} />
       )}
-      <div ref={tablesRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div ref={tablesRef} className={`flex min-h-0 min-w-0 flex-1 flex-col ${STABLE_GUTTER}`}>
         {data.length > 0 && (
-          <div className={`shrink-0 ${STABLE_GUTTER}`}>
+          <div className="shrink-0">
             <TreeTable<TimelineTreeItem>
               data={[]}
               columns={columns}

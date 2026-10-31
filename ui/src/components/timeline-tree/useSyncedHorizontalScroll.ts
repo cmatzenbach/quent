@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useEffect, type RefObject } from 'react';
-
-const SCROLLER_SELECTOR = '.overflow-auto';
+import { TREE_TABLE_SCROLLER_SELECTOR as SCROLLER_SELECTOR } from '@quent/components';
 
 /**
  * Keeps the horizontal scroll position of every table scroller inside `containerRef` the same,

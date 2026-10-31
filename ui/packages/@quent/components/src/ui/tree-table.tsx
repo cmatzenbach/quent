@@ -11,6 +11,9 @@ import { Button } from './button';
 import { ThinScroll } from './thin-scroll';
 import { PinnedRowList, type PinnedRowDragArea } from './pinned-row-list';
 
+// Finds the element that scrolls a table, for callers that sync or measure it from outside.
+export const TREE_TABLE_SCROLLER_SELECTOR = '[data-tree-table-scroller]';
+
 // Tree-table specific styling variants
 const treeVariants = cva(
   'group hover:before:opacity-100 before:absolute before:left-0 before:w-full before:opacity-0 before:h-[2rem] before:-z-10'
@@ -1130,6 +1133,7 @@ export function TreeTable<I extends TreeTableDataItem>({
       >
         <ThinScroll
           ref={scrollContainerRef}
+          data-tree-table-scroller
           orientation="both"
           className="w-full min-w-0 max-h-full overscroll-none"
         >

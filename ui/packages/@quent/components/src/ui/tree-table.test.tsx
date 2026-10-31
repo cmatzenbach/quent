@@ -4,7 +4,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { TreeTable, type Column } from './tree-table';
+import { TREE_TABLE_SCROLLER_SELECTOR, TreeTable, type Column } from './tree-table';
 
 interface Row {
   id: string;
@@ -275,5 +275,13 @@ describe('TreeTable info cell', () => {
       .closest('.group\\/info');
 
     expect(cell).not.toBeNull();
+  });
+});
+
+describe('TreeTable scroller', () => {
+  it('marks its scroll container so callers can find it', () => {
+    const { container } = renderTable();
+
+    expect(container.querySelectorAll(TREE_TABLE_SCROLLER_SELECTOR)).toHaveLength(1);
   });
 });
