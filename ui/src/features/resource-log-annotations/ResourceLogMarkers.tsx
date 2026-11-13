@@ -4,7 +4,7 @@
 import {
   createContext,
   useContext,
-  useLayoutEffect,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -26,8 +26,8 @@ import {
 } from './logAnnotations';
 
 interface ResourceLogMarkersProps {
+  resourceId: string;
   logs: readonly ResourceLogEntry[];
-  selectedLogIds?: readonly string[];
   onSelect: (logIds: readonly string[]) => void;
 }
 
@@ -45,8 +45,15 @@ export function ResourceLogSelectionProvider({
   resourceId,
   logIds,
   children,
-}: ResourceLogSelectionContextValue & { children: ReactNode }) {
-  const value = useMemo(() => ({ resourceId, logIds }), [logIds, resourceId]);
+}: {
+  resourceId: string | null;
+  logIds: readonly string[];
+  children: ReactNode;
+}) {
+  const value = useMemo(
+    () => (resourceId === null ? null : { resourceId, logIds }),
+    [logIds, resourceId]
+  );
   return (
     <ResourceLogSelectionContext.Provider value={value}>
       {children}
@@ -98,7 +105,7 @@ function markerLabel(cluster: ResourceLogCluster): string {
   return `${log.severity} log at ${log.timestampSeconds.toFixed(3)} seconds: ${log.message}`;
 }
 
-export function ResourceLogMarkers({ logs, selectedLogIds, onSelect }: ResourceLogMarkersProps) {
+export function ResourceLogMarkers({ resourceId, logs, onSelect }: ResourceLogMarkersProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [widthPx, setWidthPx] = useState(0);
   const zoomRange = useZoomRange();
@@ -106,7 +113,7 @@ export function ResourceLogMarkers({ logs, selectedLogIds, onSelect }: ResourceL
   const setPlayheadLineTimeMs = useSetPlayheadLineTimeMs();
   const setPlayheadTimeS = useSetPlayheadTimeS();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
@@ -132,9 +139,7 @@ export function ResourceLogMarkers({ logs, selectedLogIds, onSelect }: ResourceL
     [logs, plotWidthPx, zoomRange]
   );
   const selection = useContext(ResourceLogSelectionContext);
-  const contextLogIds =
-    selection?.resourceId === logs[0]?.resourceId ? selection.logIds : EMPTY_LOG_IDS;
-  const activeLogIds = selectedLogIds ?? contextLogIds;
+  const activeLogIds = selection?.resourceId === resourceId ? selection.logIds : EMPTY_LOG_IDS;
   const selectedIds = useMemo(() => new Set(activeLogIds), [activeLogIds]);
   const spanSeconds = zoomRange.end - zoomRange.start;
 

@@ -142,6 +142,7 @@ export function QueryResourceTree({
       }
       return (
         <ResourceLogMarkers
+          resourceId={item.id}
           logs={logs}
           onSelect={logIds => {
             const selectedIds = new Set(logIds);
@@ -182,7 +183,7 @@ export function QueryResourceTree({
 
   return (
     <ResourceLogSelectionProvider
-      resourceId={logSelection?.resourceId ?? ''}
+      resourceId={logSelection?.resourceId ?? null}
       logIds={selectedLogIds}
     >
       <TimelineTreeTable

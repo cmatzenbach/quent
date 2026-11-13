@@ -119,10 +119,6 @@ export function generateMockResourceLogs({
   }).sort((left, right) => left.timestampSeconds - right.timestampSeconds);
 }
 
-export function projectTimestampToPercent(timestampSeconds: number, zoomRange: ZoomRange): number {
-  return ((timestampSeconds - zoomRange.start) / (zoomRange.end - zoomRange.start)) * 100;
-}
-
 export function clusterVisibleLogs({
   logs,
   zoomRange,
@@ -137,33 +133,32 @@ export function clusterVisibleLogs({
   const visible = logs.filter(
     log => log.timestampSeconds >= zoomRange.start && log.timestampSeconds <= zoomRange.end
   );
-  const groups: ResourceLogEntry[][] = [];
+  const groups: Array<{ logs: ResourceLogEntry[]; timestampTotal: number }> = [];
 
   for (const log of visible) {
     const previousGroup = groups[groups.length - 1];
     const previousAnchor = previousGroup
-      ? previousGroup.reduce((total, entry) => total + entry.timestampSeconds, 0) /
-        previousGroup.length
+      ? previousGroup.timestampTotal / previousGroup.logs.length
       : null;
     const distancePx =
       previousAnchor == null
         ? Number.POSITIVE_INFINITY
         : ((log.timestampSeconds - previousAnchor) / spanSeconds) * widthPx;
     if (previousGroup && distancePx < minGapPx) {
-      previousGroup.push(log);
+      previousGroup.logs.push(log);
+      previousGroup.timestampTotal += log.timestampSeconds;
     } else {
-      groups.push([log]);
+      groups.push({ logs: [log], timestampTotal: log.timestampSeconds });
     }
   }
 
-  return groups.map(group => {
+  return groups.map(({ logs: group, timestampTotal }) => {
     const severity = group.reduce<ResourceLogSeverity>(
       (highest, log) =>
         SEVERITY_PRIORITY[log.severity] > SEVERITY_PRIORITY[highest] ? log.severity : highest,
       'info'
     );
-    const anchorSeconds =
-      group.reduce((total, log) => total + log.timestampSeconds, 0) / group.length;
+    const anchorSeconds = timestampTotal / group.length;
     return {
       id: group.map(log => log.id).join('|'),
       resourceId: group[0]!.resourceId,

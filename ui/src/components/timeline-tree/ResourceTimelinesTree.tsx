@@ -437,7 +437,7 @@ export function useResourceTimelinesTreeModel({
     (item: TimelineTreeItem) => {
       const subRow = subRows.find(candidate => candidate.matches(item));
       if (subRow) {
-        // Log annotations belong to resource timeline rows, not derived operator/entity lanes.
+        // Skip overlays on derived operator/entity lanes; annotations belong to resource rows.
         return subRow.renderTimeline(item);
       }
 

@@ -65,7 +65,7 @@ describe('ResourceLogMarkers', () => {
   });
 
   it('renders a numbered cluster and a single flying-v marker', () => {
-    render(<ResourceLogMarkers logs={logs} selectedLogIds={[]} onSelect={vi.fn()} />);
+    render(<ResourceLogMarkers resourceId="resource-1" logs={logs} onSelect={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: /2 logs/i })).toHaveTextContent('2');
     expect(screen.getByRole('button', { name: /error log.*80\.000/i })).toHaveAttribute(
@@ -76,7 +76,7 @@ describe('ResourceLogMarkers', () => {
 
   it('selects stable log ids and moves the shared playhead', () => {
     const onSelect = vi.fn();
-    render(<ResourceLogMarkers logs={logs} selectedLogIds={[]} onSelect={onSelect} />);
+    render(<ResourceLogMarkers resourceId="resource-1" logs={logs} onSelect={onSelect} />);
 
     fireEvent.click(screen.getByRole('button', { name: /2 logs/i }));
 
@@ -87,7 +87,7 @@ describe('ResourceLogMarkers', () => {
   });
 
   it('keeps chart interactions enabled outside marker hit targets', () => {
-    render(<ResourceLogMarkers logs={logs} selectedLogIds={[]} onSelect={vi.fn()} />);
+    render(<ResourceLogMarkers resourceId="resource-1" logs={logs} onSelect={vi.fn()} />);
 
     expect(screen.getByTestId('resource-log-marker-overlay')).toHaveClass('pointer-events-none');
     for (const button of screen.getAllByRole('button')) {

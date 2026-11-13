@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import {
   clusterVisibleLogs,
   generateMockResourceLogs,
-  projectTimestampToPercent,
   type ResourceLogEntry,
 } from './logAnnotations';
 
@@ -122,13 +121,5 @@ describe('clusterVisibleLogs', () => {
         widthPx: 300,
       })
     ).toEqual([]);
-  });
-});
-
-describe('projectTimestampToPercent', () => {
-  it('maps timestamps to their horizontal viewport position', () => {
-    expect(projectTimestampToPercent(10, { start: 10, end: 30 })).toBe(0);
-    expect(projectTimestampToPercent(20, { start: 10, end: 30 })).toBe(50);
-    expect(projectTimestampToPercent(30, { start: 10, end: 30 })).toBe(100);
   });
 });
