@@ -140,8 +140,8 @@ export function clusterVisibleLogs({
   const groups: ResourceLogEntry[][] = [];
 
   for (const log of visible) {
-    const previousGroup = groups.at(-1);
-    const previousLog = previousGroup?.at(-1);
+    const previousGroup = groups[groups.length - 1];
+    const previousLog = previousGroup?.[previousGroup.length - 1];
     const distancePx =
       previousLog == null
         ? Number.POSITIVE_INFINITY
