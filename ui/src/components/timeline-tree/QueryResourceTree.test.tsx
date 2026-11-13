@@ -28,6 +28,7 @@ import { operatorTimelineRowId } from '@quent/components';
 import { pinnedIdsAtom, resourceFilterAtom } from '@/atoms/resourceTree';
 import { EMPTY_RESOURCE_FILTER } from '@/features/resource-filter/resourceFilter';
 import type { ResourceTimelineSubRow } from './sub-rows';
+import type { ResourceLogEntry } from '@/features/resource-log-annotations/logAnnotations';
 
 // ---------------------------------------------------------------------------
 // Mock heavy/visual dependencies so tests run without a real browser/canvas
@@ -79,6 +80,41 @@ let capturedLongEntityProps:
       selectedEntityId?: string;
     }
   | undefined;
+let renderTimelineCells = false;
+
+vi.mock('@/features/resource-log-annotations/ResourceLogMarkers', () => ({
+  ResourceLogSelectionProvider: ({ children }: { children: React.ReactNode }) => children,
+  ResourceLogMarkers: ({
+    logs,
+    onSelect,
+  }: {
+    logs: readonly ResourceLogEntry[];
+    onSelect: (logIds: readonly string[]) => void;
+  }) => (
+    <button
+      type="button"
+      data-testid={`mock-log-marker-${logs[0]?.resourceId}`}
+      onClick={() => onSelect(logs.slice(0, 2).map(log => log.id))}
+    >
+      Mock logs
+    </button>
+  ),
+}));
+
+vi.mock('@/features/resource-log-annotations/ResourceLogInspector', () => ({
+  ResourceLogInspector: ({
+    logs,
+    resourceLabel,
+  }: {
+    logs: readonly ResourceLogEntry[] | null;
+    resourceLabel: string;
+  }) =>
+    logs ? (
+      <div role="dialog" aria-label="Log details">
+        {resourceLabel}: {logs.length} logs
+      </div>
+    ) : null,
+}));
 
 // Mock @quent/components: keep all actual exports but override heavy/visual ones
 vi.mock('@quent/components', async importOriginal => {
@@ -142,6 +178,7 @@ vi.mock('@quent/components', async importOriginal => {
         items.map(item => (
           <React.Fragment key={item.id}>
             {props.columns[0]?.render?.({ item, level })}
+            {renderTimelineCells && props.columns[1]?.render?.({ item, level })}
             {item.children && renderItems(item.children, level + 1)}
           </React.Fragment>
         ));
@@ -308,6 +345,7 @@ beforeEach(() => {
   capturedBulkExtraItems = undefined;
   capturedOnExpandChange = undefined;
   capturedLongEntityProps = undefined;
+  renderTimelineCells = false;
   vi.mocked(clientApi.useNvtxStream).mockReturnValue({
     contextId: undefined,
     catalog: null,
@@ -434,6 +472,41 @@ describe('QueryResourceTree — TimelineController always shows full-range data'
     // TimelineController must still show the full-range data — not the atom value.
     expect(capturedTimelineData?.config.span.start).toBe(0);
     expect(capturedTimelineData?.config.span.end).toBe(DURATION_S);
+  });
+});
+
+describe('QueryResourceTree — mock resource logs', () => {
+  it('adds logs to resource timelines and opens an out-of-tree inspector', async () => {
+    vi.mocked(clientApi.fetchSingleTimeline).mockResolvedValue(makeTimeline(0, DURATION_S));
+    vi.mocked(clientApi.fetchBulkTimelines).mockResolvedValue({ entries: {} } as never);
+    renderTimelineCells = true;
+    const user = userEvent.setup();
+
+    const { getByTestId, queryByTestId, getByRole, queryByRole } = renderWithQuery(
+      <JotaiProvider store={createStore()}>
+        <QueryResourceTree engineId={ENGINE_ID} queryBundle={makeBundle()} />
+      </JotaiProvider>
+    );
+
+    const marker = getByTestId(`mock-log-marker-${RESOURCE_ID}`);
+    expect(marker).toBeInTheDocument();
+    expect(queryByTestId(`mock-log-marker-${ENGINE_ID}`)).toBeNull();
+    expect(queryByTestId(`mock-log-marker-${LONG_ENTITIES_ROW_TYPE}:${RESOURCE_ID}`)).toBeNull();
+
+    await user.click(marker);
+
+    expect(getByRole('dialog', { name: 'Log details' })).toHaveTextContent('GPU 0 (GPU): 2 logs');
+
+    act(() =>
+      capturedLongEntityProps?.onEntitySelect?.({
+        id: 'entity-1',
+        type_name: 'Task',
+        instance_name: 'Task 1',
+        transitions: [],
+      } as FiniteStateMachine)
+    );
+
+    expect(queryByRole('dialog', { name: 'Log details' })).toBeNull();
   });
 });
 

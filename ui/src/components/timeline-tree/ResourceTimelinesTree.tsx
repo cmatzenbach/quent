@@ -84,6 +84,7 @@ export interface ResourceTimelinesTreeProps {
   queryBundle: QueryBundle<EntityRef>;
   subRows?: readonly ResourceTimelineSubRow[];
   seedRootExpanded?: boolean;
+  renderTimelineOverlay?: (item: TimelineTreeItem) => ReactNode;
 }
 
 // Rows from another tree in the same table (the NVTX tree) that share this model's pinned
@@ -110,6 +111,7 @@ export function useResourceTimelinesTreeModel({
   subRows = EMPTY_SUB_ROWS,
   seedRootExpanded = true,
   siblingPinning,
+  renderTimelineOverlay,
 }: UseResourceTimelinesTreeModelProps): ResourceTimelinesTreeModel {
   const { entities, resource_tree: resourceTree } = queryBundle;
   const durationSeconds = queryBundle.duration_s;
@@ -435,10 +437,11 @@ export function useResourceTimelinesTreeModel({
     (item: TimelineTreeItem) => {
       const subRow = subRows.find(candidate => candidate.matches(item));
       if (subRow) {
+        // Log annotations belong to resource timeline rows, not derived operator/entity lanes.
         return subRow.renderTimeline(item);
       }
 
-      return (
+      const timeline = (
         <UsageColumn
           item={item as TreeTableItem}
           engineId={engineId}
@@ -450,6 +453,15 @@ export function useResourceTimelinesTreeModel({
           showPlayheadIndicator={item.id === firstResourceTimelineId}
         />
       );
+      const overlay = renderTimelineOverlay?.(item);
+      return overlay ? (
+        <div className="relative h-full w-full">
+          {timeline}
+          {overlay}
+        </div>
+      ) : (
+        timeline
+      );
     },
     [
       durationSeconds,
@@ -457,6 +469,7 @@ export function useResourceTimelinesTreeModel({
       firstResourceTimelineId,
       isDark,
       queryBundle,
+      renderTimelineOverlay,
       selectedFsmTypes,
       selectedTypes,
       subRows,
@@ -511,6 +524,7 @@ export function ResourceTimelinesTree({
   queryBundle,
   subRows,
   seedRootExpanded,
+  renderTimelineOverlay,
 }: ResourceTimelinesTreeProps) {
   const { durationSeconds, isDark } = useTimelineTreeSetup(queryBundle);
   const resourceTree = useResourceTimelinesTreeModel({
@@ -519,6 +533,7 @@ export function ResourceTimelinesTree({
     isDark,
     subRows,
     seedRootExpanded,
+    renderTimelineOverlay,
   });
   const trees =
     resourceTree.isFilterActive && resourceTree.showOthers && resourceTree.filterMatchCount === 0

@@ -141,11 +141,14 @@ export function clusterVisibleLogs({
 
   for (const log of visible) {
     const previousGroup = groups[groups.length - 1];
-    const previousLog = previousGroup?.[previousGroup.length - 1];
+    const previousAnchor = previousGroup
+      ? previousGroup.reduce((total, entry) => total + entry.timestampSeconds, 0) /
+        previousGroup.length
+      : null;
     const distancePx =
-      previousLog == null
+      previousAnchor == null
         ? Number.POSITIVE_INFINITY
-        : ((log.timestampSeconds - previousLog.timestampSeconds) / spanSeconds) * widthPx;
+        : ((log.timestampSeconds - previousAnchor) / spanSeconds) * widthPx;
     if (previousGroup && distancePx < minGapPx) {
       previousGroup.push(log);
     } else {

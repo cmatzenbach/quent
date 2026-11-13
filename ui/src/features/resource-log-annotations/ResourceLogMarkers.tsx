@@ -1,7 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   useSetDataFlowIsPlaying,
   useSetPlayheadLineTimeMs,
@@ -19,11 +27,32 @@ import {
 
 interface ResourceLogMarkersProps {
   logs: readonly ResourceLogEntry[];
-  selectedLogIds: readonly string[];
+  selectedLogIds?: readonly string[];
   onSelect: (logIds: readonly string[]) => void;
 }
 
 const MARKER_MIN_GAP_PX = 16;
+const EMPTY_LOG_IDS: readonly string[] = [];
+
+interface ResourceLogSelectionContextValue {
+  resourceId: string;
+  logIds: readonly string[];
+}
+
+const ResourceLogSelectionContext = createContext<ResourceLogSelectionContextValue | null>(null);
+
+export function ResourceLogSelectionProvider({
+  resourceId,
+  logIds,
+  children,
+}: ResourceLogSelectionContextValue & { children: ReactNode }) {
+  const value = useMemo(() => ({ resourceId, logIds }), [logIds, resourceId]);
+  return (
+    <ResourceLogSelectionContext.Provider value={value}>
+      {children}
+    </ResourceLogSelectionContext.Provider>
+  );
+}
 
 const severityClasses: Record<ResourceLogSeverity, string> = {
   info: 'fill-sky-500',
@@ -77,7 +106,7 @@ export function ResourceLogMarkers({ logs, selectedLogIds, onSelect }: ResourceL
   const setPlayheadLineTimeMs = useSetPlayheadLineTimeMs();
   const setPlayheadTimeS = useSetPlayheadTimeS();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
@@ -102,7 +131,11 @@ export function ResourceLogMarkers({ logs, selectedLogIds, onSelect }: ResourceL
       }),
     [logs, plotWidthPx, zoomRange]
   );
-  const selectedIds = useMemo(() => new Set(selectedLogIds), [selectedLogIds]);
+  const selection = useContext(ResourceLogSelectionContext);
+  const contextLogIds =
+    selection?.resourceId === logs[0]?.resourceId ? selection.logIds : EMPTY_LOG_IDS;
+  const activeLogIds = selectedLogIds ?? contextLogIds;
+  const selectedIds = useMemo(() => new Set(activeLogIds), [activeLogIds]);
   const spanSeconds = zoomRange.end - zoomRange.start;
 
   return (
