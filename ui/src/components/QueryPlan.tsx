@@ -22,6 +22,7 @@ import {
   DAGNodeInfoPanel,
   DAGSettingsPopover,
   DagPlayhead,
+  useOperatorRuleSelection,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -114,6 +115,7 @@ export function QueryPlan({ queryId, engineId }: { queryId: string; engineId: st
   useDagEdgeColoring(dagData.edges, computeEdgeColoring);
   const operatorStatFields = useOperatorStatFields(dagData.nodes);
   const portStatFields = usePortStatFields(dagData.edges);
+  const { operators: ruleOperators, matchedNodeCount } = useOperatorRuleSelection(dagData.nodes);
 
   const handlePlanSelect = (item: QueryPlanDataItem) => setPlanId(item.id);
   const closeDagSettings = useCallback(() => setDagSettingsOpen(false), []);
@@ -255,6 +257,8 @@ export function QueryPlan({ queryId, engineId }: { queryId: string; engineId: st
         <DAGSettingsPopover
           operatorStatFields={operatorStatFields}
           portStatFields={portStatFields}
+          selectionOperators={ruleOperators}
+          selectionMatchCount={matchedNodeCount}
           isDark={isDark}
           open={dagSettingsOpen}
           onOpenChange={setDagSettingsOpen}
