@@ -251,6 +251,7 @@ export { ResourceTimeline } from './timeline/ResourceTimeline';
 export { DAGChart } from './dag/DAGChart';
 export { DAGControls } from './dag/DAGControls';
 export { DAGSettingsPopover } from './dag/DAGSettingsPopover';
+export { useOperatorRuleSelection } from './dag/useOperatorRuleSelection';
 export { DAGLegend } from './dag/DAGLegend';
 export { DAGNodeInfoPanel } from './dag/DAGNodeInfoPanel';
 export { DagPlayhead } from './dag/DagPlayhead';
