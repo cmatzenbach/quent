@@ -24,6 +24,21 @@ export {
   useSetSelectedPlanId,
 } from './dag/useSelectedPlanId';
 export { useHoveredWorkerId, useSetHoveredWorkerId } from './dag/useHoveredWorkerId';
+export { useOperatorRule, useRuleSelectedNodeIds } from './dag/useOperatorRule';
+export {
+  EMPTY_OPERATOR_RULE,
+  STAT_CONDITION_MODE,
+  isOperatorRuleEmpty,
+  matchOperatorRule,
+} from './dag/operatorRule';
+export type {
+  OperatorRule,
+  OperatorRuleMatch,
+  RuleOperator,
+  StatCondition,
+  StatConditionMode,
+} from './dag/operatorRule';
+export { canRuleAddSelection, planRuleSelectionChanges } from './dag/ruleSelectionPlan';
 
 // Timeline hooks
 export {
