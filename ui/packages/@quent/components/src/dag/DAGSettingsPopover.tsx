@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState } from 'react';
+import type { RuleOperator } from '@quent/hooks';
 import type { StatisticField } from '@quent/utils';
 import { Settings } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -10,6 +11,8 @@ import { DAGControls } from './DAGControls';
 interface DAGSettingsPopoverProps {
   operatorStatFields: StatisticField[];
   portStatFields: StatisticField[];
+  selectionOperators?: readonly RuleOperator[];
+  selectionMatchCount?: number;
   isDark: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -18,6 +21,8 @@ interface DAGSettingsPopoverProps {
 export function DAGSettingsPopover({
   operatorStatFields,
   portStatFields,
+  selectionOperators,
+  selectionMatchCount,
   isDark,
   open: controlledOpen,
   onOpenChange,
@@ -50,6 +55,8 @@ export function DAGSettingsPopover({
         <DAGControls
           operatorStatFields={operatorStatFields}
           portStatFields={portStatFields}
+          selectionOperators={selectionOperators}
+          selectionMatchCount={selectionMatchCount}
           isDark={isDark}
         />
       </PopoverContent>

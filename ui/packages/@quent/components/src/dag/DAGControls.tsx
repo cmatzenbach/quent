@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { SelectField, type SelectFieldOption } from '../ui/select-field';
+import { DAGSelectionControls } from './DAGSelectionControls';
 import {
   useSelectedColorField,
   useSelectedEdgeWidthField,
@@ -20,6 +21,7 @@ import {
   useSetDataFlowLabelMeasure,
   useSetDataFlowSelectedDimensions,
   resolveDataFlowMeasure,
+  type RuleOperator,
 } from '@quent/hooks';
 import {
   buildStatisticFieldPresentations,
@@ -49,6 +51,9 @@ import { RequiredMultiSelectField } from '../ui/required-multi-select-field';
 interface DAGControlsProps {
   operatorStatFields: StatisticField[];
   portStatFields: StatisticField[];
+  /** Operators of the open query. The Selection section is hidden when omitted. */
+  selectionOperators?: readonly RuleOperator[];
+  selectionMatchCount?: number;
   /** Whether dark mode is active. Passed explicitly to decouple from ThemeContext. */
   isDark: boolean;
 }
@@ -84,7 +89,13 @@ function statisticFieldOptions(fields: StatisticField[]): SelectFieldOption[] {
 }
 
 /** DAG visual control toolbar: node color, edge width, edge color, node label field selectors. */
-export const DAGControls = ({ operatorStatFields, portStatFields, isDark }: DAGControlsProps) => {
+export const DAGControls = ({
+  operatorStatFields,
+  portStatFields,
+  selectionOperators,
+  selectionMatchCount = 0,
+  isDark,
+}: DAGControlsProps) => {
   const [colorField, setColorField] = useSelectedColorField();
   const [edgeWidthField, setEdgeWidthField] = useSelectedEdgeWidthField();
   const [edgeColorField, setEdgeColorField] = useSelectedEdgeColorField();
@@ -214,6 +225,14 @@ export const DAGControls = ({ operatorStatFields, portStatFields, isDark }: DAGC
           </ControlField>
         </ControlGrid>
       </ControlSection>
+
+      {selectionOperators && (
+        <DAGSelectionControls
+          operators={selectionOperators}
+          operatorStatFields={operatorStatFields}
+          matchedNodeCount={selectionMatchCount}
+        />
+      )}
 
       {dataFlowMeta && (
         <ControlSection
